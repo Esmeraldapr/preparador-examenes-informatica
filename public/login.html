@@ -19,6 +19,7 @@
 
     <div id="mensaje"></div>
 
+    <!-- Formulario: iniciar sesión -->
     <form id="form-entrar">
       <div class="campo">
         <label>Correo electrónico</label>
@@ -38,6 +39,7 @@
       <button type="submit" class="btn btn-primario btn-bloque">Entrar</button>
     </form>
 
+    <!-- Formulario: crear cuenta -->
     <form id="form-crear" style="display:none">
       <div class="campo">
         <label>Nombre</label>
@@ -76,6 +78,7 @@
     const formCrear = document.getElementById("form-crear");
     const mensaje = document.getElementById("mensaje");
 
+    // Botones de "ojo" para mostrar/ocultar contraseña
     document.querySelectorAll(".btn-ojo").forEach((btn) => {
       btn.addEventListener("click", () => {
         const input = document.getElementById(btn.dataset.objetivo);
@@ -85,6 +88,7 @@
       });
     });
 
+    // Aviso en tiempo real de si las dos contraseñas del registro coinciden
     const passCrear = document.getElementById("crear-pass");
     const passCrear2 = document.getElementById("crear-pass2");
     const avisoCoincide = document.getElementById("aviso-coincide");
@@ -127,6 +131,7 @@
       mensaje.innerHTML = `<div class="mensaje-ok">${texto}</div>`;
     }
 
+    // Recordar el correo entre visitas (solo el correo, nunca la contraseña)
     const campoEmailEntrar = document.getElementById("entrar-email");
     const campoRecordar = document.getElementById("entrar-recordar");
     const correoGuardado = localStorage.getItem("correo_recordado");
@@ -135,6 +140,7 @@
       campoRecordar.checked = true;
     }
 
+    // Si ya hay sesión activa, ir directo al dashboard
     (async () => {
       const sesion = await obtenerSesion();
       if (sesion) window.location.href = "index.html";
@@ -178,6 +184,7 @@
         return;
       }
       if (data.session) {
+        // Confirmación de email desactivada: ya hay sesión
         window.location.href = "index.html";
       } else {
         mostrarOk(
