@@ -12,6 +12,7 @@
   --verde-suave:#dcfce7;
   --rojo:#e11d48;
   --rojo-suave:#fee2e2;
+  --morado-suave:#ede9fe;
   --naranja:#f97316;
   --amarillo:#eab308;
   --fondo:#f5f3ff;
@@ -280,8 +281,8 @@ h2{font-size:1.25rem; margin:0 0 14px;}
   width:28px; height:28px; border-radius:50%; background:#ece9fb; color:var(--morado-osc);
   display:flex; align-items:center; justify-content:center; font-weight:800; font-size:.85rem; flex-shrink:0;
 }
-.opcion.correcta{border-color:var(--verde); background:var(--verde-suave);}
-.opcion.correcta .letra{background:var(--verde); color:#fff;}
+.opcion.correcta{border-color:#a78bfa; background:var(--morado-suave);}
+.opcion.correcta .letra{background:#a78bfa; color:#fff;}
 .opcion.incorrecta{border-color:var(--rojo); background:var(--rojo-suave);}
 .opcion.incorrecta .letra{background:var(--rojo); color:#fff;}
 .opcion.deshabilitada{cursor:default;}
