@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Asignatura · Preparador</title>
+<link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <div class="navbar" id="navbar"></div>
+
+  <div class="contenedor">
+    <h1 id="titulo-asignatura">Cargando…</h1>
+    <p class="subtitulo" id="subtitulo-asignatura"></p>
+
+    <div class="panel" id="zona-vacia" style="display:none; background:#fef3c7; border-color:#fde68a">
+      <strong>📥 Todavía no hay contenido cargado en esta asignatura.</strong>
+      <p class="subtitulo" style="margin:6px 0 0">En cuanto se suban exámenes y preguntas, aparecerán aquí automáticamente.</p>
+    </div>
+
+    <div class="grid-stats" id="stats">
+      <div class="spinner"></div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-cabecera">
+        <h2>📈 Evolución del % de acierto</h2>
+      </div>
+      <canvas id="grafico-evolucion" height="90"></canvas>
+    </div>
+
+    <div class="panel">
+      <div class="panel-cabecera">
+        <h2>🗓️ Actividad reciente</h2>
+      </div>
+      <div class="calendario" id="calendario"></div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-cabecera">
+        <h2>Accesos rápidos</h2>
+      </div>
+      <div class="grid-tarjetas" id="accesos"></div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-cabecera">
+        <h2>⚠️ Zona de reinicio</h2>
+      </div>
+      <p class="subtitulo" style="margin-bottom:16px">
+        Esto borra tus estadísticas de aciertos/fallos de esta asignatura y empieza de cero. No afecta a tus preguntas favoritas ni a otras asignaturas.
+      </p>
+      <button id="btn-reiniciar" class="btn btn-peligro">🗑️ Reiniciar mi progreso en esta asignatura</button>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+  <script src="js/config.js"></script>
+  <script src="js/common.js"></script>
+  <script src="js/asignatura.js"></script>
+</body>
+</html>

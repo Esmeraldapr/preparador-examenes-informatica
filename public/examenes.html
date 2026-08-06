@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Cuestionarios · Preparador de Exámenes</title>
+<link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <div class="navbar" id="navbar"></div>
+  <div class="contenedor">
+    <h1>📝 Cuestionarios</h1>
+    <p class="subtitulo"><span id="nombre-asignatura"></span> · Exámenes reales, separados de los tests no oficiales para no confundirlos.</p>
+
+    <div class="panel">
+      <div class="panel-cabecera"><h2>✅ Exámenes oficiales</h2></div>
+      <div class="grid-tarjetas" id="lista-oficiales"><div class="spinner"></div></div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-cabecera"><h2>🟡 Posibles exámenes no oficiales</h2></div>
+      <p class="subtitulo" style="margin-top:-8px">Simulacros, reconstrucciones o bancos de repaso: no confirmados al 100% como examen oficial.</p>
+      <div class="grid-tarjetas" id="lista-no-oficiales"><div class="spinner"></div></div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/config.js"></script>
+  <script src="js/common.js"></script>
+  <script src="js/examenes.js"></script>
+</body>
+</html>

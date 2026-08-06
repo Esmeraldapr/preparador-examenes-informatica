@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Practicar · Preparador de Exámenes</title>
+<link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <div class="navbar" id="navbar"></div>
+  <div class="contenedor">
+    <h1>⚡ Práctica rápida</h1>
+    <p class="subtitulo"><span id="nombre-asignatura"></span> · Elige cómo quieres repasar ahora mismo.</p>
+
+    <div class="grid-tarjetas">
+      <div class="tarjeta">
+        <div class="cabecera g2"><span class="icono">🔁</span><h3>Solo mis fallos</h3></div>
+        <div class="cuerpo">
+          <div class="meta"><span id="contador-fallos">…</span> preguntas por repasar</div>
+        </div>
+        <div class="pie"><a id="enlace-fallos" href="quiz.html?modo=fallos" class="btn btn-primario btn-bloque">Repasar fallos</a></div>
+      </div>
+
+      <div class="tarjeta">
+        <div class="cabecera g4"><span class="icono">⭐</span><h3>Solo mis favoritas</h3></div>
+        <div class="cuerpo">
+          <div class="meta"><span id="contador-favoritos">…</span> preguntas guardadas</div>
+        </div>
+        <div class="pie"><a id="enlace-favoritos" href="quiz.html?modo=favoritos" class="btn btn-primario btn-bloque">Repasar favoritas</a></div>
+      </div>
+    </div>
+
+    <div class="panel" style="margin-top:24px">
+      <div class="panel-cabecera"><h2>🎲 Práctica aleatoria</h2></div>
+
+      <div class="campo" style="max-width:220px">
+        <label>Número de preguntas</label>
+        <select id="num-preguntas">
+          <option value="10">10 preguntas</option>
+          <option value="20" selected>20 preguntas</option>
+          <option value="30">30 preguntas</option>
+          <option value="50">50 preguntas</option>
+        </select>
+      </div>
+
+      <label style="font-weight:600;font-size:.85rem;display:block;margin-bottom:8px">Tipo de preguntas</label>
+      <div class="filtros">
+        <button class="filtro-btn activo" data-tipo="todas">Todas</button>
+        <button class="filtro-btn" data-tipo="oficial">Solo oficiales</button>
+        <button class="filtro-btn" data-tipo="no_oficial">Solo no oficiales</button>
+      </div>
+
+      <button id="btn-aleatorio" class="btn btn-primario">Empezar práctica aleatoria</button>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/config.js"></script>
+  <script src="js/common.js"></script>
+  <script src="js/practica.js"></script>
+</body>
+</html>
