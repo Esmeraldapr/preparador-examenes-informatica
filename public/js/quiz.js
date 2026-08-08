@@ -14,7 +14,10 @@ let preguntasSet = [];
 let favoritosSet = new Set();
 let indice = 0;
 let aciertos = 0;
+let errores = 0;
+let blancos = 0;
 let respondida = false;
+let examenOficialActual = false;
 
 function mezclar(arr) {
   const a = [...arr];
@@ -52,8 +55,9 @@ function mezclar(arr) {
     preguntas = mezclar(data || []);
   } else if (modo === "examen") {
     const examenId = params.get("examen_id");
-    const { data: examen } = await sb.from("examenes").select("nombre").eq("id", examenId).single();
+    const { data: examen } = await sb.from("examenes").select("nombre, tipo").eq("id", examenId).single();
     tituloModo = `📝 ${examen ? examen.nombre : "Cuestionario"}`;
+    examenOficialActual = !!examen && examen.tipo === "oficial";
     const { data } = await sb.from("preguntas").select("*").eq("examen_id", examenId).order("orden", { ascending: true });
     preguntas = data || [];
   } else if (modo === "fallos") {
@@ -120,6 +124,7 @@ function pintarPregunta() {
   const pct = Math.round((indice / preguntasSet.length) * 100);
   const esFav = favoritosSet.has(p.id);
   const letras = ["A", "B", "C", "D", "E", "F"];
+  const esUltima = indice + 1 >= preguntasSet.length;
 
   document.getElementById("zona-quiz").innerHTML = `
     <div class="quiz-barra"><div style="width:${pct}%"></div></div>
@@ -128,8 +133,7 @@ function pintarPregunta() {
         <span class="chip oficial">${indice + 1} / ${preguntasSet.length}</span>
         ${p.unidad ? `<span class="chip no-oficial">${p.unidad}</span>` : ""}
         <button class="estrella ${esFav ? "activa" : ""}" id="btn-favorito" title="Marcar como favorita">⭐</button>
-        <button type="button" class="btn-altavoz" id="btn-altavoz-pregunta" style="margin-left:auto" title="Escuchar la pregunta y las opciones" aria-label="Escuchar la pregunta y las opciones">🔊</button>
-        <button type="button" class="btn-altavoz" id="btn-reportar" title="Reportar un problema con esta pregunta" aria-label="Reportar un problema con esta pregunta">🚩</button>
+        <button type="button" class="btn-altavoz" id="btn-altavoz-pregunta" style="position:static; margin-left:auto" title="Escuchar la pregunta y las opciones" aria-label="Escuchar la pregunta y las opciones">🔊</button>
       </div>
       ${p.imagen_url ? `<img class="ampliable" src="${p.imagen_url}" alt="Imagen de la pregunta" title="Pulsa para ver en grande" style="border-radius:12px;margin-bottom:16px;border:1px solid var(--borde)" />` : ""}
       <div class="enunciado parrafo-leible" title="Pulsa para escuchar desde aquí">${p.enunciado}</div>
@@ -148,7 +152,7 @@ function pintarPregunta() {
     </div>
     <div class="acciones-quiz">
       <a href="${enlaceAsignatura("asignatura.html", ASIGNATURA_ID)}" class="btn btn-secundario">← Salir</a>
-      <button id="btn-siguiente" class="btn btn-primario" style="display:none">Siguiente →</button>
+      <button id="btn-siguiente" class="btn btn-primario">${esUltima ? "Ver resultado →" : "Siguiente →"}</button>
     </div>
   `;
 
@@ -160,23 +164,6 @@ function pintarPregunta() {
     const opcionesTexto = p.opciones.map((op, i) => `${letras[i]}. ${op}`).join(". ");
     leerTexto(`${p.enunciado}. Opciones: ${opcionesTexto}`, e.currentTarget);
   });
-
-  document.getElementById("btn-reportar").addEventListener("click", () => abrirReporte(p.id));
-}
-
-async function abrirReporte(preguntaId) {
-  const comentario = window.prompt("¿Qué falla en esta pregunta? (respuesta mal marcada, imagen rota, enunciado confuso...)");
-  if (comentario === null) return;
-  const { error } = await sb.from("reportes").insert({
-    usuario_id: usuarioActual.id,
-    pregunta_id: preguntaId,
-    comentario: comentario.trim() || "(sin comentario)",
-  });
-  if (error) {
-    alert("No se ha podido enviar el reporte. Inténtalo de nuevo en un momento.");
-  } else {
-    alert("¡Gracias! Reporte enviado.");
-  }
 }
 
 async function elegirOpcion(el, pregunta) {
@@ -186,6 +173,7 @@ async function elegirOpcion(el, pregunta) {
   const opcionElegida = pregunta.opciones[parseInt(el.dataset.opcion, 10)];
   const esCorrecta = opcionElegida === pregunta.opcion_correcta;
   if (esCorrecta) aciertos++;
+  else errores++;
 
   document.querySelectorAll(".opcion").forEach((o) => {
     o.classList.add("deshabilitada");
@@ -204,10 +192,6 @@ async function elegirOpcion(el, pregunta) {
   document.getElementById("btn-altavoz-explicacion").addEventListener("click", (e) => {
     leerTexto(`${esCorrecta ? "Correcto." : "Incorrecto."} ${pregunta.explicacion}`, e.currentTarget);
   });
-
-  document.getElementById("btn-siguiente").style.display = "inline-flex";
-  document.getElementById("btn-siguiente").textContent =
-    indice + 1 < preguntasSet.length ? "Siguiente →" : "Ver resultado →";
 
   await sb.from("intentos").insert({
     usuario_id: usuarioActual.id,
@@ -230,6 +214,10 @@ async function alternarFavorito(preguntaId) {
 }
 
 function siguientePregunta() {
+  // Si se pulsa "Siguiente" sin haber elegido ninguna opción, la pregunta
+  // queda en blanco: no cuenta como acierto ni como error, y no se guarda intento.
+  if (!respondida) blancos++;
+
   indice++;
   if (indice >= preguntasSet.length) {
     pintarResultado();
@@ -241,11 +229,31 @@ function siguientePregunta() {
 function pintarResultado() {
   const total = preguntasSet.length;
   const pct = Math.round((aciertos / total) * 100);
+
+  let bloqueNota = "";
+  if (examenOficialActual) {
+    const notaBruta = aciertos - errores * 0.33;
+    const notaSobre10 = Math.max(0, (notaBruta / total) * 10);
+    bloqueNota = `
+      <div class="resumen-nota">
+        <div class="stat-mini aciertos"><span class="num">${aciertos}</span>Aciertos</div>
+        <div class="stat-mini blancos"><span class="num">${blancos}</span>En blanco</div>
+        <div class="stat-mini errores"><span class="num">${errores}</span>Errores</div>
+      </div>
+      <p class="subtitulo" style="margin-bottom:6px">Cada error resta 0.33 puntos · los blancos no puntúan ni penalizan.</p>
+      <div class="nota-final">
+        Nota: ${notaBruta.toFixed(2)} / ${total}
+        <span class="sobre-diez">(${notaSobre10.toFixed(2)} / 10)</span>
+      </div>
+    `;
+  }
+
   document.getElementById("zona-quiz").innerHTML = `
     <div class="quiz-barra"><div style="width:100%"></div></div>
     <div class="pregunta-caja resultado-final">
       <div class="porcentaje">${pct}%</div>
       <p style="font-size:1.1rem;font-weight:700;margin:8px 0 4px">${aciertos} de ${total} correctas</p>
+      ${bloqueNota}
       <p class="subtitulo">${
         pct >= 80 ? "¡Excelente trabajo! 🎉" : pct >= 50 ? "Vas por buen camino, sigue practicando 💪" : "Repasa este tema con calma, tú puedes 🙂"
       }</p>

@@ -307,6 +307,23 @@ h2{font-size:1.25rem; margin:0 0 14px;}
 }
 .resultado-final .porcentaje{font-size:3.2rem; font-weight:900; background:var(--grad-1); -webkit-background-clip:text; background-clip:text; color:transparent;}
 
+/* ---------- Resumen de nota (exámenes oficiales) ---------- */
+.resumen-nota{
+  display:flex; gap:14px; justify-content:center; flex-wrap:wrap; margin:22px 0 14px;
+}
+.stat-mini{
+  padding:12px 20px; border-radius:14px; font-weight:700; font-size:.85rem;
+  display:flex; flex-direction:column; align-items:center; gap:2px; min-width:100px;
+}
+.stat-mini .num{font-size:1.6rem; font-weight:900; line-height:1.1;}
+.stat-mini.aciertos{background:var(--verde-suave); color:var(--verde);}
+.stat-mini.blancos{background:#f1f5f9; color:var(--texto-suave);}
+.stat-mini.errores{background:var(--rojo-suave); color:var(--rojo);}
+.nota-final{
+  font-size:1.5rem; font-weight:900; margin:10px 0 4px; color:var(--morado-osc);
+}
+.nota-final .sobre-diez{font-size:1rem; font-weight:700; color:var(--texto-suave); margin-left:6px;}
+
 .vacio{
   text-align:center; padding:50px 20px; color:var(--texto-suave);
 }
