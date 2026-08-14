@@ -115,6 +115,7 @@ function pintarNavbar(activa, usuario, asignatura) {
 
   const enlaces = [
     ["asignatura.html", "🏠", "Dashboard"],
+    ["aula0.html", "🌱", "Aula 0"],
     ["temas.html", "📚", "Repasar Tema"],
     ["practica.html", "⚡", "Practicar"],
     ["examenes.html", "📝", "Cuestionarios"],
