@@ -32,7 +32,11 @@ const COLORES = ["", "g2", "g3", "g4"];
         .map((p) => p.trim())
         .filter(Boolean);
       const parrafosHtml = parrafos
-        .map((p) => `<p class="parrafo-leible" title="Pulsa para escuchar desde aquí">${p}</p>`)
+        .map((p) =>
+          /^<table[\s>]/i.test(p)
+            ? `<div class="tabla-envoltorio">${p}</div>`
+            : `<p class="parrafo-leible" title="Pulsa para escuchar desde aquí">${p}</p>`
+        )
         .join("");
       return `
     <div class="tarjeta">

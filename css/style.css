@@ -123,7 +123,7 @@ h2{font-size:1.25rem; margin:0 0 14px;}
 .tarjeta .cabecera.g4{background:var(--grad-4);}
 .tarjeta .cabecera .icono{font-size:1.8rem;}
 .tarjeta .cabecera h3{margin:8px 28px 0 0; font-size:1.05rem;}
-.tarjeta .cuerpo{padding:16px 20px; flex:1; display:flex; flex-direction:column; gap:10px;}
+.tarjeta .cuerpo{padding:16px 20px; flex:1; display:flex; flex-direction:column; gap:10px; min-width:0;}
 .tarjeta .imagen-truco{width:100%; border-radius:12px; border:1px solid var(--borde); display:block;}
 .btn-altavoz{
   position:absolute; top:16px; right:16px; width:34px; height:34px; border-radius:50%;
@@ -144,16 +144,48 @@ h2{font-size:1.25rem; margin:0 0 14px;}
 .regla-formula:last-child{margin-bottom:0;}
 .regla-formula{cursor:pointer; transition:.15s background, .15s border-color;}
 .regla-formula:hover{background:#f5f3ff; border-color:var(--morado);}
-.tarjeta .meta{font-size:.82rem; color:var(--texto-suave);}
+.tarjeta .meta{font-size:.82rem; color:var(--texto-suave); min-width:0;}
 
 /* ---------- Accesibilidad: párrafos pulsables + lightbox ---------- */
 .parrafo-leible{
   cursor:pointer; border-radius:8px; padding:4px 8px; margin:0 -8px 10px;
   transition:.15s background;
+  overflow-wrap:break-word; word-break:break-word;
 }
 .parrafo-leible:last-child{margin-bottom:0;}
 .parrafo-leible:hover{background:#f5f3ff;}
 .parrafo-leible.leyendo-desde{background:#ede9fe; box-shadow:inset 3px 0 0 var(--morado);}
+
+/* ---------- Tablas incrustadas en explicaciones (gráficas/fórmulas/trucos) ---------- */
+.tabla-envoltorio{
+  max-width:100%;
+  overflow-x:auto;
+  -webkit-overflow-scrolling:touch;
+  margin:0 0 10px;
+  border-radius:10px;
+  border:1px solid var(--borde);
+}
+.tabla-envoltorio:last-child{margin-bottom:0;}
+.tabla-envoltorio table{
+  width:100%;
+  min-width:320px;
+  border-collapse:collapse;
+  font-size:.8rem;
+}
+.tabla-envoltorio th,
+.tabla-envoltorio td{
+  padding:6px 10px;
+  border:1px solid var(--borde);
+  text-align:left;
+  vertical-align:top;
+  overflow-wrap:break-word; word-break:break-word;
+}
+.tabla-envoltorio th{
+  background:#f5f3ff;
+  font-weight:700;
+  color:var(--morado-osc);
+  white-space:nowrap;
+}
 
 .ampliable{cursor:zoom-in;}
 
