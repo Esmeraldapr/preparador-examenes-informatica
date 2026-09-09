@@ -189,6 +189,22 @@ h2{font-size:1.25rem; margin:0 0 14px;}
 
 .ampliable{cursor:zoom-in;}
 
+.control-velocidad-voz{
+  position:fixed; bottom:16px; right:16px; z-index:900;
+  display:flex; align-items:center; gap:6px;
+  background:rgba(43,36,80,.92); color:#fff; padding:6px 10px;
+  border-radius:999px; box-shadow:0 6px 18px rgba(0,0,0,.25);
+  font-size:.85rem;
+}
+.control-velocidad-voz select{
+  border:none; background:rgba(255,255,255,.15); color:#fff; font-size:.82rem;
+  border-radius:999px; padding:4px 8px; cursor:pointer;
+}
+.control-velocidad-voz select option{color:#2b2450;}
+@media (max-width:480px){
+  .control-velocidad-voz{bottom:10px; right:10px; font-size:.78rem;}
+}
+
 #lightbox-overlay{
   position:fixed; inset:0; background:rgba(20,16,40,.85); display:flex;
   align-items:center; justify-content:center; padding:30px; z-index:1000;
