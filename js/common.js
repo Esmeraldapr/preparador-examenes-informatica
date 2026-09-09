@@ -162,6 +162,40 @@ function claveDia(iso) {
 const sintesisVoz = window.speechSynthesis || null;
 let botonVozActivo = null;
 
+const CLAVE_VELOCIDAD_VOZ = "velocidadLecturaWeb";
+let velocidadLectura = parseFloat(localStorage.getItem(CLAVE_VELOCIDAD_VOZ)) || 1;
+
+/** Inserta (una sola vez) el control flotante de velocidad de lectura. */
+function crearControlVelocidadVoz() {
+  if (!sintesisVoz || document.getElementById("control-velocidad-voz")) return;
+  const cont = document.createElement("div");
+  cont.id = "control-velocidad-voz";
+  cont.className = "control-velocidad-voz";
+  cont.title = "Velocidad de la lectura en voz alta";
+  cont.innerHTML = `
+    <span aria-hidden="true">🔊</span>
+    <select id="selector-velocidad-voz" aria-label="Velocidad de lectura en voz alta">
+      <option value="0.75">0.75×</option>
+      <option value="1">1× (normal)</option>
+      <option value="1.25">1.25×</option>
+      <option value="1.5">1.5×</option>
+      <option value="1.75">1.75×</option>
+      <option value="2">2×</option>
+    </select>
+  `;
+  document.body.appendChild(cont);
+  const selector = document.getElementById("selector-velocidad-voz");
+  selector.value = String(velocidadLectura);
+  selector.addEventListener("change", () => {
+    velocidadLectura = parseFloat(selector.value) || 1;
+    localStorage.setItem(CLAVE_VELOCIDAD_VOZ, String(velocidadLectura));
+  });
+}
+document.addEventListener("DOMContentLoaded", crearControlVelocidadVoz);
+if (document.readyState === "complete" || document.readyState === "interactive") {
+  crearControlVelocidadVoz();
+}
+
 /** Detiene cualquier lectura en curso y restaura el icono del botón activo. */
 function detenerLectura() {
   if (sintesisVoz && sintesisVoz.speaking) sintesisVoz.cancel();
@@ -187,7 +221,7 @@ function leerTexto(texto, boton) {
 
   const utterancia = new SpeechSynthesisUtterance(limpio);
   utterancia.lang = "es-ES";
-  utterancia.rate = 0.95;
+  utterancia.rate = velocidadLectura;
 
   if (boton) {
     if (!boton.dataset.iconoReposo) boton.dataset.iconoReposo = boton.textContent;
