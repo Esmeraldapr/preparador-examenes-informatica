@@ -101,7 +101,8 @@ function pintarCabecera() {
 
   document.getElementById("btn-altavoz-unidad").addEventListener("click", (e) => {
     detenerLectura();
-    leerTexto(`${UNIDAD.nombre}. ${UNIDAD.explicacion}`, e.currentTarget);
+    const parrafosUnidad = Array.from(zona.querySelectorAll(".parrafo-leible"));
+    leerTexto(UNIDAD.nombre, parrafosUnidad, e.currentTarget);
   });
 }
 
@@ -171,8 +172,9 @@ function pintarPreguntaAula0() {
   document.querySelectorAll("#opciones-aula0 .opcion").forEach((el) => el.addEventListener("click", () => elegirOpcionAula0(el, p)));
   document.getElementById("btn-siguiente-aula0").addEventListener("click", siguientePreguntaAula0);
   document.getElementById("btn-altavoz-pregunta-aula0").addEventListener("click", (e) => {
-    const letrasTxt = p.opciones.map((op, i) => `${letras[i]}. ${op}`).join(". ");
-    leerTexto(`${p.enunciado}. Opciones: ${letrasTxt}`, e.currentTarget);
+    const enunciadoEl = document.querySelector("#cuerpo-quiz-aula0 .enunciado");
+    const opcionesEls = Array.from(document.querySelectorAll("#opciones-aula0 .opcion"));
+    leerTexto("", [enunciadoEl, ...opcionesEls], e.currentTarget);
   });
 }
 
@@ -199,7 +201,8 @@ function elegirOpcionAula0(el, pregunta) {
     </div>`;
 
   document.getElementById("btn-altavoz-explicacion-aula0").addEventListener("click", (e) => {
-    leerTexto(`${esCorrecta ? "Correcto." : "Incorrecto."} ${pregunta.explicacion}`, e.currentTarget);
+    const explicacionEl = document.querySelector("#zona-explicacion-aula0 .parrafo-leible");
+    leerTexto(esCorrecta ? "Correcto." : "Incorrecto.", explicacionEl, e.currentTarget);
   });
 }
 
