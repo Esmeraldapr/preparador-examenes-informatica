@@ -62,6 +62,7 @@ const COLORES = ["", "g2", "g3", "g4"];
     const boton = e.target.closest(".btn-altavoz");
     if (!boton) return;
     const g = graficas[Number(boton.dataset.idx)];
-    leerTexto(`${g.nombre}. ${g.explicacion}`, boton);
+    const parrafosCarta = Array.from(boton.closest(".tarjeta").querySelectorAll(".parrafo-leible"));
+    leerTexto(g.nombre, parrafosCarta, boton);
   });
 })();
