@@ -161,8 +161,9 @@ function pintarPregunta() {
   document.getElementById("btn-siguiente").addEventListener("click", siguientePregunta);
 
   document.getElementById("btn-altavoz-pregunta").addEventListener("click", (e) => {
-    const opcionesTexto = p.opciones.map((op, i) => `${letras[i]}. ${op}`).join(". ");
-    leerTexto(`${p.enunciado}. Opciones: ${opcionesTexto}`, e.currentTarget);
+    const enunciadoEl = document.querySelector("#zona-quiz .enunciado");
+    const opcionesEls = Array.from(document.querySelectorAll("#opciones .opcion"));
+    leerTexto("", [enunciadoEl, ...opcionesEls], e.currentTarget);
   });
 }
 
@@ -190,7 +191,8 @@ async function elegirOpcion(el, pregunta) {
     </div>`;
 
   document.getElementById("btn-altavoz-explicacion").addEventListener("click", (e) => {
-    leerTexto(`${esCorrecta ? "Correcto." : "Incorrecto."} ${pregunta.explicacion}`, e.currentTarget);
+    const explicacionEl = document.querySelector("#zona-explicacion .parrafo-leible");
+    leerTexto(esCorrecta ? "Correcto." : "Incorrecto.", explicacionEl, e.currentTarget);
   });
 
   await sb.from("intentos").insert({
