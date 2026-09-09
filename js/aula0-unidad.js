@@ -136,6 +136,7 @@ function pintarPreguntaAula0() {
   detenerLectura();
   respondida = false;
   const p = preguntas[indice];
+  p.opciones = mezclarAula0(p.opciones);
   const pct = Math.round((indice / preguntas.length) * 100);
   const letras = ["A", "B", "C", "D", "E", "F"];
   const esUltima = indice + 1 >= preguntas.length;
