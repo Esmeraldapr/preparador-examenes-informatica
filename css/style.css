@@ -155,6 +155,10 @@ h2{font-size:1.25rem; margin:0 0 14px;}
 .parrafo-leible:last-child{margin-bottom:0;}
 .parrafo-leible:hover{background:#f5f3ff;}
 .parrafo-leible.leyendo-desde{background:#ede9fe; box-shadow:inset 3px 0 0 var(--morado);}
+.palabra-tts-activa{
+  background:var(--morado); color:#fff; border-radius:4px;
+  padding:0 2px; margin:0 -2px; box-decoration-break:clone; -webkit-box-decoration-break:clone;
+}
 
 /* ---------- Tablas incrustadas en explicaciones (gráficas/fórmulas/trucos) ---------- */
 .tabla-envoltorio{
