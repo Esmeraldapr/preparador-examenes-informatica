@@ -4,12 +4,20 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Entrar · Preparador de Exámenes</title>
+<link rel="icon" type="image/png" href="img/favicon-64.png" />
+<meta name="description" content="Test de exámenes oficiales para preparar el Grado en Ingeniería Informática." />
+<meta property="og:type" content="website" />
+<meta property="og:title" content="Grado en Ingeniería Informática · Preparador de Exámenes" />
+<meta property="og:description" content="Test de exámenes oficiales para preparar el Grado en Ingeniería Informática." />
+<meta property="og:image" content="https://preparador-ingenieria-informatica.onrender.com/img/og.jpg" />
+<meta property="og:url" content="https://preparador-ingenieria-informatica.onrender.com/" />
+<meta name="twitter:card" content="summary_large_image" />
 <link rel="stylesheet" href="css/style.css" />
 <link rel="stylesheet" href="css/login.css" />
 </head>
 <body class="pagina-login">
   <div class="tarjeta-login">
-    <div class="logo">🎓</div>
+    <img class="logo-img" src="img/logo.png" alt="Logo" width="88" height="88" />
     <h1>Grado en Ingeniería Informática</h1>
     <p class="subtitulo">Preparador de Exámenes</p>
 
@@ -38,6 +46,18 @@
         Recordar mi correo en este dispositivo
       </label>
       <button type="submit" class="btn btn-primario btn-bloque">Entrar</button>
+      <div class="enlace-olvido"><a href="#" id="ir-olvido">¿Has olvidado tu contraseña?</a></div>
+    </form>
+
+    <!-- Formulario: recuperar contraseña -->
+    <form id="form-olvido" style="display:none">
+      <p class="texto-olvido">Escribe tu correo y te enviaremos un enlace para elegir una contraseña nueva.</p>
+      <div class="campo">
+        <label>Correo electrónico</label>
+        <input type="email" id="olvido-email" required autocomplete="email" />
+      </div>
+      <button type="submit" class="btn btn-primario btn-bloque" id="olvido-enviar">Enviarme el enlace</button>
+      <div class="enlace-olvido"><a href="#" id="volver-entrar">← Volver a entrar</a></div>
     </form>
 
     <!-- Formulario: crear cuenta -->
@@ -108,11 +128,15 @@
     passCrear.addEventListener("input", contraseñasCoinciden);
     passCrear2.addEventListener("input", contraseñasCoinciden);
 
+    const formOlvido = document.getElementById("form-olvido");
+    const tabsLogin = document.querySelector(".tabs-login");
     tabEntrar.addEventListener("click", () => {
       tabEntrar.classList.add("activa");
       tabCrear.classList.remove("activa");
       formEntrar.style.display = "block";
       formCrear.style.display = "none";
+      formOlvido.style.display = "none";
+      tabsLogin.style.display = "flex";
       mensaje.innerHTML = "";
     });
     tabCrear.addEventListener("click", () => {
@@ -120,7 +144,43 @@
       tabEntrar.classList.remove("activa");
       formCrear.style.display = "block";
       formEntrar.style.display = "none";
+      formOlvido.style.display = "none";
+      tabsLogin.style.display = "flex";
       mensaje.innerHTML = "";
+    });
+
+    // ---- ¿Has olvidado tu contraseña? ----
+    document.getElementById("ir-olvido").addEventListener("click", (e) => {
+      e.preventDefault();
+      mensaje.innerHTML = "";
+      document.getElementById("olvido-email").value = document.getElementById("entrar-email").value;
+      formEntrar.style.display = "none";
+      formCrear.style.display = "none";
+      tabsLogin.style.display = "none";
+      formOlvido.style.display = "block";
+    });
+    document.getElementById("volver-entrar").addEventListener("click", (e) => {
+      e.preventDefault();
+      tabEntrar.click();
+    });
+    formOlvido.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      mensaje.innerHTML = "";
+      const boton = document.getElementById("olvido-enviar");
+      const email = document.getElementById("olvido-email").value.trim();
+      boton.disabled = true;
+      const { error } = await sb.auth.resetPasswordForEmail(email, {
+        redirectTo: window.location.origin + "/restablecer.html",
+      });
+      boton.disabled = false;
+      if (error) {
+        const limite = /rate|seconds|limit/i.test(error.message);
+        mostrarError(limite
+          ? "Has pedido demasiados correos seguidos. Espera unos minutos y vuelve a intentarlo."
+          : "No se pudo enviar el correo: " + error.message);
+        return;
+      }
+      mostrarOk("Listo. Si ese correo tiene cuenta, te llegará un enlace para cambiar la contraseña. Mira también en spam.");
     });
 
     function mostrarError(texto) {

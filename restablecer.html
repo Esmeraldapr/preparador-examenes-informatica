@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Nueva contraseña · Preparador de Exámenes</title>
+<link rel="icon" type="image/png" href="img/favicon-64.png" />
+<link rel="stylesheet" href="css/style.css" />
+<link rel="stylesheet" href="css/login.css" />
+</head>
+<body class="pagina-login">
+  <div class="tarjeta-login">
+    <img class="logo-img" src="img/logo.png" alt="Logo" width="88" height="88" />
+    <h1>Elige tu nueva contraseña</h1>
+    <p class="subtitulo">Grado en Ingeniería Informática</p>
+
+    <div id="mensaje"></div>
+
+    <div id="cargando" class="texto-olvido" style="text-align:center">Comprobando el enlace…</div>
+
+    <form id="form-nueva" style="display:none">
+      <div class="campo">
+        <label>Contraseña nueva (mínimo 6 caracteres)</label>
+        <div class="campo-password">
+          <input type="password" id="nueva-pass" required minlength="6" autocomplete="new-password" />
+          <button type="button" class="btn-ojo" data-objetivo="nueva-pass">👁️</button>
+        </div>
+      </div>
+      <div class="campo">
+        <label>Repetir contraseña</label>
+        <div class="campo-password">
+          <input type="password" id="nueva-pass2" required minlength="6" autocomplete="new-password" />
+          <button type="button" class="btn-ojo" data-objetivo="nueva-pass2">👁️</button>
+        </div>
+        <div id="aviso-coincide" class="aviso-coincide"></div>
+      </div>
+      <button type="submit" class="btn btn-primario btn-bloque" id="guardar">Guardar contraseña</button>
+    </form>
+
+    <div id="caducado" style="display:none">
+      <div class="mensaje-error">Este enlace ya no vale (caduca o ya se usó). Pide uno nuevo desde la pantalla de entrada.</div>
+      <a class="btn btn-primario btn-bloque" href="login.html" style="text-align:center;text-decoration:none;display:block">Ir a entrar</a>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/config.js"></script>
+  <script>
+    const mensaje = document.getElementById("mensaje");
+    const form = document.getElementById("form-nueva");
+    const cargando = document.getElementById("cargando");
+    const caducado = document.getElementById("caducado");
+    const p1 = document.getElementById("nueva-pass");
+    const p2 = document.getElementById("nueva-pass2");
+    const aviso = document.getElementById("aviso-coincide");
+    let listo = false;
+
+    function mostrarFormulario() {
+      if (listo) return;
+      listo = true;
+      cargando.style.display = "none";
+      form.style.display = "block";
+    }
+
+    // Al abrir el enlace del correo, Supabase inicia una sesión de recuperación
+    sb.auth.onAuthStateChange((evento, sesion) => {
+      if (evento === "PASSWORD_RECOVERY" || (evento === "SIGNED_IN" && sesion)) mostrarFormulario();
+    });
+    setTimeout(async () => {
+      if (listo) return;
+      const { data } = await sb.auth.getSession();
+      if (data.session) mostrarFormulario();
+      else {
+        cargando.style.display = "none";
+        caducado.style.display = "block";
+      }
+    }, 2500);
+
+    document.querySelectorAll(".btn-ojo").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const input = document.getElementById(btn.dataset.objetivo);
+        const mostrar = input.type === "password";
+        input.type = mostrar ? "text" : "password";
+        btn.textContent = mostrar ? "🙈" : "👁️";
+      });
+    });
+
+    function coinciden() {
+      if (!p2.value) { aviso.textContent = ""; return true; }
+      if (p1.value === p2.value) {
+        aviso.textContent = "✓ Las contraseñas coinciden";
+        aviso.className = "aviso-coincide ok";
+        return true;
+      }
+      aviso.textContent = "✗ Las contraseñas no coinciden";
+      aviso.className = "aviso-coincide mal";
+      return false;
+    }
+    p1.addEventListener("input", coinciden);
+    p2.addEventListener("input", coinciden);
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      mensaje.innerHTML = "";
+      if (!coinciden()) {
+        mensaje.innerHTML = '<div class="mensaje-error">Las dos contraseñas no coinciden.</div>';
+        return;
+      }
+      const boton = document.getElementById("guardar");
+      boton.disabled = true;
+      const { error } = await sb.auth.updateUser({ password: p1.value });
+      if (error) {
+        boton.disabled = false;
+        mensaje.innerHTML = '<div class="mensaje-error">No se pudo guardar: ' + error.message + '</div>';
+        return;
+      }
+      form.style.display = "none";
+      mensaje.innerHTML = '<div class="mensaje-ok">Contraseña cambiada. Entrando…</div>';
+      setTimeout(() => (window.location.href = "index.html"), 1800);
+    });
+  </script>
+</body>
+</html>
