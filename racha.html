@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Mi racha · Preparador</title>
+<link rel="stylesheet" href="css/style.css" />
+<link rel="stylesheet" href="css/racha.css" />
+</head>
+<body>
+  <div class="navbar" id="navbar"></div>
+
+  <div class="contenedor">
+    <div id="rc-hero"></div>
+
+    <div class="panel">
+      <div class="panel-cabecera"><h2>📅 Últimos 7 días</h2></div>
+      <div class="rc-semana" id="rc-semana"></div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-cabecera"><h2>✅ Tareas de hoy</h2></div>
+      <div id="rc-hoy"><div class="spinner"></div></div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-cabecera"><h2>🗓️ Histórico</h2></div>
+      <div class="rc-mes-cab">
+        <button class="rc-flecha" id="rc-mes-ant" aria-label="Mes anterior">◀</button>
+        <span class="rc-mes-nombre" id="rc-mes-nombre"></span>
+        <button class="rc-flecha" id="rc-mes-sig" aria-label="Mes siguiente">▶</button>
+      </div>
+      <div class="rc-mes-grid" id="rc-mes-grid"></div>
+    </div>
+
+    <div class="panel rc-ajustes">
+      <details id="rc-ajustes">
+        <summary>⚙️ Mis asignaturas de este trimestre</summary>
+        <p class="subtitulo" style="margin:10px 0 0">
+          Marca las que estás cursando ahora. La racha rotará solo entre ellas.
+          Si no marcas ninguna, rotará entre todas. Puedes cambiarlo cuando quieras.
+        </p>
+        <div id="rc-lista-asig"><div class="spinner"></div></div>
+        <button class="btn btn-primario" id="rc-guardar" style="margin-top:8px">Guardar mis asignaturas</button>
+        <div class="rc-aviso" id="rc-aviso-guardar"></div>
+      </details>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/config.js"></script>
+  <script src="js/common.js"></script>
+  <script src="js/racha.js"></script>
+</body>
+</html>
