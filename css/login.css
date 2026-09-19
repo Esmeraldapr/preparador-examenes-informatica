@@ -1,0 +1,55 @@
+/* ===========================================================
+   Pantalla de entrada (login.html). Todo cuelga de body.pagina-login
+   para no tocar el resto de páginas.
+   =========================================================== */
+body.pagina-login{
+  min-height:100vh;
+  background:#1b1240 url("../img/login.jpg") center center / cover no-repeat fixed;
+  position:relative;
+  display:flex; align-items:center; justify-content:center;
+  padding:24px 16px;
+}
+/* Velo suave para que la tarjeta destaque sin tapar la imagen */
+body.pagina-login::before{
+  content:""; position:fixed; inset:0; z-index:0;
+  background:linear-gradient(160deg, rgba(27,18,64,.35) 0%, rgba(60,30,120,.25) 100%);
+  pointer-events:none;
+}
+body.pagina-login .tarjeta-login{
+  position:relative; z-index:1;
+  width:100%; max-width:430px; margin:0;
+  background:rgba(245,241,255,.94);
+  -webkit-backdrop-filter:blur(8px); backdrop-filter:blur(8px);
+  border:1px solid rgba(255,255,255,.7);
+  border-radius:22px;
+  box-shadow:0 24px 60px -12px rgba(20,10,60,.55), 0 0 0 1px rgba(139,92,246,.18);
+  color:#251b4d;
+}
+body.pagina-login .tarjeta-login h1{color:#2b1f63;}
+body.pagina-login .tarjeta-login .subtitulo{color:#5b4fa0;}
+body.pagina-login .tabs-login{background:#e6def9;}
+body.pagina-login .tabs-login button{color:#5b4fa0;}
+body.pagina-login .tabs-login button.activa{background:#fff; color:#5b34d6;}
+body.pagina-login .campo label{color:#3b2d80;}
+body.pagina-login .campo input{
+  background:#fdfcff; border:1.5px solid #cfc4f3; color:#251b4d;
+}
+body.pagina-login .campo input:focus{outline:2px solid #8b5cf6; border-color:#8b5cf6;}
+body.pagina-login .btn-ojo{color:#7a6cc0;}
+body.pagina-login .btn-ojo:hover{color:#5b34d6;}
+body.pagina-login .campo-recordar{color:#4b3f8f;}
+body.pagina-login .campo-recordar input{accent-color:#7c3aed;}
+body.pagina-login .btn-primario{
+  background:linear-gradient(135deg,#8b5cf6 0%,#5b8def 100%);
+  box-shadow:0 10px 22px -8px rgba(91,52,214,.55);
+}
+
+@media (max-width:480px){
+  body.pagina-login{align-items:flex-start; padding-top:40px; background-attachment:scroll; background-position:38% center;}
+  body.pagina-login .tarjeta-login{padding:26px 20px;}
+}
+
+/* En pantallas anchas la tarjeta va a la derecha para que se vea la frase y el portátil */
+@media (min-width:900px){
+  body.pagina-login{justify-content:flex-end; padding-right:9vw;}
+}
