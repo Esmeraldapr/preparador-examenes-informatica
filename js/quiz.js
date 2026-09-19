@@ -6,10 +6,18 @@
 //   &modo=fallos
 //   &modo=favoritos
 //   &modo=aleatorio&n=20&tipo=todas|oficial|no_oficial
+//   &modo=racha&barra=1|2|3   (tareas diarias de "Mi racha")
 // ============================================================
 
 let usuarioActual = null;
 let ASIGNATURA_ID = null;
+let MODO = "aleatorio";
+let BARRA_RACHA = null;
+
+/** Adónde vuelve el botón de salir: a Mi racha si vienes de ahí, si no al dashboard. */
+function urlVolver() {
+  return MODO === "racha" ? "racha.html" : enlaceAsignatura("asignatura.html", ASIGNATURA_ID);
+}
 let preguntasSet = [];
 let favoritosSet = new Set();
 let indice = 0;
@@ -41,6 +49,7 @@ function mezclar(arr) {
 
   const params = new URLSearchParams(window.location.search);
   const modo = params.get("modo") || "aleatorio";
+  MODO = modo;
 
   const { data: favs } = await sb.from("favoritos").select("pregunta_id").eq("usuario_id", usuarioActual.id);
   favoritosSet = new Set((favs || []).map((f) => f.pregunta_id));
@@ -83,6 +92,13 @@ function mezclar(arr) {
       const { data } = await sb.from("preguntas").select("*").in("id", ids);
       preguntas = mezclar(data || []);
     }
+  } else if (modo === "racha") {
+    // Las preguntas las elige la base de datos (solo exámenes oficiales:
+    // primero las falladas y las que hace más tiempo que no ves).
+    BARRA_RACHA = parseInt(params.get("barra") || "0", 10);
+    tituloModo = ["🔥 Racha", "🔥 Racha · Repaso rápido", "🔥 Racha · Test de la asignatura", "🔥 Racha · Tema del día"][BARRA_RACHA] || "🔥 Racha";
+    const { data } = await sb.rpc("racha_preguntas_web", { p_barra: BARRA_RACHA });
+    preguntas = mezclar(data || []);
   } else {
     // aleatorio
     const n = parseInt(params.get("n") || "20", 10);
@@ -109,7 +125,7 @@ function mezclar(arr) {
         ${modo === "fallos" ? "No tienes ninguna pregunta fallada ahora mismo. ¡Vas genial!" : ""}
         ${modo === "favoritos" ? "Aún no has marcado ninguna pregunta como favorita. Pulsa la ⭐ durante un test para guardarla aquí." : ""}
         ${modo !== "fallos" && modo !== "favoritos" ? "No hay preguntas disponibles para esta selección." : ""}
-        <br/><br/><a class="btn btn-primario" href="${enlaceAsignatura("asignatura.html", ASIGNATURA_ID)}">Volver al dashboard</a>
+        <br/><br/><a class="btn btn-primario" href="${urlVolver()}">${MODO === "racha" ? "Volver a mi racha" : "Volver al dashboard"}</a>
       </div>`;
     return;
   }
@@ -151,7 +167,7 @@ function pintarPregunta() {
       <div id="zona-explicacion"></div>
     </div>
     <div class="acciones-quiz">
-      <a href="${enlaceAsignatura("asignatura.html", ASIGNATURA_ID)}" class="btn btn-secundario">← Salir</a>
+      <a href="${urlVolver()}" class="btn btn-secundario">← Salir</a>
       <button id="btn-siguiente" class="btn btn-primario">${esUltima ? "Ver resultado →" : "Siguiente →"}</button>
     </div>
   `;
@@ -228,9 +244,31 @@ function siguientePregunta() {
   }
 }
 
-function pintarResultado() {
+async function pintarResultado() {
   const total = preguntasSet.length;
   const pct = Math.round((aciertos / total) * 100);
+
+  // Modo racha: la tarea solo se da por hecha si has contestado todas (sin dejar en blanco).
+  let bloqueRacha = "";
+  let botonesFinales = `
+        <a href="${enlaceAsignatura("asignatura.html", ASIGNATURA_ID)}" class="btn btn-secundario">Volver al dashboard</a>
+        <a href="${enlaceAsignatura("practica.html", ASIGNATURA_ID)}" class="btn btn-primario">Otra práctica</a>`;
+  if (MODO === "racha") {
+    let celebrar = false;
+    if (blancos === 0) {
+      const { data, error } = await sb.rpc("racha_completar_barra_web", { p_barra: BARRA_RACHA });
+      const fila = data && data[0];
+      if (error || !fila) {
+        bloqueRacha = `<p class="subtitulo" style="color:var(--rojo)">⚠️ No se pudo guardar la tarea. Vuelve a Mi racha e inténtalo otra vez.</p>`;
+      } else {
+        celebrar = !!fila.completado_hoy;
+        bloqueRacha = `<p style="font-size:1.1rem;font-weight:800;color:var(--verde);margin:6px 0">✅ ¡Tarea de la racha completada!</p>`;
+      }
+    } else {
+      bloqueRacha = `<p class="subtitulo" style="color:var(--naranja)">Dejaste ${blancos} en blanco, así que esta tarea aún no cuenta. Vuelve a Mi racha y repítela.</p>`;
+    }
+    botonesFinales = `<a href="racha.html${celebrar ? "?celebrar=1" : ""}" class="btn btn-primario">🔥 Volver a mi racha</a>`;
+  }
 
   let bloqueNota = "";
   if (examenOficialActual) {
@@ -256,12 +294,12 @@ function pintarResultado() {
       <div class="porcentaje">${pct}%</div>
       <p style="font-size:1.1rem;font-weight:700;margin:8px 0 4px">${aciertos} de ${total} correctas</p>
       ${bloqueNota}
+      ${bloqueRacha}
       <p class="subtitulo">${
         pct >= 80 ? "¡Excelente trabajo! 🎉" : pct >= 50 ? "Vas por buen camino, sigue practicando 💪" : "Repasa este tema con calma, tú puedes 🙂"
       }</p>
       <div style="display:flex; gap:12px; justify-content:center; margin-top:20px; flex-wrap:wrap">
-        <a href="${enlaceAsignatura("asignatura.html", ASIGNATURA_ID)}" class="btn btn-secundario">Volver al dashboard</a>
-        <a href="${enlaceAsignatura("practica.html", ASIGNATURA_ID)}" class="btn btn-primario">Otra práctica</a>
+        ${botonesFinales}
       </div>
     </div>
   `;

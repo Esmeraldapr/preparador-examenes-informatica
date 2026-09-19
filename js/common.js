@@ -104,6 +104,10 @@ function pintarNavbar(activa, usuario, asignatura) {
   if (!asignatura) {
     el.innerHTML = `
       <div class="marca"><span class="emoji">🎓</span> Ingeniería Informática</div>
+      <nav>
+        <a href="index.html" class="${activa === "index.html" ? "activa" : ""}">🏫 Asignaturas</a>
+        <a href="racha.html" class="${activa === "racha.html" ? "activa" : ""}">🔥 Mi racha</a>
+      </nav>
       <div class="usuario">
         <span>👋 ${nombre}</span>
         <button id="btn-logout">Salir</button>
@@ -128,6 +132,7 @@ function pintarNavbar(activa, usuario, asignatura) {
     <div class="marca"><span class="emoji">🎓</span> ${asignatura.nombre}</div>
     <nav>
       <a href="index.html" title="Cambiar de asignatura">🏫 Asignaturas</a>
+      <a href="racha.html">🔥 Mi racha</a>
       ${enlaces
         .map(
           ([href, icono, texto]) =>
