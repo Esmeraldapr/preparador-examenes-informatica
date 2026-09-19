@@ -56,13 +56,15 @@ function rpTarjeta(icono, nombre, idx, cuerpo, imagen) {
   }
 
   const urlPreguntas = `quiz.html?asignatura=${asigId}&modo=racha&barra=3`;
-  const [asig, intro, fs, gs, ts, est] = await Promise.all([
+  const [asig, intro, fs, gs, ts, est, ej, rc] = await Promise.all([
     sb.from("asignaturas").select("nombre").eq("id", asigId).maybeSingle(),
     sb.from("repaso_unidad").select("titulo, intro").eq("asignatura_id", asigId).eq("unidad_num", num).maybeSingle(),
     sb.from("formulas").select("*").eq("asignatura_id", asigId).eq("unidad_num", num).order("id"),
     sb.from("graficas").select("*").eq("asignatura_id", asigId).eq("unidad_num", num).order("id"),
     sb.from("trucos").select("*").eq("asignatura_id", asigId).eq("unidad_num", num).order("id"),
     sb.rpc("racha_estado_hoy_web"),
+    sb.rpc("racha_ejemplos_web", { p_asig: asigId, p_clave: clave }),
+    sb.from("recursos").select("*").eq("asignatura_id", asigId).eq("unidad", clave).eq("verificado", true).order("orden"),
   ]);
 
   const estado = est.data && est.data[0];
@@ -74,6 +76,8 @@ function rpTarjeta(icono, nombre, idx, cuerpo, imagen) {
   const formulas = fs.data || [];
   const graficas = gs.data || [];
   const trucos = ts.data || [];
+  const ejemplos = ej.data || [];
+  const videos = rc.data || [];
   let html = "";
 
   const cta = (arriba) => `
@@ -92,6 +96,25 @@ function rpTarjeta(icono, nombre, idx, cuerpo, imagen) {
           <button type="button" class="btn btn-secundario" id="rc-leer-todo">🔊 Escuchar todo</button>
         </div>
         ${rpBloques(intro.data.intro)}
+      </div>`;
+  }
+
+  if (ejemplos.length) {
+    const letras = ["A", "B", "C", "D", "E", "F"];
+    html += `
+      <div class="panel">
+        <div class="panel-cabecera"><h2>📝 Así te lo preguntan en el examen</h2></div>
+        <p class="subtitulo" style="margin-bottom:14px">Tres preguntas reales de exámenes oficiales de este tema, para que veas el estilo (las respuestas las verás en el test).</p>
+        ${ejemplos
+          .map(
+            (q) => `
+          <div class="rc-ejemplo">
+            ${q.imagen_url ? `<img class="ampliable" src="${q.imagen_url}" alt="Imagen de la pregunta" title="Pulsa para ver en grande" />` : ""}
+            <div class="rc-ej-enun">${q.enunciado}</div>
+            <ol class="rc-ej-ops">${(q.opciones || []).map((o, i) => `<li><b>${letras[i]}.</b> ${o}</li>`).join("")}</ol>
+          </div>`
+          )
+          .join("")}
       </div>`;
   }
 
@@ -131,7 +154,24 @@ function rpTarjeta(icono, nombre, idx, cuerpo, imagen) {
       </details>`;
   }
 
-  if (!intro.data && !formulas.length && !graficas.length && !trucos.length) {
+  if (videos.length) {
+    html += `
+      <details class="panel rc-desplegable">
+        <summary>🎬 Vídeos de apoyo (${videos.length})</summary>
+        ${videos
+          .map((v) => {
+            const enlace = v.minuto_inicio && /youtu/.test(v.url) ? v.url + (v.url.includes("?") ? "&" : "?") + "t=" + v.minuto_inicio : v.url;
+            return `<div class="rc-video">
+              <div><b>${rpEsc(v.titulo)}</b>${v.canal ? ` <span class="subtitulo" style="margin:0">· ${rpEsc(v.canal)}</span>` : ""}</div>
+              ${v.para_que_sirve ? `<div class="subtitulo" style="margin:4px 0 8px">${rpEsc(v.para_que_sirve)}</div>` : ""}
+              <a class="btn btn-secundario" href="${rpEsc(enlace)}" target="_blank" rel="noopener">▶ Ver vídeo</a>
+            </div>`;
+          })
+          .join("")}
+      </details>`;
+  }
+
+  if (!intro.data && !formulas.length && !graficas.length && !trucos.length && !ejemplos.length && !videos.length) {
     html += `<div class="vacio"><div class="icono">📭</div>Todavía no hay explicación cargada para este tema. Puedes ir directo a las preguntas.</div>`;
   }
 
