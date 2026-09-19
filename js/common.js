@@ -3,6 +3,17 @@
 // Requiere que config.js se haya cargado antes.
 // ============================================================
 
+// Icono de la pestaña en todas las páginas
+(function () {
+  if (!document.querySelector('link[rel~="icon"]')) {
+    const l = document.createElement("link");
+    l.rel = "icon";
+    l.type = "image/png";
+    l.href = "img/favicon-64.png";
+    document.head.appendChild(l);
+  }
+})();
+
 /** Devuelve la sesión activa o null. */
 async function obtenerSesion() {
   const { data } = await sb.auth.getSession();
