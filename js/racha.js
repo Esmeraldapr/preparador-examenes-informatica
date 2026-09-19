@@ -113,11 +113,26 @@ function rcPintarSemana(dias) {
 function rcPintarTareas() {
   const e = rcEstado;
   const base = `quiz.html?asignatura=${e.asig_id}&modo=racha&barra=`;
+  const urlRepaso = `repaso.html?asignatura=${e.asig_id}&tema=${encodeURIComponent(e.tema_clave || "")}`;
   const tareas = [
     { n: 1, hecha: e.b1, icono: "🔁", titulo: "Repaso rápido", desc: "5 preguntas: primero las que fallaste, luego las que hace más que no ves." },
     { n: 2, hecha: e.b2, icono: "📝", titulo: "Test de la asignatura", desc: "10 preguntas de exámenes oficiales de hoy." },
-    { n: 3, hecha: e.b3, icono: "🎯", titulo: "Tema del día", desc: `5 preguntas de ${rcEsc(e.tema || "un tema")}.` },
+    {
+      n: 3, hecha: e.b3, icono: "🎯", titulo: "Tema del día",
+      desc: e.tiene_repaso
+        ? `Primero un repaso de ${rcEsc(e.tema || "el tema")} (con explicación y 🔊) y luego 5 preguntas.`
+        : `5 preguntas de ${rcEsc(e.tema || "un tema")}.`,
+    },
   ];
+  const acciones = (t) => {
+    if (t.n === 3 && e.tiene_repaso) {
+      return `<div class="rc-acciones">
+          <a class="btn ${t.hecha ? "btn-secundario" : "btn-primario"}" href="${urlRepaso}">📖 ${t.hecha ? "Repasar otra vez" : "Repasar y empezar"}</a>
+          <a class="rc-saltar" href="${base}3">${t.hecha ? "Solo preguntas" : "Saltar al test"}</a>
+        </div>`;
+    }
+    return `<a class="btn ${t.hecha ? "btn-secundario" : "btn-primario"}" href="${base}${t.n}">${t.hecha ? "Repetir" : "Empezar"}</a>`;
+  };
   document.getElementById("rc-hoy").innerHTML = `
     <div class="rc-hoy-toca">
       <span class="rc-etq">Hoy toca:</span>
@@ -134,7 +149,7 @@ function rcPintarTareas() {
             <div class="rc-titulo">${t.icono} ${t.titulo}</div>
             <div class="rc-desc">${t.desc}</div>
           </div>
-          <a class="btn ${t.hecha ? "btn-secundario" : "btn-primario"}" href="${base}${t.n}">${t.hecha ? "Repetir" : "Empezar"}</a>
+          ${acciones(t)}
         </div>`
         )
         .join("")}
