@@ -121,3 +121,11 @@
 .rc-acciones{display:flex; flex-direction:column; align-items:flex-start; gap:6px;}
 .rc-saltar{font-size:.82rem; color:var(--texto-suave); text-decoration:underline;}
 .rc-intro .panel-cabecera{display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;}
+
+/* ---------- Ejemplos de examen y vídeos en el repaso ---------- */
+.rc-ejemplo{border:2px solid var(--borde); border-radius:14px; padding:14px; margin-bottom:12px; background:#fff;}
+.rc-ejemplo img{max-width:100%; border-radius:10px; margin-bottom:10px; border:1px solid var(--borde);}
+.rc-ej-enun{font-weight:700; margin-bottom:8px; line-height:1.5;}
+.rc-ej-ops{margin:0; padding-left:0; list-style:none; line-height:1.55; font-size:.95rem;}
+.rc-ej-ops li{margin-bottom:4px;}
+.rc-video{border:1px solid var(--borde); border-radius:12px; padding:12px; margin-bottom:10px; background:#fff;}
