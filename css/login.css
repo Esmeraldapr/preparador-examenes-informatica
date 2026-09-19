@@ -53,3 +53,14 @@ body.pagina-login .btn-primario{
 @media (min-width:900px){
   body.pagina-login{justify-content:flex-end; padding-right:9vw;}
 }
+
+/* Logo redondo con brillo, y enlaces de recuperar contraseña */
+body.pagina-login .logo-img{
+  display:block; margin:0 auto 10px; width:88px; height:88px; border-radius:50%;
+  object-fit:cover; background:#050a30;
+  box-shadow:0 0 0 3px rgba(255,255,255,.9), 0 8px 26px -4px rgba(124,58,237,.65);
+}
+body.pagina-login .enlace-olvido{text-align:center; margin-top:14px; font-size:.88rem;}
+body.pagina-login .enlace-olvido a{color:#5b34d6; font-weight:600; text-decoration:none;}
+body.pagina-login .enlace-olvido a:hover{text-decoration:underline;}
+body.pagina-login .texto-olvido{color:#4b3f8f; font-size:.9rem; margin:0 0 14px;}
