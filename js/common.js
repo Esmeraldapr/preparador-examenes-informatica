@@ -135,6 +135,7 @@ function pintarNavbar(activa, usuario, asignatura) {
     ["practica.html", "⚡", "Practicar"],
     ["examenes.html", "📝", "Cuestionarios"],
     ["trucos.html", "💡", "Trucos"],
+    ["entregables.html", "📋", "Entregables"],
     ["graficas.html", "📈", "Gráficas"],
     ["formulas.html", "🧮", "Fórmulas"],
   ];
