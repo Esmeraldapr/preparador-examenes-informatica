@@ -20,12 +20,15 @@ function urlVolver() {
 }
 let preguntasSet = [];
 let favoritosSet = new Set();
-let indice = 0;
+let indice = 0; // primera pregunta aún sin responder (= nº de preguntas ya hechas)
+let vista = 0; // pregunta que se está mostrando ahora (puede ser < indice si se pulsa "Anterior")
+let respuestas = []; // por índice: { opcionIdx, correcta } o null si se dejó en blanco
 let aciertos = 0;
 let errores = 0;
 let blancos = 0;
 let respondida = false;
 let examenOficialActual = false;
+let tituloModoActual = "";
 
 function mezclar(arr) {
   const a = [...arr];
@@ -34,6 +37,58 @@ function mezclar(arr) {
     [a[i], a[j]] = [a[j], a[i]];
   }
   return a;
+}
+
+/** Clave única de localStorage para guardar el progreso de este test en curso. */
+function claveProgreso() {
+  const params = new URLSearchParams(window.location.search);
+  let extra = MODO;
+  if (MODO === "racha") {
+    // Un día distinto (hora local del móvil, aproximada) es una tarea distinta.
+    extra = `racha_b${params.get("barra") || ""}_${new Date().toISOString().slice(0, 10)}`;
+  } else if (MODO === "examen") {
+    extra = `examen_${params.get("examen_id") || ""}`;
+  } else if (MODO === "tema") {
+    extra = `tema_${params.get("unidad") || ""}`;
+  }
+  return `quizprogreso_${usuarioActual.id}_${ASIGNATURA_ID}_${extra}`;
+}
+
+/** Guarda el estado actual (preguntas, índice, aciertos...) para poder continuar si se pierde la conexión. */
+function guardarProgreso() {
+  try {
+    const estado = {
+      ids: preguntasSet.map((p) => p.id),
+      indice,
+      aciertos,
+      errores,
+      blancos,
+      respuestas,
+      tituloModo: tituloModoActual,
+      examenOficialActual,
+    };
+    localStorage.setItem(claveProgreso(), JSON.stringify(estado));
+  } catch (e) {
+    // localStorage puede fallar (privado, lleno...); no es crítico, seguimos sin guardar.
+  }
+}
+
+function borrarProgreso() {
+  try {
+    localStorage.removeItem(claveProgreso());
+  } catch (e) {}
+}
+
+function leerProgresoGuardado() {
+  try {
+    const bruto = localStorage.getItem(claveProgreso());
+    if (!bruto) return null;
+    const estado = JSON.parse(bruto);
+    if (!estado || !Array.isArray(estado.ids) || !estado.ids.length) return null;
+    return estado;
+  } catch (e) {
+    return null;
+  }
 }
 
 (async function iniciar() {
@@ -50,9 +105,39 @@ function mezclar(arr) {
   const params = new URLSearchParams(window.location.search);
   const modo = params.get("modo") || "aleatorio";
   MODO = modo;
+  if (modo === "racha") BARRA_RACHA = parseInt(params.get("barra") || "0", 10);
 
   const { data: favs } = await sb.from("favoritos").select("pregunta_id").eq("usuario_id", usuarioActual.id);
   favoritosSet = new Set((favs || []).map((f) => f.pregunta_id));
+
+  // Si había un test de este mismo tipo a medias (por ejemplo, se cortó la conexión),
+  // seguimos exactamente por donde se dejó, con las mismas preguntas y en el mismo orden.
+  const progresoGuardado = leerProgresoGuardado();
+  if (progresoGuardado) {
+    const { data } = await sb.from("preguntas").select("*").in("id", progresoGuardado.ids);
+    const porId = new Map((data || []).map((p) => [p.id, p]));
+    const recuperadas = progresoGuardado.ids.map((id) => porId.get(id)).filter(Boolean);
+    if (recuperadas.length === progresoGuardado.ids.length) {
+      preguntasSet = recuperadas;
+      indice = progresoGuardado.indice;
+      aciertos = progresoGuardado.aciertos;
+      errores = progresoGuardado.errores;
+      blancos = progresoGuardado.blancos;
+      respuestas = progresoGuardado.respuestas || [];
+      tituloModoActual = progresoGuardado.tituloModo || "";
+      examenOficialActual = !!progresoGuardado.examenOficialActual;
+      vista = indice;
+      document.getElementById("titulo-modo").textContent = tituloModoActual;
+      if (indice >= preguntasSet.length) {
+        pintarResultado();
+      } else {
+        pintarPregunta();
+      }
+      return;
+    }
+    // Si alguna pregunta ya no existe, descartamos el progreso guardado y empezamos de cero.
+    borrarProgreso();
+  }
 
   let preguntas = [];
   let tituloModo = "";
@@ -95,7 +180,6 @@ function mezclar(arr) {
   } else if (modo === "racha") {
     // Las preguntas las elige la base de datos (solo exámenes oficiales:
     // primero las falladas y las que hace más tiempo que no ves).
-    BARRA_RACHA = parseInt(params.get("barra") || "0", 10);
     tituloModo = ["🔥 Racha", "🔥 Racha · Repaso rápido", "🔥 Racha · Test de la asignatura", "🔥 Racha · Tema del día"][BARRA_RACHA] || "🔥 Racha";
     const { data } = await sb.rpc("racha_preguntas_web", { p_barra: BARRA_RACHA });
     preguntas = mezclar(data || []);
@@ -116,6 +200,7 @@ function mezclar(arr) {
   }
 
   document.getElementById("titulo-modo").textContent = tituloModo;
+  tituloModoActual = tituloModo;
   preguntasSet = preguntas;
 
   if (!preguntasSet.length) {
@@ -130,23 +215,26 @@ function mezclar(arr) {
     return;
   }
 
+  guardarProgreso();
   pintarPregunta();
 })();
 
 function pintarPregunta() {
   detenerLectura();
-  respondida = false;
-  const p = preguntasSet[indice];
-  const pct = Math.round((indice / preguntasSet.length) * 100);
+  const p = preguntasSet[vista];
+  const pct = Math.round((vista / preguntasSet.length) * 100);
   const esFav = favoritosSet.has(p.id);
   const letras = ["A", "B", "C", "D", "E", "F"];
-  const esUltima = indice + 1 >= preguntasSet.length;
+  const esUltima = vista + 1 >= preguntasSet.length;
+  const yaRespondida = respuestas[vista] !== undefined && respuestas[vista] !== null;
+  const enBlancoGuardado = respuestas[vista] === null;
+  respondida = vista === indice ? false : yaRespondida || enBlancoGuardado;
 
   document.getElementById("zona-quiz").innerHTML = `
     <div class="quiz-barra"><div style="width:${pct}%"></div></div>
     <div class="pregunta-caja">
       <div class="info-superior">
-        <span class="chip oficial">${indice + 1} / ${preguntasSet.length}</span>
+        <span class="chip oficial">${vista + 1} / ${preguntasSet.length}</span>
         ${p.unidad ? `<span class="chip no-oficial">${p.unidad}</span>` : ""}
         <button class="estrella ${esFav ? "activa" : ""}" id="btn-favorito" title="Marcar como favorita">⭐</button>
         <button type="button" class="btn-altavoz" id="btn-altavoz-pregunta" style="position:static; margin-left:auto" title="Escuchar la pregunta y las opciones" aria-label="Escuchar la pregunta y las opciones">🔊</button>
@@ -168,29 +256,87 @@ function pintarPregunta() {
     </div>
     <div class="acciones-quiz">
       <a href="${urlVolver()}" class="btn btn-secundario">← Salir</a>
-      <button id="btn-siguiente" class="btn btn-primario">${esUltima ? "Ver resultado →" : "Siguiente →"}</button>
+      ${vista > 0 ? `<button id="btn-anterior" class="btn btn-secundario">← Anterior</button>` : ""}
+      ${
+        vista < indice
+          ? `<button id="btn-siguiente" class="btn btn-primario">Siguiente →</button>`
+          : `<button id="btn-siguiente" class="btn btn-primario">${esUltima ? "Ver resultado →" : "Siguiente →"}</button>`
+      }
     </div>
   `;
 
   document.getElementById("btn-favorito").addEventListener("click", () => alternarFavorito(p.id));
-  document.querySelectorAll(".opcion").forEach((el) => el.addEventListener("click", () => elegirOpcion(el, p)));
-  document.getElementById("btn-siguiente").addEventListener("click", siguientePregunta);
+  const btnAnterior = document.getElementById("btn-anterior");
+  if (btnAnterior) btnAnterior.addEventListener("click", irAnterior);
+  document.getElementById("btn-siguiente").addEventListener("click", vista < indice ? avanzarVista : siguientePregunta);
 
   document.getElementById("btn-altavoz-pregunta").addEventListener("click", (e) => {
     const enunciadoEl = document.querySelector("#zona-quiz .enunciado");
     const opcionesEls = Array.from(document.querySelectorAll("#opciones .opcion"));
     leerTexto("", [enunciadoEl, ...opcionesEls], e.currentTarget);
   });
+
+  // Si esta pregunta ya se respondió antes (venimos de "Anterior", o se recuperó
+  // un test a medias), la mostramos ya resuelta: solo para consultarla, sin poder cambiar la respuesta.
+  if (vista < indice || yaRespondida || enBlancoGuardado) {
+    pintarComoRespondida(p, respuestas[vista]);
+  } else {
+    document.querySelectorAll(".opcion").forEach((el) => el.addEventListener("click", () => elegirOpcion(el, p)));
+  }
+}
+
+/** Pinta las opciones ya marcadas (correcta/incorrecta) y la explicación, sin permitir tocar nada. */
+function pintarComoRespondida(pregunta, respuesta) {
+  document.querySelectorAll(".opcion").forEach((o) => {
+    o.classList.add("deshabilitada");
+    const idx = parseInt(o.dataset.opcion, 10);
+    const texto = pregunta.opciones[idx];
+    if (texto === pregunta.opcion_correcta) o.classList.add("correcta");
+    else if (respuesta && idx === respuesta.opcionIdx) o.classList.add("incorrecta");
+  });
+
+  if (respuesta) {
+    document.getElementById("zona-explicacion").innerHTML = `
+      <div class="explicacion-caja ${respuesta.correcta ? "bien" : "mal"}" style="position:relative">
+        <button type="button" class="btn-altavoz" id="btn-altavoz-explicacion" style="position:absolute; top:10px; right:10px; width:30px; height:30px; font-size:.9rem" title="Escuchar la explicación" aria-label="Escuchar la explicación">🔊</button>
+        <strong>${respuesta.correcta ? "✅ ¡Correcto!" : "❌ Incorrecto"}</strong><br/>
+        <span class="parrafo-leible" title="Pulsa para escuchar desde aquí">${pregunta.explicacion}</span>
+      </div>`;
+    document.getElementById("btn-altavoz-explicacion").addEventListener("click", (e) => {
+      const explicacionEl = document.querySelector("#zona-explicacion .parrafo-leible");
+      leerTexto(respuesta.correcta ? "Correcto." : "Incorrecto.", explicacionEl, e.currentTarget);
+    });
+  } else {
+    document.getElementById("zona-explicacion").innerHTML = `<p class="subtitulo" style="margin-top:10px">Se dejó en blanco.</p>`;
+  }
+}
+
+function irAnterior() {
+  if (vista > 0) {
+    vista--;
+    pintarPregunta();
+  }
+}
+
+/** Avanza la vista (sin re-puntuar) cuando se está repasando una pregunta ya respondida. */
+function avanzarVista() {
+  if (vista < indice) {
+    vista++;
+    pintarPregunta();
+  }
 }
 
 async function elegirOpcion(el, pregunta) {
   if (respondida) return;
   respondida = true;
 
-  const opcionElegida = pregunta.opciones[parseInt(el.dataset.opcion, 10)];
+  const opcionIdx = parseInt(el.dataset.opcion, 10);
+  const opcionElegida = pregunta.opciones[opcionIdx];
   const esCorrecta = opcionElegida === pregunta.opcion_correcta;
   if (esCorrecta) aciertos++;
   else errores++;
+  respuestas[vista] = { opcionIdx, correcta: esCorrecta };
+  guardarProgreso();
 
   document.querySelectorAll(".opcion").forEach((o) => {
     o.classList.add("deshabilitada");
@@ -234,9 +380,14 @@ async function alternarFavorito(preguntaId) {
 function siguientePregunta() {
   // Si se pulsa "Siguiente" sin haber elegido ninguna opción, la pregunta
   // queda en blanco: no cuenta como acierto ni como error, y no se guarda intento.
-  if (!respondida) blancos++;
+  if (!respondida) {
+    blancos++;
+    respuestas[indice] = null;
+  }
 
   indice++;
+  vista = indice;
+  guardarProgreso();
   if (indice >= preguntasSet.length) {
     pintarResultado();
   } else {
@@ -245,6 +396,7 @@ function siguientePregunta() {
 }
 
 async function pintarResultado() {
+  borrarProgreso();
   const total = preguntasSet.length;
   const pct = Math.round((aciertos / total) * 100);
 
