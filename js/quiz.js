@@ -228,7 +228,9 @@ function pintarPregunta() {
   const esUltima = vista + 1 >= preguntasSet.length;
   const yaRespondida = respuestas[vista] !== undefined && respuestas[vista] !== null;
   const enBlancoGuardado = respuestas[vista] === null;
-  respondida = vista === indice ? false : yaRespondida || enBlancoGuardado;
+  // Ya contestada (o dejada en blanco) = no se puede volver a puntuar, aunque se llegue
+  // a ella otra vez con "Anterior" → "Siguiente".
+  respondida = yaRespondida || enBlancoGuardado;
 
   document.getElementById("zona-quiz").innerHTML = `
     <div class="quiz-barra"><div style="width:${pct}%"></div></div>
@@ -253,17 +255,25 @@ function pintarPregunta() {
           .join("")}
       </div>
       <div id="zona-explicacion"></div>
+      <details class="qz-comentario" id="qz-comentario">
+        <summary>💬 ¿Ves algún error o quieres comentar algo de esta pregunta?</summary>
+        <label for="qz-com-texto" class="qz-com-ayuda">Cuéntalo con tus palabras: se guarda junto a esta pregunta para revisarla.</label>
+        <textarea id="qz-com-texto" rows="3" maxlength="2000" placeholder="Por ejemplo: creo que la respuesta correcta es otra, la imagen no se ve, no entiendo la explicación..."></textarea>
+        <div class="qz-com-fila">
+          <button type="button" id="qz-com-enviar" class="btn btn-secundario">Enviar comentario</button>
+          <span id="qz-com-estado" class="qz-com-estado" role="status" aria-live="polite"></span>
+        </div>
+      </details>
     </div>
-    <div class="acciones-quiz">
+    <div class="acciones-quiz qz-nav">
+      ${vista > 0 ? `<button id="btn-anterior" class="btn btn-secundario">← Anterior</button>` : `<span></span>`}
+      <button id="btn-siguiente" class="btn btn-primario">${vista >= indice && esUltima ? "Ver resultado →" : "Siguiente →"}</button>
+    </div>
+    <div class="qz-salir">
       <a href="${urlVolver()}" class="btn btn-secundario">← Salir</a>
-      ${vista > 0 ? `<button id="btn-anterior" class="btn btn-secundario">← Anterior</button>` : ""}
-      ${
-        vista < indice
-          ? `<button id="btn-siguiente" class="btn btn-primario">Siguiente →</button>`
-          : `<button id="btn-siguiente" class="btn btn-primario">${esUltima ? "Ver resultado →" : "Siguiente →"}</button>`
-      }
     </div>
   `;
+  document.getElementById("qz-com-enviar").addEventListener("click", () => enviarComentario(p.id));
 
   document.getElementById("btn-favorito").addEventListener("click", () => alternarFavorito(p.id));
   const btnAnterior = document.getElementById("btn-anterior");
@@ -364,6 +374,29 @@ async function elegirOpcion(el, pregunta) {
   });
 }
 
+/** Guarda en Supabase un comentario sobre la pregunta (error, duda...). */
+async function enviarComentario(preguntaId) {
+  const caja = document.getElementById("qz-com-texto");
+  const estado = document.getElementById("qz-com-estado");
+  const boton = document.getElementById("qz-com-enviar");
+  const texto = (caja.value || "").trim();
+  if (!texto) {
+    estado.textContent = "Escribe algo antes de enviarlo.";
+    caja.focus();
+    return;
+  }
+  boton.disabled = true;
+  estado.textContent = "Enviando…";
+  const { error } = await sb.from("comentarios_pregunta").insert({ pregunta_id: preguntaId, texto });
+  boton.disabled = false;
+  if (error) {
+    estado.textContent = "⚠️ No se pudo enviar. Inténtalo otra vez.";
+    return;
+  }
+  caja.value = "";
+  estado.textContent = "✅ ¡Gracias! Comentario guardado.";
+}
+
 async function alternarFavorito(preguntaId) {
   const btn = document.getElementById("btn-favorito");
   if (favoritosSet.has(preguntaId)) {
@@ -380,7 +413,7 @@ async function alternarFavorito(preguntaId) {
 function siguientePregunta() {
   // Si se pulsa "Siguiente" sin haber elegido ninguna opción, la pregunta
   // queda en blanco: no cuenta como acierto ni como error, y no se guarda intento.
-  if (!respondida) {
+  if (respuestas[indice] === undefined) {
     blancos++;
     respuestas[indice] = null;
   }

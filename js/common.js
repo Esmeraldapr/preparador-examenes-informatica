@@ -365,7 +365,9 @@ function cerrarLightbox() {
 document.addEventListener("click", (e) => {
   const parrafo = e.target.closest(".parrafo-leible");
   if (parrafo) {
-    const hermanos = Array.from(parrafo.parentElement.querySelectorAll(".parrafo-leible"));
+    // Se sigue leyendo dentro del mismo bloque (por ejemplo, de un párrafo a la tabla que viene después).
+    const bloque = parrafo.closest("[data-lectura]") || parrafo.parentElement;
+    const hermanos = Array.from(bloque.querySelectorAll(".parrafo-leible"));
     const desde = hermanos.indexOf(parrafo);
     hermanos.forEach((p) => p.classList.remove("leyendo-desde"));
     parrafo.classList.add("leyendo-desde");

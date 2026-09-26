@@ -18,9 +18,26 @@ function rpBloques(texto) {
     .map((b) => b.trim())
     .filter(Boolean)
     .map((b) => {
-      if (/^<table[\s>]/i.test(b)) return `<div class="tabla-envoltorio">${b}</div>`;
+      if (/^<table[\s>]/i.test(b)) {
+        // Cada fila de la tabla se puede escuchar (y entra en "Escuchar todo").
+        const tpl = document.createElement("template");
+        tpl.innerHTML = b;
+        tpl.content.querySelectorAll("tr").forEach((tr) => {
+          tr.classList.add("parrafo-leible");
+          tr.title = "Pulsa para escuchar desde aquí";
+        });
+        const div = document.createElement("div");
+        div.appendChild(tpl.content);
+        return `<div class="tabla-envoltorio">${div.innerHTML}</div>`;
+      }
       if (/^<(svg|figure)[\s>]/i.test(b)) return `<div class="rc-fig">${b}</div>`;
-      if (b.startsWith("## ")) return `<h3 class="parrafo-leible rc-h" title="Pulsa para escuchar desde aquí">${b.slice(3)}</h3>`;
+      if (b.startsWith("## ")) {
+        // "## Título" + texto en las líneas siguientes: el título va aparte y el resto es un párrafo normal.
+        const [primera, ...resto] = b.slice(3).split("\n");
+        const titulo = `<h3 class="parrafo-leible rc-h" title="Pulsa para escuchar desde aquí">${primera.trim()}</h3>`;
+        const cuerpo = resto.join(" ").trim();
+        return cuerpo ? titulo + `<p class="parrafo-leible" title="Pulsa para escuchar desde aquí">${cuerpo}</p>` : titulo;
+      }
       return `<p class="parrafo-leible" title="Pulsa para escuchar desde aquí">${b}</p>`;
     })
     .join("");
@@ -90,7 +107,7 @@ function rpTarjeta(icono, nombre, idx, cuerpo, imagen) {
 
   if (intro.data) {
     html += `
-      <div class="panel rc-intro" id="rc-intro">
+      <div class="panel rc-intro" id="rc-intro" data-lectura>
         <div class="panel-cabecera">
           <h2>🌱 Explicación desde cero</h2>
           <button type="button" class="btn btn-secundario" id="rc-leer-todo">🔊 Escuchar todo</button>
@@ -108,10 +125,13 @@ function rpTarjeta(icono, nombre, idx, cuerpo, imagen) {
         ${ejemplos
           .map(
             (q) => `
-          <div class="rc-ejemplo">
+          <div class="rc-ejemplo" data-lectura>
             ${q.imagen_url ? `<img class="ampliable" src="${q.imagen_url}" alt="Imagen de la pregunta" title="Pulsa para ver en grande" />` : ""}
-            <div class="rc-ej-enun">${q.enunciado}</div>
-            <ol class="rc-ej-ops">${(q.opciones || []).map((o, i) => `<li><b>${letras[i]}.</b> ${o}</li>`).join("")}</ol>
+            <div class="rc-ej-cab">
+              <div class="rc-ej-enun parrafo-leible" title="Pulsa para escuchar desde aquí">${q.enunciado}</div>
+              <button type="button" class="btn-altavoz rc-ej-voz" title="Escuchar la pregunta y las opciones" aria-label="Escuchar la pregunta y las opciones">🔊</button>
+            </div>
+            <ol class="rc-ej-ops">${(q.opciones || []).map((o, i) => `<li class="parrafo-leible" title="Pulsa para escuchar desde aquí"><b>${letras[i]}.</b> ${o}</li>`).join("")}</ol>
           </div>`
           )
           .join("")}
@@ -126,7 +146,7 @@ function rpTarjeta(icono, nombre, idx, cuerpo, imagen) {
           ${formulas
             .map((f, i) => {
               const reglas = String(f.expresion).split("|").map((r) => r.trim()).filter(Boolean)
-                .map((r) => `<div class="regla-formula">${r}</div>`).join("");
+                .map((r) => `<div class="regla-formula parrafo-leible" title="Pulsa para escuchar desde aquí">${r}</div>`).join("");
               return rpTarjeta("🧮", f.nombre, i, `<div class="caja-formula" style="margin-bottom:10px">${reglas}</div>${rpBloques(f.explicacion)}`);
             })
             .join("")}
@@ -189,6 +209,11 @@ function rpTarjeta(icono, nombre, idx, cuerpo, imagen) {
 
   // 🔊 de cada tarjeta
   document.getElementById("rc-repaso").addEventListener("click", (e) => {
+    const botonEj = e.target.closest(".rc-ej-voz");
+    if (botonEj) {
+      leerTexto("", Array.from(botonEj.closest(".rc-ejemplo").querySelectorAll(".parrafo-leible")), botonEj);
+      return;
+    }
     const boton = e.target.closest(".tarjeta .btn-altavoz");
     if (!boton) return;
     const tarjeta = boton.closest(".tarjeta");
