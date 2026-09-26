@@ -9,13 +9,13 @@ const COLORES_ENTREGABLES = ["", "g2", "g3", "g4"];
   if (!sesion) return;
   const ASIGNATURA_ID = exigirAsignaturaId();
   if (!ASIGNATURA_ID) return;
-  // Sección oculta en Fundamentos Físicos (id 6): se devuelve al dashboard
-  if (Number(ASIGNATURA_ID) === 6) {
-    window.location.replace("asignatura.html?asignatura=6");
-    return;
-  }
   const usuario = await obtenerOCrearUsuario(sesion);
   if (!usuario) return;
+  // Sección solo para Esmeralda: el resto vuelve al dashboard
+  if ((usuario.email || "").toLowerCase() !== "esmeraldaparaiso7@gmail.com") {
+    window.location.replace("asignatura.html?asignatura=" + ASIGNATURA_ID);
+    return;
+  }
 
   const { data: asignatura } = await sb.from("asignaturas").select("id, nombre").eq("id", ASIGNATURA_ID).single();
   if (!asignatura) return;
