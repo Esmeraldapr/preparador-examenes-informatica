@@ -9,6 +9,11 @@ const COLORES_ENTREGABLES = ["", "g2", "g3", "g4"];
   if (!sesion) return;
   const ASIGNATURA_ID = exigirAsignaturaId();
   if (!ASIGNATURA_ID) return;
+  // Sección oculta en Fundamentos Físicos (id 6): se devuelve al dashboard
+  if (Number(ASIGNATURA_ID) === 6) {
+    window.location.replace("asignatura.html?asignatura=6");
+    return;
+  }
   const usuario = await obtenerOCrearUsuario(sesion);
   if (!usuario) return;
 

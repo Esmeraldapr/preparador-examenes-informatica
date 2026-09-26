@@ -128,6 +128,8 @@ function pintarNavbar(activa, usuario, asignatura) {
     return;
   }
 
+  // Asignaturas con la sección Entregables oculta (6 = Fundamentos Físicos)
+  const SIN_ENTREGABLES = [6];
   const enlaces = [
     ["asignatura.html", "🏠", "Dashboard"],
     ["aula0.html", "🌱", "Aula 0"],
@@ -138,7 +140,7 @@ function pintarNavbar(activa, usuario, asignatura) {
     ["entregables.html", "📋", "Entregables"],
     ["graficas.html", "📈", "Gráficas"],
     ["formulas.html", "🧮", "Fórmulas"],
-  ];
+  ].filter(([href]) => !(href === "entregables.html" && SIN_ENTREGABLES.includes(Number(asignatura.id))));
 
   el.innerHTML = `
     <div class="marca"><span class="emoji">🎓</span> ${asignatura.nombre}</div>
