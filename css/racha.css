@@ -129,3 +129,11 @@
 .rc-ej-ops{margin:0; padding-left:0; list-style:none; line-height:1.55; font-size:.95rem;}
 .rc-ej-ops li{margin-bottom:4px;}
 .rc-video{border:1px solid var(--borde); border-radius:12px; padding:12px; margin-bottom:10px; background:#fff;}
+
+/* Tablas del repaso: caben en el móvil y cada fila se puede escuchar */
+.rc-intro .tabla-envoltorio table{min-width:0; table-layout:fixed; font-size:.92rem;}
+.rc-intro .tabla-envoltorio th:first-child, .rc-intro .tabla-envoltorio td:first-child{width:32%;}
+.rc-intro .tabla-envoltorio th, .rc-intro .tabla-envoltorio td{white-space:normal; word-break:normal; overflow-wrap:break-word; hyphens:auto;}
+.rc-intro tr.parrafo-leible{cursor:pointer;}
+.rc-ej-cab{display:flex; align-items:flex-start; justify-content:space-between; gap:10px;}
+.rc-ej-cab .btn-altavoz{position:static; flex:0 0 auto; width:34px; height:34px; font-size:.95rem;}
