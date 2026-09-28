@@ -352,6 +352,21 @@ h2{font-size:1.25rem; margin:0 0 14px;}
 .explicacion-caja.mal{background:var(--rojo-suave); border-left-color:var(--rojo);}
 .explicacion-caja.bien{background:var(--verde-suave); border-left-color:var(--verde);}
 
+.expl-dibujo{
+  margin-top:14px; padding:10px; background:#fff; border-radius:12px;
+  border:1px solid rgba(0,0,0,.08); display:flex; justify-content:center;
+}
+.expl-dibujo svg{max-width:100%; height:auto;}
+
+.expl-formula{margin-top:14px; padding:12px 14px; background:#fff; border-radius:12px; border:1px solid rgba(0,0,0,.08);}
+.expl-formula + .expl-formula{margin-top:10px;}
+.expl-formula-exp{
+  font-family:"Cambria Math", Georgia, serif; font-size:1.15rem; font-weight:700;
+  margin:0 0 8px; color:var(--morado);
+}
+.expl-formula ul{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:4px;}
+.expl-formula li{font-size:.9rem; line-height:1.5;}
+
 .acciones-quiz{display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap;}
 
 .resultado-final{
