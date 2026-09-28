@@ -295,6 +295,55 @@ function pintarPregunta() {
   }
 }
 
+/**
+ * Construye el HTML de la caja de explicación: el párrafo general, el dibujo
+ * explicativo si lo hay (explicacion_svg) y, si la explicación usa alguna
+ * fórmula, una caja aparte con qué significa cada símbolo (explicacion_formulas).
+ * Estos campos son opcionales: si la pregunta no los tiene todavía, se ve
+ * exactamente igual que antes.
+ */
+function htmlExplicacion(pregunta, correcta) {
+  let dibujo = "";
+  if (pregunta.explicacion_svg) {
+    dibujo = `<div class="expl-dibujo">${pregunta.explicacion_svg}</div>`;
+  }
+
+  let desglose = "";
+  if (Array.isArray(pregunta.explicacion_formulas) && pregunta.explicacion_formulas.length) {
+    desglose = pregunta.explicacion_formulas
+      .map(
+        (f) => `
+      <div class="expl-formula">
+        <p class="expl-formula-exp parrafo-leible" title="Pulsa para escuchar desde aquí">${f.formula || ""}</p>
+        <ul>
+          ${(f.parametros || [])
+            .map(
+              (p) => `<li class="parrafo-leible" title="Pulsa para escuchar desde aquí"><b>${p.simbolo || ""}</b> = ${p.significado || ""}</li>`
+            )
+            .join("")}
+        </ul>
+      </div>`
+      )
+      .join("");
+  }
+
+  return `
+    <div class="explicacion-caja ${correcta ? "bien" : "mal"}" style="position:relative">
+      <button type="button" class="btn-altavoz" id="btn-altavoz-explicacion" style="position:absolute; top:10px; right:10px; width:30px; height:30px; font-size:.9rem" title="Escuchar la explicación" aria-label="Escuchar la explicación">🔊</button>
+      <strong>${correcta ? "✅ ¡Correcto!" : "❌ Incorrecto"}</strong><br/>
+      <span class="parrafo-leible" title="Pulsa para escuchar desde aquí">${pregunta.explicacion}</span>
+      ${dibujo}
+      ${desglose}
+    </div>`;
+}
+
+function activarAltavozExplicacion(correcta) {
+  document.getElementById("btn-altavoz-explicacion").addEventListener("click", (e) => {
+    const explicacionEl = Array.from(document.querySelectorAll("#zona-explicacion .parrafo-leible"));
+    leerTexto(correcta ? "Correcto." : "Incorrecto.", explicacionEl, e.currentTarget);
+  });
+}
+
 /** Pinta las opciones ya marcadas (correcta/incorrecta) y la explicación, sin permitir tocar nada. */
 function pintarComoRespondida(pregunta, respuesta) {
   document.querySelectorAll(".opcion").forEach((o) => {
@@ -306,16 +355,8 @@ function pintarComoRespondida(pregunta, respuesta) {
   });
 
   if (respuesta) {
-    document.getElementById("zona-explicacion").innerHTML = `
-      <div class="explicacion-caja ${respuesta.correcta ? "bien" : "mal"}" style="position:relative">
-        <button type="button" class="btn-altavoz" id="btn-altavoz-explicacion" style="position:absolute; top:10px; right:10px; width:30px; height:30px; font-size:.9rem" title="Escuchar la explicación" aria-label="Escuchar la explicación">🔊</button>
-        <strong>${respuesta.correcta ? "✅ ¡Correcto!" : "❌ Incorrecto"}</strong><br/>
-        <span class="parrafo-leible" title="Pulsa para escuchar desde aquí">${pregunta.explicacion}</span>
-      </div>`;
-    document.getElementById("btn-altavoz-explicacion").addEventListener("click", (e) => {
-      const explicacionEl = document.querySelector("#zona-explicacion .parrafo-leible");
-      leerTexto(respuesta.correcta ? "Correcto." : "Incorrecto.", explicacionEl, e.currentTarget);
-    });
+    document.getElementById("zona-explicacion").innerHTML = htmlExplicacion(pregunta, respuesta.correcta);
+    activarAltavozExplicacion(respuesta.correcta);
   } else {
     document.getElementById("zona-explicacion").innerHTML = `<p class="subtitulo" style="margin-top:10px">Se dejó en blanco.</p>`;
   }
@@ -355,17 +396,8 @@ async function elegirOpcion(el, pregunta) {
     else if (o === el) o.classList.add("incorrecta");
   });
 
-  document.getElementById("zona-explicacion").innerHTML = `
-    <div class="explicacion-caja ${esCorrecta ? "bien" : "mal"}" style="position:relative">
-      <button type="button" class="btn-altavoz" id="btn-altavoz-explicacion" style="position:absolute; top:10px; right:10px; width:30px; height:30px; font-size:.9rem" title="Escuchar la explicación" aria-label="Escuchar la explicación">🔊</button>
-      <strong>${esCorrecta ? "✅ ¡Correcto!" : "❌ Incorrecto"}</strong><br/>
-      <span class="parrafo-leible" title="Pulsa para escuchar desde aquí">${pregunta.explicacion}</span>
-    </div>`;
-
-  document.getElementById("btn-altavoz-explicacion").addEventListener("click", (e) => {
-    const explicacionEl = document.querySelector("#zona-explicacion .parrafo-leible");
-    leerTexto(esCorrecta ? "Correcto." : "Incorrecto.", explicacionEl, e.currentTarget);
-  });
+  document.getElementById("zona-explicacion").innerHTML = htmlExplicacion(pregunta, esCorrecta);
+  activarAltavozExplicacion(esCorrecta);
 
   await sb.from("intentos").insert({
     usuario_id: usuarioActual.id,
