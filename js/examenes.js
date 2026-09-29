@@ -39,7 +39,7 @@
     const practicadas = ids.filter((id) => ultimoPorPregunta.has(id));
     const aciertos = practicadas.filter((id) => ultimoPorPregunta.get(id));
     const dominio = practicadas.length ? Math.round((aciertos.length / practicadas.length) * 100) : 0;
-    const chip = e.tipo === "oficial" ? `<span class="chip oficial">Oficial</span>` : e.tipo === "cuestionario" ? `<span class="chip oficial">Cuestionario oficial · no evaluable</span>` : `<span class="chip no-oficial">No oficial</span>`;
+    const chip = e.tipo === "oficial" ? `<span class="chip oficial">Oficial</span>` : e.tipo === "cuestionario" ? `<span class="chip oficial">Test no evaluable</span>` : `<span class="chip no-oficial">No oficial</span>`;
     return `
       <a class="tarjeta" href="${enlaceAsignatura("quiz.html", ASIGNATURA_ID, "modo=examen&examen_id=" + e.id)}">
         <div class="cabecera ${e.tipo === "oficial" || e.tipo === "cuestionario" ? "" : "g4"}">
@@ -62,7 +62,7 @@
 
   document.getElementById("lista-cuestionarios").innerHTML =
     cuestionarios.map(tarjetaExamen).join("") ||
-    `<div class="vacio"><div class="icono">📥</div>Aún no hay cuestionarios oficiales cargados.</div>`;
+    `<div class="vacio"><div class="icono">📥</div>Aún no hay tests no evaluables cargados.</div>`;
 
   document.getElementById("lista-no-oficiales").innerHTML =
     noOficiales.map(tarjetaExamen).join("") ||
