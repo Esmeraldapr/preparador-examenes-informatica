@@ -151,7 +151,7 @@ function leerProgresoGuardado() {
     const examenId = params.get("examen_id");
     const { data: examen } = await sb.from("examenes").select("nombre, tipo").eq("id", examenId).single();
     tituloModo = `📝 ${examen ? examen.nombre : "Cuestionario"}`;
-    examenOficialActual = !!examen && examen.tipo === "oficial";
+    examenOficialActual = !!examen && (examen.tipo === "oficial" || examen.tipo === "cuestionario");
     const { data } = await sb.from("preguntas").select("*").eq("examen_id", examenId).order("orden", { ascending: true });
     preguntas = data || [];
   } else if (modo === "fallos") {

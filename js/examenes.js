@@ -31,17 +31,18 @@
   }
 
   const oficiales = (examenes || []).filter((e) => e.tipo === "oficial");
-  const noOficiales = (examenes || []).filter((e) => e.tipo !== "oficial");
+  const cuestionarios = (examenes || []).filter((e) => e.tipo === "cuestionario");
+  const noOficiales = (examenes || []).filter((e) => e.tipo !== "oficial" && e.tipo !== "cuestionario");
 
   function tarjetaExamen(e) {
     const ids = preguntasPorExamen.get(e.id) || [];
     const practicadas = ids.filter((id) => ultimoPorPregunta.has(id));
     const aciertos = practicadas.filter((id) => ultimoPorPregunta.get(id));
     const dominio = practicadas.length ? Math.round((aciertos.length / practicadas.length) * 100) : 0;
-    const chip = e.tipo === "oficial" ? `<span class="chip oficial">Oficial</span>` : `<span class="chip no-oficial">No oficial</span>`;
+    const chip = e.tipo === "oficial" ? `<span class="chip oficial">Oficial</span>` : e.tipo === "cuestionario" ? `<span class="chip oficial">Cuestionario oficial · no evaluable</span>` : `<span class="chip no-oficial">No oficial</span>`;
     return `
       <a class="tarjeta" href="${enlaceAsignatura("quiz.html", ASIGNATURA_ID, "modo=examen&examen_id=" + e.id)}">
-        <div class="cabecera ${e.tipo === "oficial" ? "" : "g4"}">
+        <div class="cabecera ${e.tipo === "oficial" || e.tipo === "cuestionario" ? "" : "g4"}">
           <span class="icono">📝</span>
           <h3>${e.nombre}</h3>
         </div>
@@ -58,6 +59,10 @@
   document.getElementById("lista-oficiales").innerHTML =
     oficiales.map(tarjetaExamen).join("") ||
     `<div class="vacio"><div class="icono">📥</div>Aún no hay exámenes oficiales cargados.</div>`;
+
+  document.getElementById("lista-cuestionarios").innerHTML =
+    cuestionarios.map(tarjetaExamen).join("") ||
+    `<div class="vacio"><div class="icono">📥</div>Aún no hay cuestionarios oficiales cargados.</div>`;
 
   document.getElementById("lista-no-oficiales").innerHTML =
     noOficiales.map(tarjetaExamen).join("") ||
