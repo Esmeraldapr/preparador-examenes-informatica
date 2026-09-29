@@ -125,6 +125,7 @@ function pintarNavbar(activa, usuario, asignatura) {
       </div>
     `;
     document.getElementById("btn-logout")?.addEventListener("click", cerrarSesion);
+    avisarRespuestasNuevas();
     return;
   }
 
@@ -160,6 +161,40 @@ function pintarNavbar(activa, usuario, asignatura) {
     </div>
   `;
   document.getElementById("btn-logout")?.addEventListener("click", cerrarSesion);
+  avisarRespuestasNuevas();
+}
+
+/**
+ * Bocadillo que avisa de que ya hay respuesta a tus dudas (las que escribiste
+ * en el desplegable 💬 de una pregunta). Sale una vez por página y desaparece
+ * cuando lo cierras o entras en la pregunta.
+ */
+let avisoRespuestasHecho = false;
+async function avisarRespuestasNuevas() {
+  if (avisoRespuestasHecho) return;
+  avisoRespuestasHecho = true;
+  try {
+    const { data, error } = await sb.rpc("comentarios_respuestas_nuevas");
+    if (error || !data || !data.length) return;
+    const esc = (t) => String(t).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    const ids = data.map((d) => d.id);
+    const caja = document.createElement("div");
+    caja.className = "aviso-respuestas";
+    caja.setAttribute("role", "status");
+    caja.innerHTML = `
+      <button type="button" class="aviso-resp-cerrar" aria-label="Cerrar">✕</button>
+      <div class="aviso-resp-titulo">💬 ${data.length === 1 ? "Tu respuesta está lista" : "Tus respuestas están listas"}</div>
+      <ul>${data
+        .map((d) => `<li><a href="${enlaceAsignatura("quiz.html", d.asignatura_id, "modo=examen&examen_id=" + d.examen_id)}" data-id="${d.id}">${esc(d.asignatura)} · ${esc(d.examen)} · pregunta ${d.orden}</a><span>${esc(d.texto).slice(0, 80)}</span></li>`)
+        .join("")}</ul>
+      <div class="aviso-resp-pie">Ábrela y mira el desplegable 💬</div>`;
+    document.body.appendChild(caja);
+    const marcar = () => sb.rpc("comentarios_marcar_vistos", { p_ids: ids });
+    caja.querySelector(".aviso-resp-cerrar").addEventListener("click", () => { caja.remove(); marcar(); });
+    caja.querySelectorAll("a").forEach((a) => a.addEventListener("click", marcar));
+  } catch (e) {
+    /* el aviso es opcional: si falla, no molesta */
+  }
 }
 
 /** Formatea una fecha ISO a DD/MM. */
