@@ -29,6 +29,14 @@ let blancos = 0;
 let respondida = false;
 let examenOficialActual = false;
 let tituloModoActual = "";
+let terminadoAntes = null; // { hechas, total } si se pulsó "Terminar ahora"
+let hechasSet = new Set(); // preguntas que ya has contestado alguna vez
+
+/** Pone primero las preguntas que aún no has contestado (mantiene el orden dentro de cada grupo). */
+function noHechasPrimero(arr) {
+  if (!hechasSet.size) return arr;
+  return [...arr.filter((p) => !hechasSet.has(p.id)), ...arr.filter((p) => hechasSet.has(p.id))];
+}
 
 function mezclar(arr) {
   const a = [...arr];
@@ -139,6 +147,13 @@ function leerProgresoGuardado() {
     borrarProgreso();
   }
 
+  // Preguntas que ya has contestado alguna vez: en tema / examen / práctica rápida
+  // salen primero las que aún no has hecho, para no repetir siempre las mismas.
+  if (["tema", "examen", "aleatorio"].includes(modo)) {
+    const { data: hechas } = await sb.from("intentos").select("pregunta_id").eq("usuario_id", usuarioActual.id).limit(5000);
+    hechasSet = new Set((hechas || []).map((h) => h.pregunta_id));
+  }
+
   let preguntas = [];
   let tituloModo = "";
 
@@ -146,14 +161,14 @@ function leerProgresoGuardado() {
     const unidad = params.get("unidad") || "";
     tituloModo = `📘 Tema: ${unidad}`;
     const { data } = await sb.from("preguntas").select("*").eq("asignatura_id", ASIGNATURA_ID).eq("unidad", unidad);
-    preguntas = mezclar(data || []);
+    preguntas = noHechasPrimero(mezclar(data || []));
   } else if (modo === "examen") {
     const examenId = params.get("examen_id");
     const { data: examen } = await sb.from("examenes").select("nombre, tipo").eq("id", examenId).single();
     tituloModo = `📝 ${examen ? examen.nombre : "Cuestionario"}`;
     examenOficialActual = !!examen && (examen.tipo === "oficial" || examen.tipo === "cuestionario");
     const { data } = await sb.from("preguntas").select("*").eq("examen_id", examenId).order("orden", { ascending: true });
-    preguntas = data || [];
+    preguntas = noHechasPrimero(data || []);
   } else if (modo === "fallos") {
     tituloModo = "🔁 Repaso de fallos";
     const { data: preguntasAsignatura } = await sb.from("preguntas").select("id").eq("asignatura_id", ASIGNATURA_ID);
@@ -196,7 +211,7 @@ function leerProgresoGuardado() {
     let consulta = sb.from("preguntas").select("*").eq("asignatura_id", ASIGNATURA_ID);
     if (idsExamenes) consulta = consulta.in("examen_id", idsExamenes);
     const { data } = await consulta;
-    preguntas = mezclar(data || []).slice(0, n);
+    preguntas = noHechasPrimero(mezclar(data || [])).slice(0, n);
   }
 
   document.getElementById("titulo-modo").textContent = tituloModo;
@@ -271,10 +286,13 @@ function pintarPregunta() {
     </div>
     <div class="qz-salir">
       <a href="${urlVolver()}" class="btn btn-secundario">← Salir</a>
+      ${MODO !== "racha" && preguntasSet.length > 1 ? `<button type="button" id="btn-terminar" class="btn btn-secundario" title="Termina ahora y calcula la nota con lo que llevas hecho">🏁 Terminar ahora</button>` : ""}
     </div>
   `;
   document.getElementById("qz-com-enviar").addEventListener("click", () => enviarComentario(p.id));
 
+  const btnTerminar = document.getElementById("btn-terminar");
+  if (btnTerminar) btnTerminar.addEventListener("click", terminarAhora);
   document.getElementById("btn-favorito").addEventListener("click", () => alternarFavorito(p.id));
   const btnAnterior = document.getElementById("btn-anterior");
   if (btnAnterior) btnAnterior.addEventListener("click", irAnterior);
@@ -442,6 +460,26 @@ async function alternarFavorito(preguntaId) {
   }
 }
 
+/**
+ * Termina el test antes de tiempo: la nota se calcula solo con las preguntas
+ * que ya has hecho. Las que no has llegado a ver no cuentan y, la próxima vez,
+ * saldrán primero las que aún no habías contestado.
+ */
+function terminarAhora() {
+  // La pregunta que se está viendo cuenta si ya la has contestado (aunque no hayas pulsado "Siguiente").
+  if (vista === indice && respuestas[indice] !== undefined && respuestas[indice] !== null) indice++;
+  if (indice === 0) {
+    const b = document.getElementById("btn-terminar");
+    if (b) b.textContent = "Contesta al menos una pregunta antes de terminar";
+    return;
+  }
+  terminadoAntes = { hechas: indice, total: preguntasSet.length };
+  preguntasSet = preguntasSet.slice(0, indice);
+  vista = indice;
+  guardarProgreso();
+  pintarResultado();
+}
+
 function siguientePregunta() {
   // Si se pulsa "Siguiente" sin haber elegido ninguna opción, la pregunta
   // queda en blanco: no cuenta como acierto ni como error, y no se guarda intento.
@@ -510,6 +548,7 @@ async function pintarResultado() {
     <div class="pregunta-caja resultado-final">
       <div class="porcentaje">${pct}%</div>
       <p style="font-size:1.1rem;font-weight:700;margin:8px 0 4px">${aciertos} de ${total} correctas</p>
+      ${terminadoAntes && terminadoAntes.hechas < terminadoAntes.total ? `<p class="subtitulo" style="margin-bottom:6px">Terminaste antes: la nota cuenta solo las ${terminadoAntes.hechas} preguntas que hiciste (de ${terminadoAntes.total}). La próxima vez empezarás por las que aún no has hecho.</p>` : ""}
       ${bloqueNota}
       ${bloqueRacha}
       <p class="subtitulo">${
