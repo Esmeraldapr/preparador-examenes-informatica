@@ -418,3 +418,8 @@ h2{font-size:1.25rem; margin:0 0 14px;}
 .qz-comentario textarea:focus{outline:none; border-color:var(--morado);}
 .qz-com-fila{display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-top:8px;}
 .qz-com-estado{font-size:.9rem; color:var(--texto-suave);}
+
+.qz-com-lista{margin-top:12px;}
+.qz-com-item{margin-top:10px; padding:10px 12px; border-radius:12px; background:#f6f3ff; border:1px solid #e0d9fb; font-size:.92rem; line-height:1.45;}
+.qz-com-resp{margin-top:8px; padding:8px 10px; border-radius:10px; background:#eafaf0; border:1px solid #bfe8cf;}
+.qz-com-pend{margin-top:6px; color:var(--texto-suave); font-size:.85rem;}
