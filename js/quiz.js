@@ -271,13 +271,14 @@ function pintarPregunta() {
       </div>
       <div id="zona-explicacion"></div>
       <details class="qz-comentario" id="qz-comentario">
-        <summary>💬 ¿Ves algún error o quieres comentar algo de esta pregunta?</summary>
-        <label for="qz-com-texto" class="qz-com-ayuda">Cuéntalo con tus palabras: se guarda junto a esta pregunta para revisarla.</label>
+        <summary>💬 ¿Tienes una duda o ves algún error en esta pregunta?</summary>
+        <label for="qz-com-texto" class="qz-com-ayuda">Escríbela con tus palabras: se guarda junto a esta pregunta para revisarla. Si hay respuesta, la verás aquí debajo. Solo tú ves tus dudas.</label>
         <textarea id="qz-com-texto" rows="3" maxlength="2000" placeholder="Por ejemplo: creo que la respuesta correcta es otra, la imagen no se ve, no entiendo la explicación..."></textarea>
         <div class="qz-com-fila">
-          <button type="button" id="qz-com-enviar" class="btn btn-secundario">Enviar comentario</button>
+          <button type="button" id="qz-com-enviar" class="btn btn-secundario">Enviar duda</button>
           <span id="qz-com-estado" class="qz-com-estado" role="status" aria-live="polite"></span>
         </div>
+        <div id="qz-com-lista" class="qz-com-lista"></div>
       </details>
     </div>
     <div class="acciones-quiz qz-nav">
@@ -290,6 +291,8 @@ function pintarPregunta() {
     </div>
   `;
   document.getElementById("qz-com-enviar").addEventListener("click", () => enviarComentario(p.id));
+  document.getElementById("qz-comentario").addEventListener("toggle", (ev) => { if (ev.target.open) cargarMisComentarios(p.id); });
+  cargarMisComentarios(p.id);
 
   const btnTerminar = document.getElementById("btn-terminar");
   if (btnTerminar) btnTerminar.addEventListener("click", terminarAhora);
@@ -444,7 +447,28 @@ async function enviarComentario(preguntaId) {
     return;
   }
   caja.value = "";
-  estado.textContent = "✅ ¡Gracias! Comentario guardado.";
+  estado.textContent = "✅ Guardada. Si hay respuesta, aparecerá aquí debajo.";
+  cargarMisComentarios(preguntaId);
+}
+
+/** Muestra debajo del formulario las dudas que ya hiciste sobre esta pregunta y mi respuesta (solo las tuyas). */
+async function cargarMisComentarios(preguntaId) {
+  const cont = document.getElementById("qz-com-lista");
+  if (!cont) return;
+  const { data, error } = await sb
+    .from("comentarios_pregunta")
+    .select("texto, respuesta, created_at")
+    .eq("pregunta_id", preguntaId)
+    .order("created_at", { ascending: true });
+  if (error || !data || !data.length) { cont.innerHTML = ""; return; }
+  const esc = (t) => String(t).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  cont.innerHTML = data.map((c) => `
+    <div class="qz-com-item">
+      <div class="qz-com-tuya"><strong>Tu duda:</strong> ${esc(c.texto)}</div>
+      ${c.respuesta
+        ? `<div class="qz-com-resp"><strong>Respuesta:</strong> ${esc(c.respuesta).replace(/\n/g, "<br>")}</div>`
+        : `<div class="qz-com-pend">⏳ Guardada, pendiente de revisar</div>`}
+    </div>`).join("");
 }
 
 async function alternarFavorito(preguntaId) {
