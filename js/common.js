@@ -427,3 +427,68 @@ document.addEventListener("click", (e) => {
 document.addEventListener("keydown", (e) => {
   if (e.key === "Escape") cerrarLightbox();
 });
+
+// ============================================================
+// FRACCIONES APILADAS (numerador arriba, denominador abajo)
+// Solo cambia cómo SE VE el texto: lo guardado en la base de datos no se toca.
+// Se aplica únicamente a las asignaturas de la lista, para no estropear
+// unidades como km/h o m/s en las demás.
+// ============================================================
+// INICIO-FRACCIONES
+const ASIGNATURAS_CON_FRACCIONES = [1, 8]; // 1 = Cálculo, 8 = Matemática Discreta y Álgebra
+
+(function () {
+  const GRUPO = "\\((?:[^()]|\\([^()]*\\))*\\)";
+  const PALABRA = "(?:[0-9]+(?:[.,][0-9]+)?|[A-Za-zπ]+|[⁰¹²³⁴⁵⁶⁷⁸⁹ⁿ⁻⁺]+)";
+  const TERMINO = "(?:" + GRUPO + "|" + PALABRA + ")+";
+  const PATRON = new RegExp("(^|[^\\w/.:])(" + TERMINO + ")[ ]?/[ ]?(" + TERMINO + ")(?![/(0-9A-Za-zπ⁰¹²³⁴⁵⁶⁷⁸⁹ⁿ⁻⁺])", "g");
+
+  // ¿Todo el texto es un único paréntesis que abre al principio y cierra al final?
+  function esUnSoloGrupo(t) {
+    if (t.charAt(0) !== "(" || t.charAt(t.length - 1) !== ")") return false;
+    let nivel = 0;
+    for (let i = 0; i < t.length; i++) {
+      if (t.charAt(i) === "(") nivel++;
+      else if (t.charAt(i) === ")") {
+        nivel--;
+        if (nivel === 0 && i < t.length - 1) return false;
+      }
+    }
+    return nivel === 0;
+  }
+
+  function quitarParentesis(t) {
+    return esUnSoloGrupo(t) ? t.slice(1, -1) : t;
+  }
+
+  function convertir(texto) {
+    return texto.replace(PATRON, function (m, previo, num, den, pos, todo) {
+      const soloLetras = /^[A-Za-zπ]+$/;
+      // dos palabras (km/h, TCP/IP, y/o...) no son una fracción
+      if (soloLetras.test(num) && soloLetras.test(den)) return m;
+      // "5 m/s²", "100 km/h": una cantidad con su unidad
+      if (soloLetras.test(num) && num.length <= 3 && /[0-9]\s?$/.test(todo.slice(0, pos + previo.length))) return m;
+      // un paréntesis seguido de una cifra o letra pegada, como (3/4)1/4, viene mal escrito: se deja tal cual
+      if (/\)[0-9A-Za-zπ]/.test(num) || /\)[0-9A-Za-zπ]/.test(den)) return m;
+      const n = convertir(quitarParentesis(num));
+      const d = convertir(quitarParentesis(den));
+      return (
+        previo +
+        '<span class="fr"><span class="n">' + n + '</span><span class="sr"> entre </span><span class="d">' + d + "</span></span>"
+      );
+    });
+  }
+
+  window.fraccionesApiladas = function (html, asignaturaId) {
+    if (html === null || html === undefined) return html;
+    const s = String(html);
+    if (s.indexOf("/") === -1) return s;
+    if (!ASIGNATURAS_CON_FRACCIONES.includes(Number(asignaturaId))) return s;
+    // el texto se convierte; las etiquetas HTML y los dibujos SVG se dejan intactos
+    return s
+      .split(/(<svg[\s\S]*?<\/svg>|<[^>]+>)/i)
+      .map(function (parte, i) { return i % 2 === 1 ? parte : convertir(parte); })
+      .join("");
+  };
+})();
+// FIN-FRACCIONES

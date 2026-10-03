@@ -257,14 +257,14 @@ function pintarPregunta() {
         <button type="button" class="btn-altavoz" id="btn-altavoz-pregunta" style="position:static; margin-left:auto" title="Escuchar la pregunta y las opciones" aria-label="Escuchar la pregunta y las opciones">🔊</button>
       </div>
       ${p.imagen_url ? `<img class="ampliable" src="${p.imagen_url}" alt="Imagen de la pregunta" title="Pulsa para ver en grande" style="border-radius:12px;margin-bottom:16px;border:1px solid var(--borde)" />` : ""}
-      <div class="enunciado parrafo-leible" title="Pulsa para escuchar desde aquí">${p.enunciado}</div>
+      <div class="enunciado parrafo-leible" title="Pulsa para escuchar desde aquí">${fraccionesApiladas(p.enunciado, p.asignatura_id)}</div>
       <div class="opciones" id="opciones">
         ${p.opciones
           .map(
             (op, i) => `
           <div class="opcion" data-opcion="${i}">
             <span class="letra">${letras[i]}</span>
-            <span>${op}</span>
+            <span>${fraccionesApiladas(op, p.asignatura_id)}</span>
           </div>`
           )
           .join("")}
@@ -335,11 +335,11 @@ function htmlExplicacion(pregunta, correcta) {
       .map(
         (f) => `
       <div class="expl-formula">
-        <p class="expl-formula-exp parrafo-leible" title="Pulsa para escuchar desde aquí">${f.formula || ""}</p>
+        <p class="expl-formula-exp parrafo-leible" title="Pulsa para escuchar desde aquí">${fraccionesApiladas(f.formula || "", pregunta.asignatura_id)}</p>
         <ul>
           ${(f.parametros || [])
             .map(
-              (p) => `<li class="parrafo-leible" title="Pulsa para escuchar desde aquí"><b>${p.simbolo || ""}</b> = ${p.significado || ""}</li>`
+              (p) => `<li class="parrafo-leible" title="Pulsa para escuchar desde aquí"><b>${fraccionesApiladas(p.simbolo || "", pregunta.asignatura_id)}</b> = ${fraccionesApiladas(p.significado || "", pregunta.asignatura_id)}</li>`
             )
             .join("")}
         </ul>
@@ -352,7 +352,7 @@ function htmlExplicacion(pregunta, correcta) {
     <div class="explicacion-caja ${correcta ? "bien" : "mal"}" style="position:relative">
       <button type="button" class="btn-altavoz" id="btn-altavoz-explicacion" style="position:absolute; top:10px; right:10px; width:30px; height:30px; font-size:.9rem" title="Escuchar la explicación" aria-label="Escuchar la explicación">🔊</button>
       <strong>${correcta ? "✅ ¡Correcto!" : "❌ Incorrecto"}</strong><br/>
-      <span class="parrafo-leible" title="Pulsa para escuchar desde aquí">${pregunta.explicacion}</span>
+      <span class="parrafo-leible" title="Pulsa para escuchar desde aquí">${fraccionesApiladas(pregunta.explicacion, pregunta.asignatura_id)}</span>
       ${dibujo}
       ${desglose}
     </div>`;
