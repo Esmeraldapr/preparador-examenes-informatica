@@ -57,7 +57,7 @@ function claveProgreso() {
   } else if (MODO === "examen") {
     extra = `examen_${params.get("examen_id") || ""}`;
   } else if (MODO === "tema") {
-    extra = `tema_${params.get("unidad") || ""}`;
+    extra = params.get("grupo") ? `tema_g${params.get("grupo")}` : `tema_${params.get("unidad") || ""}`;
   }
   return `quizprogreso_${usuarioActual.id}_${ASIGNATURA_ID}_${extra}`;
 }
@@ -158,10 +158,26 @@ function leerProgresoGuardado() {
   let tituloModo = "";
 
   if (modo === "tema") {
-    const unidad = params.get("unidad") || "";
-    tituloModo = `📘 Tema: ${unidad}`;
-    const { data } = await sb.from("preguntas").select("*").eq("asignatura_id", ASIGNATURA_ID).eq("unidad", unidad);
-    preguntas = noHechasPrimero(mezclar(data || []));
+    const grupo = params.get("grupo");
+    if (grupo) {
+      // Asignaturas con los temas agrupados (Interfaces): el tema reúne varias unidades.
+      const { data: ag } = await sb
+        .from("unidades_agrupadas")
+        .select("unidad, tema_nombre")
+        .eq("asignatura_id", ASIGNATURA_ID)
+        .eq("tema_num", parseInt(grupo, 10));
+      const unidades = (ag || []).map((a) => a.unidad);
+      tituloModo = `📘 Tema: UD${grupo}. ${ag && ag.length ? ag[0].tema_nombre : ""}`;
+      const { data } = unidades.length
+        ? await sb.from("preguntas").select("*").eq("asignatura_id", ASIGNATURA_ID).in("unidad", unidades)
+        : { data: [] };
+      preguntas = noHechasPrimero(mezclar(data || []));
+    } else {
+      const unidad = params.get("unidad") || "";
+      tituloModo = `📘 Tema: ${unidad}`;
+      const { data } = await sb.from("preguntas").select("*").eq("asignatura_id", ASIGNATURA_ID).eq("unidad", unidad);
+      preguntas = noHechasPrimero(mezclar(data || []));
+    }
   } else if (modo === "examen") {
     const examenId = params.get("examen_id");
     const { data: examen } = await sb.from("examenes").select("nombre, tipo").eq("id", examenId).single();

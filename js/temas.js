@@ -17,21 +17,32 @@ const COLORES_CABECERA = ["", "g2", "g3", "g4"];
   pintarNavbar("temas.html", usuario, asignatura);
   document.getElementById("nombre-asignatura").textContent = asignatura.nombre;
 
-  const [{ data: preguntas }, { data: intentos }, { data: temasCompletos }] = await Promise.all([
+  const [{ data: preguntas }, { data: intentos }, { data: temasCompletos }, { data: agrupadas }] = await Promise.all([
     sb.from("preguntas").select("id, unidad").eq("asignatura_id", ASIGNATURA_ID),
     sb.from("intentos").select("pregunta_id, acierto, fecha").eq("usuario_id", usuario.id).order("fecha", { ascending: true }),
     sb.from("tema_completo").select("unidad_num").eq("asignatura_id", ASIGNATURA_ID),
+    sb.from("unidades_agrupadas").select("unidad, tema_num, tema_nombre").eq("asignatura_id", ASIGNATURA_ID),
   ]);
   // Unidades que tienen el «Tema completo» (texto + imágenes para leer o escuchar).
   const conTemaCompleto = new Set((temasCompletos || []).map((t) => t.unidad_num));
+
+  // Asignaturas cuyas preguntas no vienen etiquetadas como «UD1, UD2…» sino con
+  // nombres de tema sueltos (Interfaces de Usuario). En ese caso se agrupan.
+  const grupoDe = new Map();
+  for (const g of agrupadas || []) grupoDe.set(g.unidad, g);
+  const hayGrupos = grupoDe.size > 0;
 
   const ultimoPorPregunta = new Map();
   for (const i of intentos || []) ultimoPorPregunta.set(i.pregunta_id, i.acierto);
 
   const porUnidad = new Map();
   for (const p of preguntas || []) {
-    if (!porUnidad.has(p.unidad)) porUnidad.set(p.unidad, { total: 0, practicadas: 0, aciertos: 0 });
-    const o = porUnidad.get(p.unidad);
+    const g = hayGrupos ? grupoDe.get(p.unidad) : null;
+    const clave = g ? "UD" + g.tema_num + ". " + g.tema_nombre : p.unidad;
+    if (!porUnidad.has(clave)) {
+      porUnidad.set(clave, { total: 0, practicadas: 0, aciertos: 0, grupo: g ? g.tema_num : null, unidad: p.unidad });
+    }
+    const o = porUnidad.get(clave);
     o.total++;
     if (ultimoPorPregunta.has(p.id)) {
       o.practicadas++;
@@ -39,7 +50,12 @@ const COLORES_CABECERA = ["", "g2", "g3", "g4"];
     }
   }
 
-  const unidades = [...porUnidad.keys()].sort((a, b) => a.localeCompare(b, "es"));
+  const unidades = [...porUnidad.keys()].sort((a, b) => {
+    const na = porUnidad.get(a).grupo;
+    const nb = porUnidad.get(b).grupo;
+    if (na !== null && nb !== null) return na - nb;
+    return a.localeCompare(b, "es");
+  });
   const cont = document.getElementById("lista-temas");
 
   if (!unidades.length) {
@@ -52,8 +68,12 @@ const COLORES_CABECERA = ["", "g2", "g3", "g4"];
       const o = porUnidad.get(u);
       const dominio = o.practicadas ? Math.round((o.aciertos / o.practicadas) * 100) : 0;
       const clase = COLORES_CABECERA[idx % COLORES_CABECERA.length];
-      const numUnidad = (String(u).match(/^UD\s*(\d+)/) || [])[1];
-      const urlTest = enlaceAsignatura("quiz.html", ASIGNATURA_ID, "modo=tema&unidad=" + encodeURIComponent(u));
+      const numUnidad = o.grupo !== null ? String(o.grupo) : (String(u).match(/^UD\s*(\d+)/) || [])[1];
+      const urlTest = enlaceAsignatura(
+        "quiz.html",
+        ASIGNATURA_ID,
+        o.grupo !== null ? "modo=tema&grupo=" + o.grupo : "modo=tema&unidad=" + encodeURIComponent(u)
+      );
       if (numUnidad && conTemaCompleto.has(parseInt(numUnidad, 10))) {
         // Con tema completo: dos botones (leer/escuchar el tema y practicar).
         return `
