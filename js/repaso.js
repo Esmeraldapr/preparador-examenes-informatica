@@ -73,7 +73,7 @@ function rpTarjeta(icono, nombre, idx, cuerpo, imagen) {
   }
 
   const urlPreguntas = `quiz.html?asignatura=${asigId}&modo=racha&barra=3`;
-  const [asig, intro, fs, gs, ts, est, ej, rc] = await Promise.all([
+  const [asig, intro, fs, gs, ts, est, ej, rc, tc] = await Promise.all([
     sb.from("asignaturas").select("nombre").eq("id", asigId).maybeSingle(),
     sb.from("repaso_unidad").select("titulo, intro").eq("asignatura_id", asigId).eq("unidad_num", num).maybeSingle(),
     sb.from("formulas").select("*").eq("asignatura_id", asigId).eq("unidad_num", num).order("id"),
@@ -82,7 +82,9 @@ function rpTarjeta(icono, nombre, idx, cuerpo, imagen) {
     sb.rpc("racha_estado_hoy_web"),
     sb.rpc("racha_ejemplos_web", { p_asig: asigId, p_clave: clave }),
     sb.from("recursos").select("*").eq("asignatura_id", asigId).eq("unidad", clave).eq("verificado", true).order("orden"),
+    sb.from("tema_completo").select("id").eq("asignatura_id", asigId).eq("unidad_num", num).maybeSingle(),
   ]);
+  const hayTemaCompleto = !!(tc && tc.data);
 
   const estado = est.data && est.data[0];
   const nombreTema = estado && estado.tema_clave === clave ? estado.tema : (intro.data && intro.data.titulo) || clave;
@@ -100,6 +102,7 @@ function rpTarjeta(icono, nombre, idx, cuerpo, imagen) {
   const cta = (arriba) => `
     <div class="rc-cta">
       <a class="btn btn-primario" href="${urlPreguntas}">Empezar las preguntas →</a>
+      ${hayTemaCompleto ? `<a class="btn btn-secundario" href="tema.html?asignatura=${asigId}&tema=${clave}">📖 Tema completo (leer o escuchar)</a>` : ""}
       <a class="btn btn-secundario" href="racha.html">← Volver a mi racha</a>
     </div>`;
 

@@ -17,10 +17,13 @@ const COLORES_CABECERA = ["", "g2", "g3", "g4"];
   pintarNavbar("temas.html", usuario, asignatura);
   document.getElementById("nombre-asignatura").textContent = asignatura.nombre;
 
-  const [{ data: preguntas }, { data: intentos }] = await Promise.all([
+  const [{ data: preguntas }, { data: intentos }, { data: temasCompletos }] = await Promise.all([
     sb.from("preguntas").select("id, unidad").eq("asignatura_id", ASIGNATURA_ID),
     sb.from("intentos").select("pregunta_id, acierto, fecha").eq("usuario_id", usuario.id).order("fecha", { ascending: true }),
+    sb.from("tema_completo").select("unidad_num").eq("asignatura_id", ASIGNATURA_ID),
   ]);
+  // Unidades que tienen el «Tema completo» (texto + imágenes para leer o escuchar).
+  const conTemaCompleto = new Set((temasCompletos || []).map((t) => t.unidad_num));
 
   const ultimoPorPregunta = new Map();
   for (const i of intentos || []) ultimoPorPregunta.set(i.pregunta_id, i.acierto);
@@ -49,8 +52,29 @@ const COLORES_CABECERA = ["", "g2", "g3", "g4"];
       const o = porUnidad.get(u);
       const dominio = o.practicadas ? Math.round((o.aciertos / o.practicadas) * 100) : 0;
       const clase = COLORES_CABECERA[idx % COLORES_CABECERA.length];
+      const numUnidad = (String(u).match(/^UD\s*(\d+)/) || [])[1];
+      const urlTest = enlaceAsignatura("quiz.html", ASIGNATURA_ID, "modo=tema&unidad=" + encodeURIComponent(u));
+      if (numUnidad && conTemaCompleto.has(parseInt(numUnidad, 10))) {
+        // Con tema completo: dos botones (leer/escuchar el tema y practicar).
+        return `
+      <div class="tarjeta">
+        <div class="cabecera ${clase}">
+          <span class="icono">📘</span>
+          <h3>${u}</h3>
+        </div>
+        <div class="cuerpo">
+          <div class="meta">${o.total} preguntas · ${o.practicadas} ya practicadas</div>
+          <div class="barra-progreso"><div style="width:${dominio}%"></div></div>
+          <div class="meta">${o.practicadas ? dominio + "% de acierto en este tema" : "Aún sin practicar"}</div>
+        </div>
+        <div class="pie" style="display:flex; flex-direction:column; gap:8px">
+          <a class="btn btn-secundario btn-bloque" href="${enlaceAsignatura("tema.html", ASIGNATURA_ID, "tema=UD" + numUnidad)}">📖 Tema completo (leer o escuchar)</a>
+          <a class="btn btn-primario btn-bloque" href="${urlTest}">Practicar tema</a>
+        </div>
+      </div>`;
+      }
       return `
-      <a class="tarjeta" href="${enlaceAsignatura("quiz.html", ASIGNATURA_ID, "modo=tema&unidad=" + encodeURIComponent(u))}">
+      <a class="tarjeta" href="${urlTest}">
         <div class="cabecera ${clase}">
           <span class="icono">📘</span>
           <h3>${u}</h3>
