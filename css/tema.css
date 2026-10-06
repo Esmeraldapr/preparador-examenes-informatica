@@ -1,0 +1,62 @@
+/* ============================================================
+   Tema completo (tema.html) — clases con prefijo tm-
+   ============================================================ */
+.tm-reproductor{
+  position:sticky; top:8px; z-index:50; display:flex; align-items:center; gap:8px; flex-wrap:wrap;
+  background:#fff; border:2px solid var(--morado); border-radius:16px; padding:10px 12px;
+  box-shadow:0 10px 24px -10px rgba(124,58,237,.45); margin-bottom:18px;
+}
+.tm-reproductor button{
+  border:none; cursor:pointer; border-radius:12px; font-weight:800; font-size:1rem;
+  padding:10px 14px; background:var(--morado-suave); color:var(--morado-osc);
+}
+.tm-reproductor button:hover{filter:brightness(.96);}
+.tm-reproductor #tm-play{background:linear-gradient(135deg,#7c6ff0 0%,#4fa3e3 100%); color:#fff; min-width:128px;}
+.tm-reproductor select{
+  flex:1 1 160px; min-width:0; padding:10px; border-radius:12px; border:1.5px solid var(--borde);
+  font-weight:600; font-size:.88rem; color:var(--texto); background:#fff;
+}
+.tm-estado{flex:1 1 100%; font-size:.8rem; color:var(--texto-suave);}
+.tm-barra{flex:1 1 100%; height:6px; border-radius:999px; background:#ece9fb; overflow:hidden;}
+.tm-barra > div{height:100%; width:0; background:linear-gradient(135deg,#7c6ff0 0%,#4fa3e3 100%); transition:width .2s;}
+
+.tm-tema h2{margin:34px 0 10px; font-size:1.3rem; color:var(--morado-osc); scroll-margin-top:150px; border-bottom:2px solid var(--morado-suave); padding-bottom:6px;}
+.tm-tema h2:first-child{margin-top:0;}
+.tm-tema h3{margin:24px 0 8px; font-size:1.08rem; color:var(--morado); scroll-margin-top:150px;}
+.tm-tema p{line-height:1.7; font-size:1.02rem; margin:0 0 12px;}
+.tm-tema ul{margin:0 0 14px 22px; padding:0;}
+.tm-tema li{line-height:1.6; margin-bottom:6px; font-size:1.02rem;}
+.tm-leible{cursor:pointer; border-radius:8px; padding:2px 6px; margin-left:-6px; margin-right:-6px; transition:.15s background;}
+.tm-leible:hover{background:#f5f3ff;}
+.tm-leible.tm-activo{background:#ede9fe; box-shadow:inset 4px 0 0 var(--morado);}
+
+.tm-formula{
+  background:#faf9ff; border:1px solid var(--borde); border-left:4px solid var(--morado);
+  border-radius:12px; padding:12px 14px; margin:10px 0 14px;
+}
+.tm-formula .tm-exp{font-family:"Cambria Math", Georgia, "Times New Roman", serif; font-size:1.2rem; font-weight:700; color:var(--morado-osc); text-align:center; overflow-wrap:anywhere;}
+.tm-formula .tm-lee{font-size:.88rem; color:var(--texto-suave); text-align:center; margin:6px 0 0;}
+
+.tm-nota{border-radius:12px; padding:12px 14px; margin:12px 0 16px; line-height:1.6; font-size:.98rem; border:1px solid #fde68a; background:#fffbeb;}
+.tm-nota.tm-examen{border-color:#fecaca; background:#fff1f2;}
+.tm-nota.tm-ojo{border-color:#fdba74; background:#fff7ed;}
+.tm-nota.tm-video{border-color:#bbf7d0; background:#f0fdf4;}
+.tm-nota b{color:var(--morado-osc);}
+.tm-nota.tm-examen b{color:#be123c;}
+
+.tm-fig{background:#fff; border:1px solid var(--borde); border-radius:14px; padding:12px; margin:14px auto 18px; text-align:center; max-width:560px;}
+.tm-fig img{max-width:100%; max-height:420px; height:auto; border-radius:8px;}
+.tm-fig.tm-ancha{max-width:100%;}
+.tm-fig.tm-ancha img{max-height:none;}
+.tm-fig figcaption{font-size:.85rem; color:var(--texto-suave); margin-top:8px; line-height:1.45;}
+
+.tm-enlace{border:1px solid var(--borde); border-radius:12px; padding:12px; margin-bottom:10px; background:#fff;}
+.tm-enlace .subtitulo{margin:4px 0 8px;}
+.tm-grupo{font-weight:800; margin:16px 0 8px; color:var(--morado-osc);}
+
+@media (max-width:640px){
+  .tm-reproductor{top:4px; padding:8px;}
+  .tm-reproductor button{padding:10px 12px;}
+  .tm-reproductor #tm-play{min-width:0; flex:1 1 auto;}
+  .tm-tema h2, .tm-tema h3{scroll-margin-top:190px;}
+}
