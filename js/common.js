@@ -187,11 +187,43 @@ async function avisarRespuestasNuevas() {
       <ul>${data
         .map((d) => `<li><a href="${enlaceAsignatura("quiz.html", d.asignatura_id, "modo=examen&examen_id=" + d.examen_id)}" data-id="${d.id}">${esc(d.asignatura)} · ${esc(d.examen)} · pregunta ${d.orden}</a><span>${esc(d.texto).slice(0, 80)}</span></li>`)
         .join("")}</ul>
-      <div class="aviso-resp-pie">Ábrela y mira el desplegable 💬</div>`;
+      <div class="aviso-resp-pie">Ábrela y mira el desplegable 💬</div>
+      <button type="button" class="aviso-resp-vale">✓ Ya lo he visto, no me lo vuelvas a enseñar</button>`;
     document.body.appendChild(caja);
-    const marcar = () => sb.rpc("comentarios_marcar_vistos", { p_ids: ids });
-    caja.querySelector(".aviso-resp-cerrar").addEventListener("click", () => { caja.remove(); marcar(); });
-    caja.querySelectorAll("a").forEach((a) => a.addEventListener("click", marcar));
+
+    // Marca las respuestas como vistas. IMPORTANTE: hay que ESPERAR a que
+    // termine. Antes se lanzaba sin esperar y, al pulsar el enlace, el
+    // navegador cambiaba de página y cancelaba la petición a medias: el aviso
+    // volvía a salir una y otra vez aunque ya se hubiera leído.
+    let marcado = false;
+    const marcar = async () => {
+      if (marcado) return;
+      marcado = true;
+      try {
+        await sb.rpc("comentarios_marcar_vistos", { p_ids: ids });
+      } catch (e) {
+        marcado = false; // si falló, que se pueda reintentar
+      }
+    };
+
+    const quitar = async () => {
+      caja.remove();
+      await marcar();
+    };
+
+    caja.querySelector(".aviso-resp-cerrar").addEventListener("click", quitar);
+    caja.querySelector(".aviso-resp-vale").addEventListener("click", quitar);
+
+    // Al abrir la pregunta: primero se marca y después se navega, para que no
+    // se quede la petición a medias.
+    caja.querySelectorAll("a[data-id]").forEach((a) =>
+      a.addEventListener("click", async (ev) => {
+        ev.preventDefault();
+        const destino = a.getAttribute("href");
+        await marcar();
+        window.location.href = destino;
+      })
+    );
   } catch (e) {
     /* el aviso es opcional: si falla, no molesta */
   }
