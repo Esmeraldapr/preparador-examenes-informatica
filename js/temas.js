@@ -20,11 +20,12 @@ const COLORES_CABECERA = ["", "g2", "g3", "g4"];
   const [{ data: preguntas }, { data: intentos }, { data: temasCompletos }, { data: agrupadas }] = await Promise.all([
     sb.from("preguntas").select("id, unidad").eq("asignatura_id", ASIGNATURA_ID),
     sb.from("intentos").select("pregunta_id, acierto, fecha").eq("usuario_id", usuario.id).order("fecha", { ascending: true }),
-    sb.from("tema_completo").select("unidad_num").eq("asignatura_id", ASIGNATURA_ID),
+    sb.from("tema_completo").select("unidad_num, titulo").eq("asignatura_id", ASIGNATURA_ID).order("unidad_num"),
     sb.from("unidades_agrupadas").select("unidad, tema_num, tema_nombre").eq("asignatura_id", ASIGNATURA_ID),
   ]);
   // Unidades que tienen el «Tema completo» (texto + imágenes para leer o escuchar).
   const conTemaCompleto = new Set((temasCompletos || []).map((t) => t.unidad_num));
+  const esAgrupada = (agrupadas || []).length > 0;
 
   // Asignaturas cuyas preguntas no vienen etiquetadas como «UD1, UD2…» sino con
   // nombres de tema sueltos (Interfaces de Usuario). En ese caso se agrupan.
@@ -63,7 +64,16 @@ const COLORES_CABECERA = ["", "g2", "g3", "g4"];
     return;
   }
 
-  cont.innerHTML = unidades
+  // Asignaturas con temas agrupados (Interfaces): el tema completo va por unidad del temario.
+  const bloqueTemario = esAgrupada && (temasCompletos || []).length
+    ? `<div style="grid-column:1/-1"><h3 style="margin:0 0 8px">📖 Temario completo (por unidad del temario)</h3>
+        <div style="display:flex;flex-direction:column;gap:8px">${temasCompletos
+          .map((t) => `<a class="btn btn-secundario btn-bloque" href="${enlaceAsignatura("tema.html", ASIGNATURA_ID, "tema=UD" + t.unidad_num)}">📖 UD${t.unidad_num}. ${t.titulo.replace(/\s*\(UD\d+ del temario\)/, "")}</a>`)
+          .join("")}</div>
+        <h3 style="margin:16px 0 0">📝 Practicar por temas</h3></div>`
+    : "";
+
+  cont.innerHTML = bloqueTemario + unidades
     .map((u, idx) => {
       const o = porUnidad.get(u);
       const dominio = o.practicadas ? Math.round((o.aciertos / o.practicadas) * 100) : 0;
@@ -74,7 +84,7 @@ const COLORES_CABECERA = ["", "g2", "g3", "g4"];
         ASIGNATURA_ID,
         o.grupo !== null ? "modo=tema&grupo=" + o.grupo : "modo=tema&unidad=" + encodeURIComponent(u)
       );
-      if (numUnidad && conTemaCompleto.has(parseInt(numUnidad, 10))) {
+      if (!esAgrupada && numUnidad && conTemaCompleto.has(parseInt(numUnidad, 10))) {
         // Con tema completo: dos botones (leer/escuchar el tema y practicar).
         return `
       <div class="tarjeta">

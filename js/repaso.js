@@ -84,7 +84,8 @@ function rpTarjeta(icono, nombre, idx, cuerpo, imagen) {
     sb.from("recursos").select("*").eq("asignatura_id", asigId).eq("unidad", clave).eq("verificado", true).order("orden"),
     sb.from("tema_completo").select("id").eq("asignatura_id", asigId).eq("unidad_num", num).maybeSingle(),
   ]);
-  const hayTemaCompleto = !!(tc && tc.data);
+  const { count: nAgrup } = await sb.from("unidades_agrupadas").select("unidad", { count: "exact", head: true }).eq("asignatura_id", asigId);
+  const hayTemaCompleto = !!(tc && tc.data) && !nAgrup;
 
   const estado = est.data && est.data[0];
   const nombreTema = estado && estado.tema_clave === clave ? estado.tema : (intro.data && intro.data.titulo) || clave;
