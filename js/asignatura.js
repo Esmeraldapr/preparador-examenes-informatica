@@ -23,13 +23,14 @@ let ASIGNATURA_ID = null;
   document.getElementById("subtitulo-asignatura").textContent = `${asignatura.curso} · Ingeniería Informática`;
   document.title = `${asignatura.nombre} · Preparador`;
 
-  const [{ data: intentos }, { data: favoritos }, { count: totalPreguntas }, { count: totalExamenes }, { count: totalTrucos }] =
+  const [{ data: intentos }, { data: favoritos }, { count: totalPreguntas }, { data: examenesAsig }, { count: totalTrucos }, { count: totalEntregables }] =
     await Promise.all([
       sb.from("intentos").select("id, pregunta_id, acierto, fecha").eq("usuario_id", usuario.id).order("fecha", { ascending: true }),
       sb.from("favoritos").select("id").eq("usuario_id", usuario.id),
       sb.from("preguntas").select("id", { count: "exact", head: true }).eq("asignatura_id", ASIGNATURA_ID),
-      sb.from("examenes").select("id", { count: "exact", head: true }).eq("asignatura_id", ASIGNATURA_ID),
+      sb.from("examenes").select("id, tipo").eq("asignatura_id", ASIGNATURA_ID),
       sb.from("trucos").select("id", { count: "exact", head: true }).eq("asignatura_id", ASIGNATURA_ID),
+      sb.from("entregables").select("id", { count: "exact", head: true }).eq("asignatura_id", ASIGNATURA_ID),
     ]);
 
   const { data: preguntasAsignatura } = await sb.from("preguntas").select("id").eq("asignatura_id", ASIGNATURA_ID);
@@ -43,7 +44,14 @@ let ASIGNATURA_ID = null;
   pintarStats(intentosAsignatura, favoritos || [], totalPreguntas || 0);
   pintarCalendario(intentosAsignatura);
   pintarEvolucion(intentosAsignatura);
-  pintarAccesos(totalExamenes || 0, totalTrucos || 0);
+  const cuentaTipo = (...tipos) => (examenesAsig || []).filter((x) => tipos.includes(x.tipo)).length;
+  pintarAccesos({
+    examenes: cuentaTipo("oficial", "no_oficial"),
+    tests: cuentaTipo("cuestionario"),
+    practicas: cuentaTipo("practica"),
+    trucos: totalTrucos || 0,
+    entregables: totalEntregables || 0,
+  });
 
   document.getElementById("btn-reiniciar").addEventListener("click", async () => {
     if (!confirm("¿Seguro que quieres borrar TODO tu seguimiento de esta asignatura (aciertos, fallos y estadísticas)? Esto no se puede deshacer. Tus favoritos no se tocan.")) return;
@@ -189,27 +197,44 @@ function pintarEvolucion(intentos) {
   });
 }
 
-function pintarAccesos(totalExamenes, totalTrucos) {
-  document.getElementById("accesos").innerHTML = `
-    <a class="tarjeta" href="${enlaceAsignatura("temas.html", ASIGNATURA_ID)}">
+function pintarAccesos(n) {
+  const plural = (c, uno, varios) => `${c} ${c === 1 ? uno : varios}`;
+  const hay = (c, texto, vacio) => (c > 0 ? texto : vacio);
+  const tarjetas = [
+    `<a class="tarjeta" href="${enlaceAsignatura("temas.html", ASIGNATURA_ID)}">
       <div class="cabecera"><span class="icono">📚</span><h3>Repasar Tema</h3></div>
       <div class="cuerpo"><div class="meta">Practica por unidad/tema</div></div>
-    </a>
-    <a class="tarjeta" href="${enlaceAsignatura("clases.html", ASIGNATURA_ID)}">
+    </a>`,
+    `<a class="tarjeta" href="${enlaceAsignatura("clases.html", ASIGNATURA_ID)}">
       <div class="cabecera g2"><span class="icono">🎓</span><h3>Clases del profesor</h3></div>
       <div class="cuerpo"><div class="meta">Lo que explicó en directo, clase a clase</div></div>
-    </a>
-    <a class="tarjeta" href="${enlaceAsignatura("practica.html", ASIGNATURA_ID)}">
-      <div class="cabecera g2"><span class="icono">⚡</span><h3>Práctica rápida</h3></div>
+    </a>`,
+    `<a class="tarjeta" href="${enlaceAsignatura("practica.html", ASIGNATURA_ID)}">
+      <div class="cabecera g3"><span class="icono">⚡</span><h3>Práctica rápida</h3></div>
       <div class="cuerpo"><div class="meta">Aleatorio, solo fallos o solo favoritos</div></div>
-    </a>
-    <a class="tarjeta" href="${enlaceAsignatura("examenes.html", ASIGNATURA_ID)}">
-      <div class="cabecera g3"><span class="icono">📝</span><h3>Cuestionarios</h3></div>
-      <div class="cuerpo"><div class="meta">${totalExamenes} exámenes oficiales y no oficiales</div></div>
-    </a>
-    <a class="tarjeta" href="${enlaceAsignatura("trucos.html", ASIGNATURA_ID)}">
+    </a>`,
+    `<a class="tarjeta" href="${enlaceAsignatura("examenes.html", ASIGNATURA_ID)}#oficiales">
+      <div class="cabecera g4"><span class="icono">📝</span><h3>Exámenes</h3></div>
+      <div class="cuerpo"><div class="meta">${hay(n.examenes, plural(n.examenes, "examen oficial o no oficial", "exámenes oficiales y no oficiales"), "Todavía no hay exámenes")}</div></div>
+    </a>`,
+    `<a class="tarjeta" href="${enlaceAsignatura("examenes.html", ASIGNATURA_ID)}#tests">
+      <div class="cabecera"><span class="icono">📘</span><h3>Tests evaluables y no evaluables</h3></div>
+      <div class="cuerpo"><div class="meta">${hay(n.tests, plural(n.tests, "test de la universidad", "tests de la universidad") + " (los que van poniendo)", "Todavía no hay tests cargados")}</div></div>
+    </a>`,
+    `<a class="tarjeta" href="${enlaceAsignatura("examenes.html", ASIGNATURA_ID)}#ejercicios">
+      <div class="cabecera g2"><span class="icono">🧪</span><h3>Ejercicios de clase y prácticas</h3></div>
+      <div class="cuerpo"><div class="meta">${hay(n.practicas, plural(n.practicas, "conjunto de ejercicios", "conjuntos de ejercicios") + " (los del profesor y los de práctica)", "Todavía no hay ejercicios cargados")}</div></div>
+    </a>`,
+  ];
+  if (n.entregables > 0) {
+    tarjetas.push(`<a class="tarjeta" href="${enlaceAsignatura("entregables.html", ASIGNATURA_ID)}">
+      <div class="cabecera g3"><span class="icono">📋</span><h3>Entregables</h3></div>
+      <div class="cuerpo"><div class="meta">Explicación de los ejercicios a entregar</div></div>
+    </a>`);
+  }
+  tarjetas.push(`<a class="tarjeta" href="${enlaceAsignatura("trucos.html", ASIGNATURA_ID)}">
       <div class="cabecera g4"><span class="icono">💡</span><h3>Trucos y chuletario</h3></div>
-      <div class="cuerpo"><div class="meta">${totalTrucos} trucos rápidos para el examen</div></div>
-    </a>
-  `;
+      <div class="cuerpo"><div class="meta">${n.trucos} trucos rápidos para el examen</div></div>
+    </a>`);
+  document.getElementById("accesos").innerHTML = tarjetas.join("");
 }
