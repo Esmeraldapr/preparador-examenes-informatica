@@ -12,18 +12,24 @@
     <h1>📝 Cuestionarios</h1>
     <p class="subtitulo"><span id="nombre-asignatura"></span> · Exámenes reales, separados de los tests no oficiales para no confundirlos.</p>
 
-    <div class="panel">
+    <div class="panel" id="oficiales">
       <div class="panel-cabecera"><h2>✅ Exámenes oficiales</h2></div>
       <div class="grid-tarjetas" id="lista-oficiales"><div class="spinner"></div></div>
     </div>
 
-    <div class="panel">
-      <div class="panel-cabecera"><h2>📘 Tests no evaluables</h2></div>
-      <p class="subtitulo" style="margin-top:-8px">Tests oficiales de la universidad que no puntúan para la nota. No son exámenes, pero también entran en Mi racha.</p>
+    <div class="panel" id="tests">
+      <div class="panel-cabecera"><h2>📘 Tests evaluables y no evaluables</h2></div>
+      <p class="subtitulo" style="margin-top:-8px">Tests y actividades de la universidad (puntúen o no para la nota). No son exámenes, pero también entran en Mi racha.</p>
       <div class="grid-tarjetas" id="lista-cuestionarios"><div class="spinner"></div></div>
     </div>
 
-    <div class="panel">
+    <div class="panel" id="ejercicios">
+      <div class="panel-cabecera"><h2>🧪 Ejercicios de clase y prácticas</h2></div>
+      <p class="subtitulo" style="margin-top:-8px">Los ejercicios que resuelve el profesor en clase y los de práctica hechos para ti. No son exámenes oficiales, pero también entran en Mi racha.</p>
+      <div class="grid-tarjetas" id="lista-practicas"><div class="spinner"></div></div>
+    </div>
+
+    <div class="panel" id="no-oficiales">
       <div class="panel-cabecera"><h2>🟡 Posibles exámenes no oficiales</h2></div>
       <p class="subtitulo" style="margin-top:-8px">Simulacros, reconstrucciones o bancos de repaso: no confirmados al 100% como examen oficial.</p>
       <div class="grid-tarjetas" id="lista-no-oficiales"><div class="spinner"></div></div>
