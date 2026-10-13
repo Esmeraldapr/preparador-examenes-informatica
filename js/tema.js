@@ -98,9 +98,11 @@ function tmPintar(texto) {
     return;
   }
 
-  const [asig, tema] = await Promise.all([
+  const [asig, tema, clase] = await Promise.all([
     sb.from("asignaturas").select("id, nombre").eq("id", asigId).maybeSingle(),
     sb.from("tema_completo").select("*").eq("asignatura_id", asigId).eq("unidad_num", num).maybeSingle(),
+    // Si el profesor dio una clase en directo de esta unidad, se enlaza (vive en la pestaña Clases).
+    sb.from("clases").select("numero, titulo").eq("asignatura_id", asigId).eq("unidad_num", num).maybeSingle(),
   ]);
   pintarNavbar("temas.html", usuario, asig.data || null);
 
@@ -149,6 +151,7 @@ function tmPintar(texto) {
     <div class="rc-cta">
       ${t.examen_practica_id ? `<a class="btn btn-primario" href="${enlaceAsignatura("quiz.html", asigId, "modo=examen&examen_id=" + t.examen_practica_id)}">📝 Hacer el test de práctica del tema</a>` : ""}
       ${t.unidad ? `<a class="btn btn-secundario" href="${enlaceAsignatura("quiz.html", asigId, "modo=tema&unidad=" + encodeURIComponent(t.unidad))}">🎯 Todas las preguntas de este tema</a>` : ""}
+      ${clase.data ? `<a class="btn btn-secundario" href="${enlaceAsignatura("clase.html", asigId, "clase=" + clase.data.numero)}">🎓 La clase ${clase.data.numero} del profesor</a>` : ""}
       <a class="btn btn-secundario" href="${enlaceAsignatura("temas.html", asigId)}">← Volver a los temas</a>
     </div>`;
 

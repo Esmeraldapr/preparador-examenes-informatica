@@ -195,6 +195,10 @@ function pintarAccesos(totalExamenes, totalTrucos) {
       <div class="cabecera"><span class="icono">📚</span><h3>Repasar Tema</h3></div>
       <div class="cuerpo"><div class="meta">Practica por unidad/tema</div></div>
     </a>
+    <a class="tarjeta" href="${enlaceAsignatura("clases.html", ASIGNATURA_ID)}">
+      <div class="cabecera g2"><span class="icono">🎓</span><h3>Clases del profesor</h3></div>
+      <div class="cuerpo"><div class="meta">Lo que explicó en directo, clase a clase</div></div>
+    </a>
     <a class="tarjeta" href="${enlaceAsignatura("practica.html", ASIGNATURA_ID)}">
       <div class="cabecera g2"><span class="icono">⚡</span><h3>Práctica rápida</h3></div>
       <div class="cuerpo"><div class="meta">Aleatorio, solo fallos o solo favoritos</div></div>
