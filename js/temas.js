@@ -18,7 +18,7 @@ const COLORES_CABECERA = ["", "g2", "g3", "g4"];
   document.getElementById("nombre-asignatura").textContent = asignatura.nombre;
 
   const [{ data: preguntas }, { data: intentos }, { data: temasCompletos }, { data: agrupadas }] = await Promise.all([
-    sb.from("preguntas").select("id, unidad").eq("asignatura_id", ASIGNATURA_ID),
+    sb.from("preguntas").select("id, unidad").eq("asignatura_id", ASIGNATURA_ID).neq("unidad", "Daypo"),
     sb.from("intentos").select("pregunta_id, acierto, fecha").eq("usuario_id", usuario.id).order("fecha", { ascending: true }),
     sb.from("tema_completo").select("unidad_num, titulo").eq("asignatura_id", ASIGNATURA_ID).order("unidad_num"),
     sb.from("unidades_agrupadas").select("unidad, tema_num, tema_nombre").eq("asignatura_id", ASIGNATURA_ID),
