@@ -31,6 +31,7 @@ let examenOficialActual = false;
 let tituloModoActual = "";
 let terminadoAntes = null; // { hechas, total } si se pulsó "Terminar ahora"
 let hechasSet = new Set(); // preguntas que ya has contestado alguna vez
+let trucosPorTarea = {}; // "asignatura|tipo_tarea" -> lista de trucos para el botón 💡
 
 /** Pone primero las preguntas que aún no has contestado (mantiene el orden dentro de cada grupo). */
 function noHechasPrimero(arr) {
@@ -117,6 +118,8 @@ function leerProgresoGuardado() {
 
   const { data: favs } = await sb.from("favoritos").select("pregunta_id").eq("usuario_id", usuarioActual.id);
   favoritosSet = new Set((favs || []).map((f) => f.pregunta_id));
+
+  await cargarTrucosPorTarea();
 
   // Si había un test de este mismo tipo a medias (por ejemplo, se cortó la conexión),
   // seguimos exactamente por donde se dejó, con las mismas preguntas y en el mismo orden.
@@ -250,6 +253,62 @@ function leerProgresoGuardado() {
   pintarPregunta();
 })();
 
+/** Carga (una vez) qué trucos del chuletario corresponden a cada tipo de ejercicio. Si falla, el botón simplemente no sale. */
+async function cargarTrucosPorTarea() {
+  trucosPorTarea = {};
+  try {
+    const { data } = await sb
+      .from("tipo_tarea_truco")
+      .select("asignatura_id, tipo_tarea, orden, trucos(id, nombre, explicacion, imagen_url)")
+      .order("orden", { ascending: true });
+    (data || []).forEach((r) => {
+      if (!r.trucos) return;
+      const clave = `${r.asignatura_id}|${r.tipo_tarea}`;
+      (trucosPorTarea[clave] = trucosPorTarea[clave] || []).push(r.trucos);
+    });
+  } catch (e) {
+    trucosPorTarea = {};
+  }
+}
+
+/** Texto de un truco: párrafos, tablas y saltos de línea, igual que en la página de trucos. */
+function htmlCuerpoTruco(t) {
+  return String(t.explicacion || "")
+    .split(/\n\s*\n/)
+    .map((x) => x.trim())
+    .filter(Boolean)
+    .map((x) => (/^<table[\s>]/i.test(x) ? `<div class="tabla-envoltorio">${x}</div>` : `<p>${x.replace(/\n/g, "<br/>")}</p>`))
+    .join("");
+}
+
+/**
+ * Botón "💡 Ver trucos" de cada pregunta: se puede abrir antes de contestar (por si no te acuerdas)
+ * y después de fallar (para ver cómo se hacía). Muestra los trucos del chuletario de ese tipo de ejercicio.
+ */
+function htmlTrucos(p) {
+  const lista = trucosPorTarea[`${p.asignatura_id}|${p.tipo_tarea}`];
+  if (!lista || !lista.length) return "";
+  const unico = lista.length === 1;
+  const items = lista
+    .map(
+      (t) => `
+      <details class="qz-truco" ${unico ? "open" : ""}>
+        <summary>💡 ${t.nombre}</summary>
+        <div class="qz-truco-cuerpo">
+          ${t.imagen_url ? `<img class="ampliable" src="${t.imagen_url}" alt="${t.nombre}" title="Pulsa para ver en grande" />` : ""}
+          ${htmlCuerpoTruco(t)}
+        </div>
+      </details>`
+    )
+    .join("");
+  return `
+    <details class="qz-trucos">
+      <summary>💡 Ver trucos de «${p.tipo_tarea}» (${lista.length})</summary>
+      <p class="qz-trucos-ayuda">Mira cómo se hace e inténtalo tú. ${unico ? "" : "Pulsa el que se parezca a tu ejercicio."}</p>
+      ${items}
+    </details>`;
+}
+
 function pintarPregunta() {
   detenerLectura();
   const p = preguntasSet[vista];
@@ -286,6 +345,7 @@ function pintarPregunta() {
           .join("")}
       </div>
       <div id="zona-explicacion"></div>
+      ${htmlTrucos(p)}
       <details class="qz-comentario" id="qz-comentario">
         <summary>💬 ¿Tienes una duda o ves algún error en esta pregunta?</summary>
         <label for="qz-com-texto" class="qz-com-ayuda">Escríbela con tus palabras: se guarda junto a esta pregunta para revisarla. Si hay respuesta, la verás aquí debajo. Solo tú ves tus dudas.</label>
