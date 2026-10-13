@@ -11,11 +11,7 @@ const COLORES_ENTREGABLES = ["", "g2", "g3", "g4"];
   if (!ASIGNATURA_ID) return;
   const usuario = await obtenerOCrearUsuario(sesion);
   if (!usuario) return;
-  // Sección solo para Esmeralda: el resto vuelve al dashboard
-  if ((usuario.email || "").toLowerCase() !== "esmeraldaparaiso7@gmail.com") {
-    window.location.replace("asignatura.html?asignatura=" + ASIGNATURA_ID);
-    return;
-  }
+  // Qué entregables se ven lo decide Supabase: Esmeralda ve todos y el resto solo los que ya han cerrado.
 
   const { data: asignatura } = await sb.from("asignaturas").select("id, nombre").eq("id", ASIGNATURA_ID).single();
   if (!asignatura) return;
