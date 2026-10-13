@@ -4,6 +4,8 @@
 // ============================================================
 
 const COLORES_TARJETA = ["", "g2", "g3", "g4"];
+// Asignaturas del primer trimestre (salen primero, en este orden).
+const PRIMER_TRIMESTRE = ["Cálculo", "Fundamentos Físicos"];
 const ORDEN_CURSOS = ["1º CURSO", "2º CURSO", "3º CURSO", "4º CURSO"];
 
 (async function iniciar() {
@@ -13,15 +15,20 @@ const ORDEN_CURSOS = ["1º CURSO", "2º CURSO", "3º CURSO", "4º CURSO"];
   if (!usuario) return;
   pintarNavbar("index.html", usuario, null);
 
-  const [{ data: asignaturas }, { data: preguntas }] = await Promise.all([
-    sb.from("asignaturas").select("id, curso, nombre").order("id"),
-    sb.from("preguntas").select("id, asignatura_id"),
-  ]);
+  const { data: asignaturas } = await sb.from("asignaturas").select("id, curso, nombre").order("id");
 
+  // Cuenta las preguntas de cada asignatura (un conteo por asignatura,
+  // así no se corta en las 1000 filas que devuelve Supabase por defecto).
   const conteoPreguntas = new Map();
-  for (const p of preguntas || []) {
-    conteoPreguntas.set(p.asignatura_id, (conteoPreguntas.get(p.asignatura_id) || 0) + 1);
-  }
+  await Promise.all(
+    (asignaturas || []).map(async (a) => {
+      const { count } = await sb
+        .from("preguntas")
+        .select("id", { count: "exact", head: true })
+        .eq("asignatura_id", a.id);
+      conteoPreguntas.set(a.id, count || 0);
+    })
+  );
 
   const porCurso = new Map();
   for (const a of asignaturas || []) {
@@ -42,15 +49,24 @@ const ORDEN_CURSOS = ["1º CURSO", "2º CURSO", "3º CURSO", "4º CURSO"];
     .join("");
 
   function pintarCurso(curso) {
-    const lista = porCurso.get(curso) || [];
+    // El color de cada tarjeta se queda como estaba (según su orden original).
+    // Solo cambia la posición: las asignaturas del primer trimestre van primero.
+    const lista = (porCurso.get(curso) || []).map((a, i) => ({ ...a, _color: i }));
+    lista.sort((x, y) => {
+      const px = PRIMER_TRIMESTRE.findIndex((t) => x.nombre.startsWith(t));
+      const py = PRIMER_TRIMESTRE.findIndex((t) => y.nombre.startsWith(t));
+      const ox = px === -1 ? 999 : px;
+      const oy = py === -1 ? 999 : py;
+      return ox - oy || x._color - y._color;
+    });
     if (!lista.length) {
       contenidoEl.innerHTML = `<div class="vacio"><div class="icono">📭</div>No hay asignaturas cargadas en este curso todavía.</div>`;
       return;
     }
     contenidoEl.innerHTML = `<div class="grid-tarjetas">${lista
-      .map((a, idx) => {
+      .map((a) => {
         const n = conteoPreguntas.get(a.id) || 0;
-        const clase = COLORES_TARJETA[idx % COLORES_TARJETA.length];
+        const clase = COLORES_TARJETA[a._color % COLORES_TARJETA.length];
         return `
         <a class="tarjeta" href="asignatura.html?asignatura=${a.id}">
           <div class="cabecera ${clase}">
