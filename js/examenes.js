@@ -33,14 +33,15 @@
   const oficiales = (examenes || []).filter((e) => e.tipo === "oficial");
   const cuestionarios = (examenes || []).filter((e) => e.tipo === "cuestionario");
   const practicas = (examenes || []).filter((e) => e.tipo === "practica");
-  const noOficiales = (examenes || []).filter((e) => e.tipo !== "oficial" && e.tipo !== "cuestionario" && e.tipo !== "practica");
+  const daypos = (examenes || []).filter((e) => e.tipo === "daypo");
+  const noOficiales = (examenes || []).filter((e) => e.tipo !== "oficial" && e.tipo !== "cuestionario" && e.tipo !== "practica" && e.tipo !== "daypo");
 
   function tarjetaExamen(e) {
     const ids = preguntasPorExamen.get(e.id) || [];
     const practicadas = ids.filter((id) => ultimoPorPregunta.has(id));
     const aciertos = practicadas.filter((id) => ultimoPorPregunta.get(id));
     const dominio = practicadas.length ? Math.round((aciertos.length / practicadas.length) * 100) : 0;
-    const chip = e.tipo === "oficial" ? `<span class="chip oficial">Oficial</span>` : e.tipo === "cuestionario" ? `<span class="chip oficial">Test de la universidad</span>` : e.tipo === "practica" ? `<span class="chip no-oficial">Ejercicios de práctica</span>` : `<span class="chip no-oficial">No oficial</span>`;
+    const chip = e.tipo === "oficial" ? `<span class="chip oficial">Oficial</span>` : e.tipo === "cuestionario" ? `<span class="chip oficial">Test de la universidad</span>` : e.tipo === "practica" ? `<span class="chip no-oficial">Ejercicios de práctica</span>` : e.tipo === "daypo" ? `<span class="chip no-oficial">Daypo · sin verificar</span>` : `<span class="chip no-oficial">No oficial</span>`;
     return `
       <a class="tarjeta" href="${enlaceAsignatura("quiz.html", ASIGNATURA_ID, "modo=examen&examen_id=" + e.id)}">
         <div class="cabecera ${e.tipo === "oficial" || e.tipo === "cuestionario" ? "" : "g4"}">
@@ -68,6 +69,10 @@
   document.getElementById("lista-practicas").innerHTML =
     practicas.map(tarjetaExamen).join("") ||
     `<div class="vacio"><div class="icono">📥</div>Aún no hay ejercicios de clase ni prácticas cargados.</div>`;
+
+  document.getElementById("lista-daypo").innerHTML =
+    daypos.map(tarjetaExamen).join("") ||
+    `<div class="vacio"><div class="icono">📥</div>Aún no hay tests de Daypo cargados.</div>`;
 
   document.getElementById("lista-no-oficiales").innerHTML =
     noOficiales.map(tarjetaExamen).join("") ||
