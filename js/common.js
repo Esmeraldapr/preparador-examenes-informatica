@@ -129,8 +129,7 @@ function pintarNavbar(activa, usuario, asignatura) {
     return;
   }
 
-  // La pestaña Entregables es solo para Esmeralda (en todas las asignaturas)
-  const VE_ENTREGABLES = (usuario?.email || "").toLowerCase() === "esmeraldaparaiso7@gmail.com";
+  // Entregables ya no va en la barra de arriba: está en «Accesos rápidos» del dashboard.
   const enlaces = [
     ["asignatura.html", "🏠", "Dashboard"],
     ["aula0.html", "🌱", "Aula 0"],
@@ -139,10 +138,9 @@ function pintarNavbar(activa, usuario, asignatura) {
     ["practica.html", "⚡", "Practicar"],
     ["examenes.html", "📝", "Cuestionarios"],
     ["trucos.html", "💡", "Trucos"],
-    ["entregables.html", "📋", "Entregables"],
     ["graficas.html", "📈", "Gráficas"],
     ["formulas.html", "🧮", "Fórmulas"],
-  ].filter(([href]) => href !== "entregables.html" || VE_ENTREGABLES);
+  ];
 
   el.innerHTML = `
     <div class="marca"><span class="emoji">🎓</span> ${asignatura.nombre}</div>
