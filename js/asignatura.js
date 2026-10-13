@@ -49,6 +49,7 @@ let ASIGNATURA_ID = null;
     examenes: cuentaTipo("oficial", "no_oficial"),
     tests: cuentaTipo("cuestionario"),
     practicas: cuentaTipo("practica"),
+    daypo: cuentaTipo("daypo"),
     trucos: totalTrucos || 0,
     entregables: totalEntregables || 0,
   });
@@ -226,6 +227,12 @@ function pintarAccesos(n) {
       <div class="cuerpo"><div class="meta">${hay(n.practicas, plural(n.practicas, "conjunto de ejercicios", "conjuntos de ejercicios") + " (los del profesor y los de práctica)", "Todavía no hay ejercicios cargados")}</div></div>
     </a>`,
   ];
+  if (n.daypo > 0) {
+    tarjetas.push(`<a class="tarjeta" href="${enlaceAsignatura("examenes.html", ASIGNATURA_ID)}#daypo">
+      <div class="cabecera g4"><span class="icono">🌐</span><h3>Daypo</h3></div>
+      <div class="cuerpo"><div class="meta">${plural(n.daypo, "test de otro estudiante", "tests de otros estudiantes")} (sin verificar)</div></div>
+    </a>`);
+  }
   if (n.entregables > 0) {
     tarjetas.push(`<a class="tarjeta" href="${enlaceAsignatura("entregables.html", ASIGNATURA_ID)}">
       <div class="cabecera g3"><span class="icono">📋</span><h3>Entregables</h3></div>
