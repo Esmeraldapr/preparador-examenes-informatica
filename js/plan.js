@@ -6,7 +6,7 @@ const PLAN_EMAIL = "esmeraldaparaiso7@gmail.com";
 const PLAN_ASIGNATURAS = [1, 6, 24]; // Cálculo, FFE, Interfaces (Interfaces: 1 de cada 3 días)
 const PLAN_INTERFACES = 24;
 const PLAN_REPASOS = [1, 3, 7, 30];
-const PLAN_MIN = { clase: 40, video: 20, tema: 45, test: 15, repaso: 10 };
+const PLAN_MIN = { clase: 40, video: 20, tema: 45, test: 15, repaso: 10, cae: 15 };
 
 function planFechaMadrid(d) {
   return (d || new Date()).toLocaleDateString("sv-SE", { timeZone: "Europe/Madrid" });
@@ -28,7 +28,7 @@ async function planCatalogo(asigId) {
   const [cl, vi, te, as] = await Promise.all([
     sb.from("clases").select("numero, titulo, unidad_num").eq("asignatura_id", asigId),
     sb.from("recursos").select("id, titulo, url, unidad, minuto_inicio, orden").eq("asignatura_id", asigId).eq("origen", "profe").eq("verificado", true),
-    sb.from("tema_completo").select("unidad_num, titulo").eq("asignatura_id", asigId),
+    sb.from("tema_completo").select("unidad_num, unidad, titulo").eq("asignatura_id", asigId),
     sb.from("asignaturas").select("nombre").eq("id", asigId).single(),
   ]);
   const nombre = (as.data?.nombre || "").split(" ")[0];
@@ -39,13 +39,13 @@ async function planCatalogo(asigId) {
   const items = [];
   [...unidades].sort((a, b) => a - b).forEach((u) => {
     (cl.data || []).filter((c) => c.unidad_num === u).forEach((c) =>
-      items.push({ clave: `clase:${asigId}:${c.numero}`, tipo: "nuevo", sub: "clase", asig: nombre, asigId, titulo: `Clase ${c.numero} del profe: ${c.titulo}`, min: PLAN_MIN.clase, url: `clase.html?asignatura=${asigId}&clase=${c.numero}`, repasable: true }));
+      items.push({ clave: `clase:${asigId}:${c.numero}`, tipo: "nuevo", sub: "clase", asig: nombre, asigId, unidadNum: u, titulo: `Clase ${c.numero} del profe: ${c.titulo}`, min: PLAN_MIN.clase, url: `clase.html?asignatura=${asigId}&clase=${c.numero}`, repasable: true }));
     (vi.data || []).filter((v) => v.unidad === "UD" + u).sort((a, b) => a.orden - b.orden).forEach((v) =>
-      items.push({ clave: `video:${v.id}`, tipo: "nuevo", sub: "video", asig: nombre, asigId, titulo: v.titulo, min: PLAN_MIN.video, url: v.url + (v.minuto_inicio && /youtu/.test(v.url) ? (v.url.includes("?") ? "&" : "?") + "t=" + v.minuto_inicio : ""), externo: true }));
+      items.push({ clave: `video:${v.id}`, tipo: "nuevo", sub: "video", asig: nombre, asigId, unidadNum: u, titulo: v.titulo, min: PLAN_MIN.video, url: v.url + (v.minuto_inicio && /youtu/.test(v.url) ? (v.url.includes("?") ? "&" : "?") + "t=" + v.minuto_inicio : ""), externo: true }));
     const t = (te.data || []).find((x) => x.unidad_num === u);
     if (t) {
-      items.push({ clave: `tema:${asigId}:UD${u}`, tipo: "nuevo", sub: "tema", asig: nombre, asigId, titulo: `Tema completo UD${u}: ${t.titulo}`, min: PLAN_MIN.tema, url: `tema.html?asignatura=${asigId}&tema=UD${u}`, repasable: true, repasoUrl: `repaso.html?asignatura=${asigId}&tema=UD${u}` });
-      items.push({ clave: `test:${asigId}:UD${u}`, tipo: "test", sub: "test", asig: nombre, asigId, titulo: `Test de la UD${u}`, min: PLAN_MIN.test, url: `repaso.html?asignatura=${asigId}&tema=UD${u}` });
+      items.push({ clave: `tema:${asigId}:UD${u}`, tipo: "nuevo", sub: "tema", asig: nombre, asigId, unidadNum: u, unidadTexto: t.unidad, titulo: `Tema completo UD${u}: ${t.titulo}`, min: PLAN_MIN.tema, url: `tema.html?asignatura=${asigId}&tema=UD${u}`, repasable: true, repasoUrl: `repaso.html?asignatura=${asigId}&tema=UD${u}` });
+      items.push({ clave: `test:${asigId}:UD${u}`, tipo: "test", sub: "test", asig: nombre, asigId, unidadNum: u, unidadTexto: t.unidad, titulo: `Test de la UD${u}`, min: PLAN_MIN.test, url: `repaso.html?asignatura=${asigId}&tema=UD${u}` });
     }
   });
   return items;
@@ -75,9 +75,22 @@ function planGenerar(hoy, catalogos, hechos) {
     usado += PLAN_MIN.repaso;
   }
 
-  // 📖✍️ Lo nuevo, mezclando asignaturas (Interfaces solo 1 de cada 3 días).
+  // 🎯 Una tanda diaria de lo que más cae en los exámenes, empezando por lo que falla.
   const hayInterfaces = planDiaDelAnio(hoy) % 3 === 0;
-  const colas = PLAN_ASIGNATURAS.filter((a) => a !== PLAN_INTERFACES || hayInterfaces).map((a) => ({
+  const activas = PLAN_ASIGNATURAS.filter((a) => a !== PLAN_INTERFACES || hayInterfaces);
+  const elegida = activas[planDiaDelAnio(hoy) % activas.length];
+  const nombreElegida = (catalogos[elegida] || [])[0]?.asig || "";
+  if (nombreElegida) {
+    tareas.push({
+      clave: `cae:${elegida}:${hoy}`, tipo: "test", sub: "cae", asig: nombreElegida, asigId: elegida,
+      titulo: `Lo que más cae en los exámenes de ${nombreElegida}`, min: PLAN_MIN.cae,
+      url: `quiz.html?asignatura=${elegida}&modo=cae&n=8&desde=plan`,
+    });
+    usado += PLAN_MIN.cae;
+  }
+
+  // 📖✍️ Lo nuevo, mezclando asignaturas (Interfaces solo 1 de cada 3 días).
+  const colas = activas.map((a) => ({
     id: a,
     pend: (catalogos[a] || []).filter((i) => !hechos.has(i.clave)),
     tope: a === PLAN_INTERFACES ? 60 : Infinity,
@@ -91,7 +104,7 @@ function planGenerar(hoy, catalogos, hechos) {
       const sig = c.pend[0];
       if (!sig || c.gastado + sig.min > c.tope) continue;
       c.pend.shift();
-      tareas.push({ clave: sig.clave, tipo: sig.tipo, sub: sig.sub, asig: sig.asig, asigId: sig.asigId, titulo: sig.titulo, min: sig.min, url: sig.url, externo: !!sig.externo });
+      tareas.push({ clave: sig.clave, tipo: sig.tipo, sub: sig.sub, asig: sig.asig, asigId: sig.asigId, unidadNum: sig.unidadNum, unidadTexto: sig.unidadTexto, titulo: sig.titulo, min: sig.min, url: sig.url, externo: !!sig.externo });
       usado += sig.min; c.gastado += sig.min; avanzo = true;
     }
   }
@@ -133,7 +146,17 @@ function planResponder(texto, ctx) {
     return "De " + n + " te queda esto hoy:\n" + lista(sp);
   }
 
-  if (tiene("entrega", "entregable", "plazo", "fecha limite", "examen")) {
+  if (tiene("no entra", "quita", "sobra") || (tiene("entra") && tiene("no"))) {
+    const n = (ctx.avisos || []).filter((a) => a.tipo === "no_entra");
+    if (!n.length) return "De momento ningún profe ha dicho en clase que algo no entre. En cuanto lo diga, te lo marco aquí.";
+    return "Esto dijeron los profes que NO entra:\n" + n.map((a) => "- " + a.texto).join("\n");
+  }
+  if (tiene("entra en el examen", "que entra", "mas cae", "cae mas", "importante")) {
+    const n = (ctx.avisos || []).filter((a) => a.tipo === "entra");
+    if (!n.length) return "Todavía no tengo avisos del profe sobre lo que entra.";
+    return "Esto dijeron los profes que SÍ entra:\n" + n.map((a) => "- " + a.texto).join("\n");
+  }
+  if (tiene("entrega", "entregable", "plazo", "fecha limite")) {
     if (!fechas.length) return "No tienes ninguna entrega apuntada ahora mismo.";
     return (
       "Lo que tienes por entregar:\n" +
@@ -192,8 +215,34 @@ const PLAN_GRUPOS = [
   ["tema", "📖", "tema", "temas"],
   ["test", "✍️", "test", "test"],
   ["repaso", "🔁", "repaso", "repasos"],
+  ["cae", "🎯", "lo que más cae", "lo que más cae"],
 ];
 const planGrupo = (sub) => PLAN_GRUPOS.find((g) => g[0] === sub) || ["otros", "📌", "tarea", "tareas"];
+
+// Etiqueta: cuántas veces ha caído esa unidad en exámenes oficiales y test.
+function planEtiquetaExamen(t, pesoMap) {
+  if (!pesoMap || !t.unidadTexto) return "";
+  const veces = pesoMap.get(t.asigId + "|" + t.unidadTexto) || 0;
+  if (!veces) return `<div class="pl-marca pl-marca-nada">⚪ No ha caído en los exámenes que tienes cargados, pero está en el temario</div>`;
+  if (veces >= 15) return `<div class="pl-marca pl-marca-mucho">🎯 Cae mucho · ${veces} preguntas en exámenes</div>`;
+  return `<div class="pl-marca">📌 ${veces} pregunta${veces === 1 ? "" : "s"} en exámenes</div>`;
+}
+
+// Lo que dijeron los profes en clase sobre lo que entra y lo que no.
+function planCajaProfe(tareas, avisos) {
+  if (!avisos || !avisos.length) return "";
+  const unidadesHoy = new Set(tareas.filter((t) => t.unidadNum).map((t) => t.asigId + "|" + t.unidadNum));
+  const suyos = avisos.filter((a) => unidadesHoy.has(a.asignatura_id + "|" + a.unidad_num));
+  if (!suyos.length) return "";
+  const orden = { no_entra: 0, entra: 1, ojo: 2 };
+  suyos.sort((a, b) => orden[a.tipo] - orden[b.tipo]);
+  const ico = { no_entra: "⛔", entra: "🎯", ojo: "⚠️" };
+  const cab = { no_entra: "No entra", entra: "Entra", ojo: "Ojo" };
+  return `<details class="pl-profe" open>
+    <summary><b>🎓 Lo que dijo el profe</b> · ${suyos.length}</summary>
+    ${suyos.map((a) => `<div class="pl-av"><span class="pl-av-t pl-av-${a.tipo}">${ico[a.tipo]} ${cab[a.tipo]}</span> ${planEsc(a.texto)}<span class="pl-mini"> · ${planEsc(a.fuente || "")}</span></div>`).join("")}
+  </details>`;
+}
 
 const PLAN_CHIPS = [
   ["¿Qué toca hoy?", "que toca hoy"],
@@ -222,6 +271,11 @@ const PLAN_CHIPS = [
       sb.from("plan_dia").select("fecha, tareas").order("fecha", { ascending: false }).limit(8),
     ]);
     const hechos = new Map((hh || []).map((x) => [x.clave, x.hecho_en]));
+    const [{ data: avisos }, { data: pesos }] = await Promise.all([
+      sb.from("avisos_profe").select("asignatura_id, unidad_num, tipo, texto, fuente").in("asignatura_id", PLAN_ASIGNATURAS),
+      sb.from("v_peso_unidad").select("asignatura_id, unidad, veces").in("asignatura_id", PLAN_ASIGNATURAS),
+    ]);
+    const pesoMap = new Map((pesos || []).map((x) => [x.asignatura_id + "|" + x.unidad, x.veces]));
     let delHoy = (dia || []).find((d) => d.fecha === hoy);
     if (!delHoy || regenerar) {
       const catalogos = {};
@@ -235,7 +289,7 @@ const PLAN_CHIPS = [
       delHoy = { fecha: hoy, tareas };
       (dia || []).splice(0, 0);
     }
-    pintar(delHoy.tareas, hechos, dia || []);
+    pintar(delHoy.tareas, hechos, dia || [], null, avisos || [], pesoMap);
   }
 
   async function marcar(clave, hecha) {
@@ -244,7 +298,7 @@ const PLAN_CHIPS = [
     cargar(false);
   }
 
-  async function pintar(tareas, hechos, dias, filtro) {
+  async function pintar(tareas, hechos, dias, filtro, avisos, pesoMap) {
     const hechas = tareas.filter((t) => hechos.has(t.clave));
     const minTot = tareas.reduce((s, t) => s + t.min, 0);
     const minHechos = hechas.reduce((s, t) => s + t.min, 0);
@@ -257,7 +311,7 @@ const PLAN_CHIPS = [
       return `<div class="pl-fecha">${planEsc(d.fecha)} · ${h} de ${d.tareas.length} hechas</div>`;
     }).join("");
     const pendientes = tareas.filter((t) => !hechos.has(t.clave));
-    const ctx = { tareas, hechos, fechas: fechas || [] };
+    const ctx = { tareas, hechos, fechas: fechas || [], avisos: avisos || [] };
     const visibles = filtro ? tareas.filter((t) => t.sub === filtro) : tareas;
 
     const contadores = PLAN_GRUPOS.map(([k, ico, uno, varios]) => {
@@ -278,6 +332,8 @@ const PLAN_CHIPS = [
         const txt = d <= 0 ? "hoy" : d === 1 ? "mañana" : "en " + d + " días";
         return `<div class="pl-f"><span>${planEsc(f.titulo)}</span><span class="pl-dias ${d > 7 ? "lejos" : ""}">${txt}</span></div>`;
       }).join("")}</div>` : ""}
+
+      ${planCajaProfe(tareas, avisos)}
 
       <div class="pl-pregunta">
         <b>🗣️ Pregúntame</b>
@@ -308,6 +364,7 @@ const PLAN_CHIPS = [
           <div class="pl-cuerpo">
             <div class="pl-etq">${g[1]} ${g[2]} · ${planEsc(t.asig)} · ${t.min} min</div>
             <div class="pl-tit">${planEsc(t.titulo)}</div>
+            ${planEtiquetaExamen(t, pesoMap)}
             <a class="btn btn-secundario" href="${planEsc(t.url)}" ${t.externo ? 'target="_blank" rel="noopener"' : ""}>Abrir</a>
           </div></div>`;
       }).join("") || '<div class="vacio">Hoy no hay tareas.</div>'}
@@ -317,9 +374,9 @@ const PLAN_CHIPS = [
       <p><button class="btn btn-secundario" id="pl-rehacer">Rehacer lo que falta de hoy</button></p>`;
 
     cont.querySelectorAll("[data-grupo]").forEach((b) =>
-      b.addEventListener("click", () => pintar(tareas, hechos, dias, b.dataset.grupo === filtro ? null : b.dataset.grupo))
+      b.addEventListener("click", () => pintar(tareas, hechos, dias, b.dataset.grupo === filtro ? null : b.dataset.grupo, avisos, pesoMap))
     );
-    document.getElementById("pl-todas")?.addEventListener("click", () => pintar(tareas, hechos, dias, null));
+    document.getElementById("pl-todas")?.addEventListener("click", () => pintar(tareas, hechos, dias, null, avisos, pesoMap));
 
     cont.querySelectorAll(".pl-chk").forEach((b) => b.addEventListener("click", () => {
       const t = tareas[+b.dataset.i];
