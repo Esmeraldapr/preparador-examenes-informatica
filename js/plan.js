@@ -98,6 +98,101 @@ function planGenerar(hoy, catalogos, hechos) {
   return tareas;
 }
 
+
+// ------------------------------------------------------------
+// «Pregúntame»: contesta con lo que hay en la web, sin salir de la página.
+// Entiende preguntas escritas y tiene botones con las más normales.
+// ------------------------------------------------------------
+function planResponder(texto, ctx) {
+  const q = (texto || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+  const { tareas, hechos, fechas } = ctx;
+  const pend = tareas.filter((t) => !hechos.has(t.clave));
+  const hechas = tareas.filter((t) => hechos.has(t.clave));
+  const min = (l) => l.reduce((s, t) => s + t.min, 0);
+  const lista = (l) => l.map((t) => "- " + t.titulo + " (" + t.min + " min)").join("\n");
+  const tiene = (...p) => p.some((x) => q.includes(x));
+
+  // Por asignatura
+  const asigs = [
+    ["calculo", "Cálculo"],
+    ["fundamentos", "Fundamentos"],
+    ["fisica", "Fundamentos"],
+    ["ffe", "Fundamentos"],
+    ["interfaces", "Interfaces"],
+  ];
+  const pedida = asigs.find(([k]) => q.includes(k));
+  if (pedida) {
+    const n = pedida[1];
+    const suyas = tareas.filter((t) => t.asig === n);
+    if (!suyas.length) return "Hoy no toca " + n + ". Lo verás otro día.";
+    const sp = suyas.filter((t) => !hechos.has(t.clave));
+    if (!sp.length) return "De " + n + " ya lo tienes todo hecho hoy. Bien.";
+    return "De " + n + " te queda esto hoy:\n" + lista(sp);
+  }
+
+  if (tiene("entrega", "entregable", "plazo", "fecha limite", "examen")) {
+    if (!fechas.length) return "No tienes ninguna entrega apuntada ahora mismo.";
+    return (
+      "Lo que tienes por entregar:\n" +
+      fechas
+        .map((f) => {
+          const d = Math.ceil((new Date(f.fecha) - new Date()) / 86400000);
+          return "- " + f.titulo + " — " + (d <= 0 ? "¡es hoy!" : "quedan " + d + " día" + (d === 1 ? "" : "s"));
+        })
+        .join("\n")
+    );
+  }
+  if (tiene("repaso", "repasar")) {
+    const r = pend.filter((t) => t.tipo === "repaso");
+    if (!r.length) return "Hoy no te toca ningún repaso. Los repasos salen a los 1, 3, 7 y 30 días de acabar algo.";
+    return "Hoy te toca repasar esto:\n" + lista(r);
+  }
+  if (tiene("test", "pregunta")) {
+    const r = pend.filter((t) => t.tipo === "test");
+    if (!r.length) return "Hoy no te queda ningún test.";
+    return "Test que te quedan hoy:\n" + lista(r);
+  }
+  if (tiene("video", "profe", "clase")) {
+    const r = pend.filter((t) => /^(🎬|Clase)/.test(t.titulo));
+    if (!r.length) return "Hoy no te queda ningún vídeo ni clase del profe.";
+    return "Vídeos y clases del profe que te quedan hoy:\n" + lista(r);
+  }
+  if (tiene("cuanto", "cuantas", "minuto", "hora", "tiempo", "falta")) {
+    if (!pend.length) return "Nada. Hoy ya está hecho.";
+    return (
+      "Te quedan " + pend.length + " tarea" + (pend.length === 1 ? "" : "s") +
+      ", unos " + min(pend) + " minutos. Ya llevas hechos " + min(hechas) + " minutos."
+    );
+  }
+  if (tiene("hecho", "llevo", "he hecho", "completad")) {
+    if (!hechas.length) return "Hoy todavía no has marcado nada como hecho.";
+    return "Hoy llevas hechas " + hechas.length + " de " + tareas.length + " tareas:\n" + lista(hechas);
+  }
+  if (tiene("primero", "empiezo", "empezar", "ahora")) {
+    if (!pend.length) return "Nada. Hoy ya está hecho. Si quieres seguir, pulsa «Rehacer lo que falta de hoy».";
+    return "Empieza por esto:\n- " + pend[0].titulo + " (" + pend[0].min + " min)";
+  }
+
+  // Por defecto: qué toca hoy
+  if (!tareas.length) return "Hoy no hay tareas preparadas. Pulsa «Rehacer lo que falta de hoy».";
+  if (!pend.length) return "Hoy ya está todo hecho. Has hecho " + tareas.length + " tareas y " + min(tareas) + " minutos.";
+  return (
+    "Hoy toca esto, unos " + min(pend) + " minutos:\n" + lista(pend) +
+    "\n\nEmpieza por la primera: " + pend[0].titulo + "."
+  );
+}
+
+const PLAN_CHIPS = [
+  ["¿Qué toca hoy?", "que toca hoy"],
+  ["¿Cuánto me queda?", "cuanto me queda"],
+  ["¿Qué repaso hoy?", "repaso"],
+  ["¿Qué entrego pronto?", "entrega"],
+  ["¿Por dónde empiezo?", "primero"],
+];
+
 (async function iniciar() {
   const sesion = await exigirSesion();
   if (!sesion) return;
@@ -151,7 +246,19 @@ function planGenerar(hoy, catalogos, hechos) {
       const h = d.tareas.filter((t) => hechos.has(t.clave)).length;
       return `<div class="pl-fecha">${planEsc(d.fecha)} · ${h} de ${d.tareas.length} hechas</div>`;
     }).join("");
+    const pendientes = tareas.filter((t) => !hechos.has(t.clave));
+    const ctx = { tareas, hechos, fechas: fechas || [] };
     cont.innerHTML = `
+      <div class="pl-pregunta">
+        <b>🗣️ Pregúntame</b>
+        <div class="pl-chips">${PLAN_CHIPS.map((c, i) => `<button class="filtro-btn" data-chip="${i}">${planEsc(c[0])}</button>`).join("")}</div>
+        <div class="pl-escribe">
+          <input id="pl-q" type="text" placeholder="O escríbelo: ¿qué toca hoy de cálculo?" />
+          <button class="btn btn-primario" id="pl-enviar">Preguntar</button>
+        </div>
+        <div class="pl-respuesta" id="pl-resp" hidden></div>
+      </div>
+      ${pendientes.length ? `<p><a class="btn btn-primario btn-bloque" href="${planEsc(pendientes[0].url)}" ${pendientes[0].externo ? 'target="_blank" rel="noopener"' : ""}>▶ Empezar ahora: ${planEsc(pendientes[0].titulo)}</a></p>` : ""}
       <div class="pl-resumen">
         <h2>${quedan === 0 && tareas.length ? "🎉 ¡Hoy está hecho!" : `Hoy te quedan ${quedan} tarea${quedan === 1 ? "" : "s"}`}</h2>
         <div>${minHechos} de ${minTot} minutos hechos</div>
@@ -179,6 +286,30 @@ function planGenerar(hoy, catalogos, hechos) {
       marcar(t.clave, !hechos.has(t.clave));
     }));
     document.getElementById("pl-rehacer").addEventListener("click", () => cargar(true));
+
+    const resp = document.getElementById("pl-resp");
+    const entrada = document.getElementById("pl-q");
+    function contestar(texto) {
+      const r = planResponder(texto, ctx);
+      resp.hidden = false;
+      resp.innerHTML =
+        `<div class="pl-parrafos parrafo-leible">${r.split("\n").map((l) => `<div>${planEsc(l)}</div>`).join("")}</div>` +
+        `<button class="btn btn-secundario" id="pl-oir">🔊 Escuchar la respuesta</button>`;
+      document.getElementById("pl-oir").addEventListener("click", (ev) => {
+        leerTexto("", [resp.querySelector(".pl-parrafos")], ev.currentTarget);
+      });
+      resp.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
+    cont.querySelectorAll("[data-chip]").forEach((b) =>
+      b.addEventListener("click", () => {
+        entrada.value = PLAN_CHIPS[+b.dataset.chip][0];
+        contestar(PLAN_CHIPS[+b.dataset.chip][1]);
+      })
+    );
+    document.getElementById("pl-enviar").addEventListener("click", () => contestar(entrada.value));
+    entrada.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") contestar(entrada.value);
+    });
   }
 
   cargar(false);
