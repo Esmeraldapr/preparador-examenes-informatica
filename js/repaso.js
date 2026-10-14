@@ -178,20 +178,29 @@ function rpTarjeta(icono, nombre, idx, cuerpo, imagen) {
       </details>`;
   }
 
-  if (videos.length) {
+  // Los vídeos se separan en dos bloques que no se mezclan: primero los del profe, luego los recomendados.
+  const rpVideoHtml = (v) => {
+    const enlace = v.minuto_inicio && /youtu/.test(v.url) ? v.url + (v.url.includes("?") ? "&" : "?") + "t=" + v.minuto_inicio : v.url;
+    return `<div class="rc-video">
+      <div><b>${rpEsc(v.titulo)}</b>${v.canal ? ` <span class="subtitulo" style="margin:0">· ${rpEsc(v.canal)}</span>` : ""}</div>
+      ${v.para_que_sirve ? `<div class="subtitulo" style="margin:4px 0 8px">${rpEsc(v.para_que_sirve)}</div>` : ""}
+      <a class="btn btn-secundario" href="${rpEsc(enlace)}" target="_blank" rel="noopener">▶ Ver vídeo</a>
+    </div>`;
+  };
+  const videosProfe = videos.filter((v) => v.origen === "profe");
+  const videosRecomendados = videos.filter((v) => v.origen !== "profe");
+  if (videosProfe.length) {
+    html += `
+      <details class="panel rc-desplegable" open>
+        <summary>🎓 Vídeos del profe (${videosProfe.length}) — empieza por estos</summary>
+        ${videosProfe.map(rpVideoHtml).join("")}
+      </details>`;
+  }
+  if (videosRecomendados.length) {
     html += `
       <details class="panel rc-desplegable">
-        <summary>🎬 Vídeos de apoyo (${videos.length})</summary>
-        ${videos
-          .map((v) => {
-            const enlace = v.minuto_inicio && /youtu/.test(v.url) ? v.url + (v.url.includes("?") ? "&" : "?") + "t=" + v.minuto_inicio : v.url;
-            return `<div class="rc-video">
-              <div><b>${rpEsc(v.titulo)}</b>${v.canal ? ` <span class="subtitulo" style="margin:0">· ${rpEsc(v.canal)}</span>` : ""}</div>
-              ${v.para_que_sirve ? `<div class="subtitulo" style="margin:4px 0 8px">${rpEsc(v.para_que_sirve)}</div>` : ""}
-              <a class="btn btn-secundario" href="${rpEsc(enlace)}" target="_blank" rel="noopener">▶ Ver vídeo</a>
-            </div>`;
-          })
-          .join("")}
+        <summary>⭐ Vídeos recomendados (${videosRecomendados.length})</summary>
+        ${videosRecomendados.map(rpVideoHtml).join("")}
       </details>`;
   }
 
