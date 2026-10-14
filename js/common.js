@@ -437,6 +437,12 @@ document.addEventListener("click", (e) => {
     const bloque = parrafo.closest("[data-lectura]") || parrafo.parentElement;
     const hermanos = Array.from(bloque.querySelectorAll(".parrafo-leible"));
     const desde = hermanos.indexOf(parrafo);
+    // Si vuelve a pulsar el mismo párrafo desde el que se está leyendo, se para.
+    if (parrafo.classList.contains("leyendo-desde") && sintesisVoz && sintesisVoz.speaking) {
+      hermanos.forEach((p) => p.classList.remove("leyendo-desde"));
+      detenerLectura();
+      return;
+    }
     hermanos.forEach((p) => p.classList.remove("leyendo-desde"));
     parrafo.classList.add("leyendo-desde");
     detenerLectura();
