@@ -194,6 +194,7 @@ html{scroll-behavior:smooth}
   });
   nodos.forEach(function(n, k){
     n.addEventListener('click', function(){
+      if (sonando && !pausado && i === k) { parar(); return; }
       i = k; sonando = true; pausado = false;
       try{ syn.cancel(); }catch(e){}
       hablar(); estado();
