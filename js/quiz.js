@@ -277,7 +277,7 @@ function htmlCuerpoTruco(t) {
     .split(/\n\s*\n/)
     .map((x) => x.trim())
     .filter(Boolean)
-    .map((x) => (/^<table[\s>]/i.test(x) ? `<div class="tabla-envoltorio">${x}</div>` : `<p>${x.replace(/\n/g, "<br/>")}</p>`))
+    .map((x) => (/^<table[\s>]/i.test(x) ? `<div class="tabla-envoltorio">${x}</div>` : `<p class="parrafo-leible" title="Pulsa para escuchar desde aquí">${x.replace(/\n/g, "<br/>")}</p>`))
     .join("");
 }
 
@@ -295,6 +295,7 @@ function htmlTrucos(p) {
       <details class="qz-truco" ${unico ? "open" : ""}>
         <summary>💡 ${t.nombre}</summary>
         <div class="qz-truco-cuerpo">
+          <button type="button" class="btn-altavoz qz-truco-voz" style="position:static; width:auto; height:auto; padding:6px 14px; border-radius:999px; background:#ede9fe; font-size:.85rem; font-weight:600; gap:6px" title="Escuchar este truco desde el principio" aria-label="Escuchar este truco desde el principio">🔊 Escuchar este truco</button>
           ${t.imagen_url ? `<img class="ampliable" src="${t.imagen_url}" alt="${t.nombre}" title="Pulsa para ver en grande" />` : ""}
           ${htmlCuerpoTruco(t)}
         </div>
@@ -308,6 +309,15 @@ function htmlTrucos(p) {
       ${items}
     </details>`;
 }
+
+// 🔊 de cada truco (dentro de «Ver trucos»): lee el nombre y el texto, resaltando las palabras.
+document.addEventListener("click", (e) => {
+  const boton = e.target.closest(".qz-truco-voz");
+  if (!boton) return;
+  const truco = boton.closest(".qz-truco");
+  const nombre = truco.querySelector("summary").textContent.replace("💡", "").trim();
+  leerTexto(nombre, Array.from(truco.querySelectorAll(".parrafo-leible")), boton);
+});
 
 function pintarPregunta() {
   detenerLectura();
