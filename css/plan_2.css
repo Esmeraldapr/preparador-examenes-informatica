@@ -1,0 +1,70 @@
+/* ===========================================================
+   Mi plan — mismos tonos que el resto del sitio.
+   Sin colores sueltos: cada tipo se distingue por su emoji.
+   El rojo solo marca lo que está pendiente.
+   =========================================================== */
+
+/* ---------- Contadores de arriba ---------- */
+.pl-contadores{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px}
+.pl-cont{
+  display:flex;align-items:center;gap:8px;background:#fff;border:1px solid var(--borde);
+  border-radius:14px;padding:10px 14px;box-shadow:var(--sombra);cursor:pointer;
+  font-family:inherit;font-size:.95rem;color:var(--texto);transition:.15s transform,.15s border-color;
+}
+.pl-cont:hover{transform:translateY(-2px)}
+.pl-cont.activo{border-color:var(--morado);box-shadow:0 0 0 2px var(--morado-suave),var(--sombra)}
+.pl-cont .pl-ico{font-size:1.15rem}
+.pl-cont .pl-num{
+  min-width:26px;height:26px;border-radius:999px;display:inline-flex;align-items:center;
+  justify-content:center;font-weight:800;font-size:.85rem;padding:0 7px;
+  background:var(--rojo);color:#fff;
+}
+.pl-cont.listo .pl-num{background:var(--verde-suave);color:var(--verde)}
+.pl-cont.listo{opacity:.75}
+
+/* ---------- Cabecera del día ---------- */
+.pl-resumen{background:#fff;border:1px solid var(--borde);border-radius:var(--radio);box-shadow:var(--sombra);padding:18px;margin-bottom:16px}
+.pl-resumen h2{margin:0 0 4px;font-size:1.2rem}
+.pl-resumen .pl-mini{margin:0}
+.pl-barra{height:10px;background:var(--morado-suave);border-radius:999px;overflow:hidden;margin:12px 0 0}
+.pl-barra>span{display:block;height:100%;background:var(--grad-1);border-radius:999px;transition:width .3s}
+
+/* ---------- Tareas ---------- */
+.pl-tarea{
+  display:flex;gap:12px;align-items:flex-start;background:#fff;border:1px solid var(--borde);
+  border-left:4px solid var(--morado);border-radius:14px;box-shadow:var(--sombra);
+  padding:12px 14px;margin-bottom:10px;
+}
+.pl-tarea.hecha{border-left-color:var(--verde);opacity:.6}
+.pl-tarea.hecha .pl-tit{text-decoration:line-through}
+.pl-chk{
+  flex:0 0 auto;width:32px;height:32px;border-radius:50%;border:2px solid var(--borde);
+  background:#fff;font-size:1rem;cursor:pointer;color:var(--texto-suave);
+}
+.pl-chk:hover{border-color:var(--morado)}
+.pl-tarea.hecha .pl-chk{background:var(--verde);border-color:var(--verde);color:#fff}
+.pl-cuerpo{flex:1;min-width:0}
+.pl-etq{font-size:.78rem;color:var(--texto-suave)}
+.pl-tit{font-weight:700;margin:2px 0 8px;overflow-wrap:anywhere}
+.pl-tarea .btn{padding:6px 12px;font-size:.88rem}
+
+/* ---------- Próximas fechas ---------- */
+.pl-aviso{background:#fff;border:1px solid var(--borde);border-left:4px solid var(--rojo);border-radius:14px;padding:12px 14px;margin-bottom:16px;box-shadow:var(--sombra)}
+.pl-aviso .pl-f{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:5px 0}
+.pl-aviso .pl-dias{font-weight:800;color:var(--rojo);white-space:nowrap}
+.pl-aviso .pl-dias.lejos{color:var(--texto-suave)}
+
+/* ---------- Pregúntame ---------- */
+.pl-pregunta{background:#fff;border:1px solid var(--borde);border-left:4px solid var(--morado);border-radius:var(--radio);box-shadow:var(--sombra);padding:16px;margin-bottom:16px}
+.pl-chips{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}
+.pl-escribe{display:flex;gap:8px;flex-wrap:wrap}
+.pl-escribe input{flex:1;min-width:180px;padding:10px 12px;border:1px solid var(--borde);border-radius:12px;font-size:1rem;font-family:inherit;color:var(--texto)}
+.pl-escribe input:focus{outline:none;border-color:var(--morado)}
+.pl-respuesta{margin-top:12px;background:var(--fondo);border:1px solid var(--borde);border-radius:12px;padding:12px 14px}
+.pl-respuesta .pl-parrafos div{margin:3px 0}
+.pl-respuesta .btn{margin-top:10px}
+
+/* ---------- Varios ---------- */
+.pl-h3{margin:24px 0 8px;font-size:1.05rem}
+.pl-mini{font-size:.85rem;color:var(--texto-suave)}
+.pl-fecha{padding:8px 0;border-bottom:1px solid var(--borde);font-size:.92rem}
