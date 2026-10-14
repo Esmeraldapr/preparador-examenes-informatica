@@ -68,3 +68,21 @@
 .pl-h3{margin:24px 0 8px;font-size:1.05rem}
 .pl-mini{font-size:.85rem;color:var(--texto-suave)}
 .pl-fecha{padding:8px 0;border-bottom:1px solid var(--borde);font-size:.92rem}
+
+/* ---------- Etiquetas de examen ---------- */
+.pl-marca{font-size:.8rem;color:var(--texto-suave);margin:0 0 8px}
+.pl-marca-mucho{color:var(--rojo);font-weight:700}
+.pl-marca-nada{color:var(--texto-suave)}
+
+/* ---------- Lo que dijo el profe ---------- */
+.pl-profe{background:#fff;border:1px solid var(--borde);border-left:4px solid var(--morado-osc);border-radius:var(--radio);box-shadow:var(--sombra);padding:14px 16px;margin-bottom:16px}
+.pl-profe summary{cursor:pointer;list-style:none}
+.pl-profe summary::-webkit-details-marker{display:none}
+.pl-profe summary::after{content:" ▾";color:var(--texto-suave)}
+.pl-profe[open] summary::after{content:" ▴"}
+.pl-av{padding:8px 0;border-bottom:1px solid var(--borde);font-size:.93rem}
+.pl-av:last-child{border-bottom:none}
+.pl-av-t{display:inline-block;font-weight:800;font-size:.78rem;padding:2px 8px;border-radius:999px;margin-right:6px;white-space:nowrap}
+.pl-av-no_entra{background:var(--rojo-suave);color:var(--rojo)}
+.pl-av-entra{background:var(--morado-suave);color:var(--morado-osc)}
+.pl-av-ojo{background:#f1f5f9;color:var(--texto-suave)}
