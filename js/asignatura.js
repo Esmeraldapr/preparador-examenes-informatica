@@ -227,6 +227,13 @@ function pintarAccesos(n) {
       <div class="cuerpo"><div class="meta">${hay(n.practicas, plural(n.practicas, "conjunto de ejercicios", "conjuntos de ejercicios") + " (los del profesor y los de práctica)", "Todavía no hay ejercicios cargados")}</div></div>
     </a>`,
   ];
+  // Cálculo (id 1): guía de funciones paso a paso (dominio, cortes, asíntotas, rango y las 12 funciones del profesor).
+  if (ASIGNATURA_ID === 1) {
+    tarjetas.splice(1, 0, `<a class="tarjeta" href="guia-funciones.html">
+      <div class="cabecera g3"><span class="icono">📐</span><h3>Guía de funciones paso a paso</h3></div>
+      <div class="cuerpo"><div class="meta">Dominio, cortes, asíntotas y rango. Se puede escuchar</div></div>
+    </a>`);
+  }
   if (n.daypo > 0) {
     tarjetas.push(`<a class="tarjeta" href="${enlaceAsignatura("examenes.html", ASIGNATURA_ID)}#daypo">
       <div class="cabecera g4"><span class="icono">🌐</span><h3>Daypo</h3></div>
