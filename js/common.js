@@ -118,6 +118,7 @@ function pintarNavbar(activa, usuario, asignatura) {
       <nav>
         <a href="index.html" class="${activa === "index.html" ? "activa" : ""}">🏫 Asignaturas</a>
         <a href="racha.html" class="${activa === "racha.html" ? "activa" : ""}">🔥 Mi racha</a>
+        ${usuario?.email === "esmeraldaparaiso7@gmail.com" ? `<a href="plan.html" class="${activa === "plan.html" ? "activa" : ""}">📅 Mi plan</a>` : ""}
       </nav>
       <div class="usuario">
         <span>👋 ${nombre}</span>
@@ -147,6 +148,7 @@ function pintarNavbar(activa, usuario, asignatura) {
     <nav>
       <a href="index.html" title="Cambiar de asignatura">🏫 Asignaturas</a>
       <a href="racha.html">🔥 Mi racha</a>
+      ${usuario?.email === "esmeraldaparaiso7@gmail.com" ? `<a href="plan.html">📅 Mi plan</a>` : ""}
       ${enlaces
         .map(
           ([href, icono, texto]) =>
