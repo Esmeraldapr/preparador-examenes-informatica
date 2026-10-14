@@ -304,7 +304,7 @@ const PLAN_CHIPS = [
     const minHechos = hechas.reduce((s, t) => s + t.min, 0);
     const pct = tareas.length ? Math.round((hechas.length / tareas.length) * 100) : 0;
     const quedan = tareas.length - hechas.length;
-    const { data: fechas } = await sb.from("plan_fechas").select("titulo, fecha, asignatura_id, nota").eq("hecho", false).gte("fecha", new Date().toISOString()).order("fecha").limit(6);
+    const { data: fechas } = await sb.from("plan_fechas").select("titulo, fecha, asignatura_id, nota, listo").eq("hecho", false).gte("fecha", new Date().toISOString()).order("fecha").limit(8);
     const cuenta = (tipo) => tareas.filter((t) => t.tipo === tipo).length;
     const histo = dias.filter((d) => d.fecha < hoy).slice(0, 6).map((d) => {
       const h = d.tareas.filter((t) => hechos.has(t.clave)).length;
@@ -327,11 +327,21 @@ const PLAN_CHIPS = [
     cont.innerHTML = `
       <div class="pl-contadores">${contadores}</div>
 
-      ${(fechas || []).length ? `<div class="pl-aviso"><b>📌 Próximas entregas</b>${fechas.map((f) => {
-        const d = Math.ceil((new Date(f.fecha) - new Date()) / 86400000);
-        const txt = d <= 0 ? "hoy" : d === 1 ? "mañana" : "en " + d + " días";
-        return `<div class="pl-f"><span>${planEsc(f.titulo)}${f.nota ? `<br><span class="pl-mini">${planEsc(f.nota)}</span>` : ""}</span><span class="pl-dias ${d > 7 ? "lejos" : ""}">${txt}</span></div>`;
-      }).join("")}</div>` : ""}
+      ${(() => {
+        // Lo que ya tiene hecho y solo falta enviar no se enseña hasta 2 días antes:
+        // lo entrega a propósito justo antes de que cierre.
+        const visiblesF = (fechas || []).filter((f) => {
+          const d = Math.ceil((new Date(f.fecha) - new Date()) / 86400000);
+          return !f.listo || d <= 2;
+        });
+        if (!visiblesF.length) return "";
+        return `<div class="pl-aviso"><b>📌 Próximas entregas</b>${visiblesF.map((f) => {
+          const d = Math.ceil((new Date(f.fecha) - new Date()) / 86400000);
+          const txt = d <= 0 ? "hoy" : d === 1 ? "mañana" : "en " + d + " días";
+          const marca = f.listo ? "📤 Toca enviarlo · " : "";
+          return `<div class="pl-f"><span>${marca}${planEsc(f.titulo)}${f.nota ? `<br><span class="pl-mini">${planEsc(f.nota)}</span>` : ""}</span><span class="pl-dias ${d > 7 ? "lejos" : ""}">${txt}</span></div>`;
+        }).join("")}</div>`;
+      })()}
 
       ${planCajaProfe(tareas, avisos)}
 
