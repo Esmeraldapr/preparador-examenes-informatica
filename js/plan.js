@@ -1,0 +1,185 @@
+// ============================================================
+// Mi plan — plan diario automático (plan.html)
+// Tareas: 🟣 contenido nuevo · 🟠 repaso (días 1, 3, 7 y 30) · 🟢 test
+// ============================================================
+const PLAN_EMAIL = "esmeraldaparaiso7@gmail.com";
+const PLAN_ASIGNATURAS = [1, 6, 24]; // Cálculo, FFE, Interfaces (Interfaces: 1 de cada 3 días)
+const PLAN_INTERFACES = 24;
+const PLAN_REPASOS = [1, 3, 7, 30];
+const PLAN_MIN = { clase: 40, video: 20, tema: 45, test: 15, repaso: 10 };
+
+function planFechaMadrid(d) {
+  return (d || new Date()).toLocaleDateString("sv-SE", { timeZone: "Europe/Madrid" });
+}
+function planSumarDias(f, n) {
+  const d = new Date(f + "T12:00:00Z");
+  d.setUTCDate(d.getUTCDate() + n);
+  return d.toISOString().slice(0, 10);
+}
+function planDiaSemana(f) { return new Date(f + "T12:00:00Z").getUTCDay(); } // 0 = domingo
+function planDiaDelAnio(f) {
+  const d = new Date(f + "T12:00:00Z");
+  return Math.floor((d - new Date(Date.UTC(d.getUTCFullYear(), 0, 0))) / 86400000);
+}
+const planEsc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+// Lista ordenada de cosas nuevas de una asignatura (en el orden del curso).
+async function planCatalogo(asigId) {
+  const [cl, vi, te, as] = await Promise.all([
+    sb.from("clases").select("numero, titulo, unidad_num").eq("asignatura_id", asigId),
+    sb.from("recursos").select("id, titulo, url, unidad, minuto_inicio, orden").eq("asignatura_id", asigId).eq("origen", "profe").eq("verificado", true),
+    sb.from("tema_completo").select("unidad_num, titulo").eq("asignatura_id", asigId),
+    sb.from("asignaturas").select("nombre").eq("id", asigId).single(),
+  ]);
+  const nombre = (as.data?.nombre || "").split(" ")[0];
+  const unidades = new Set();
+  (cl.data || []).forEach((c) => c.unidad_num && unidades.add(c.unidad_num));
+  (te.data || []).forEach((t) => unidades.add(t.unidad_num));
+  (vi.data || []).forEach((v) => /^UD\d+$/.test(v.unidad || "") && unidades.add(parseInt(v.unidad.slice(2), 10)));
+  const items = [];
+  [...unidades].sort((a, b) => a - b).forEach((u) => {
+    (cl.data || []).filter((c) => c.unidad_num === u).forEach((c) =>
+      items.push({ clave: `clase:${asigId}:${c.numero}`, tipo: "nuevo", sub: "clase", asig: nombre, asigId, titulo: `Clase ${c.numero} del profe: ${c.titulo}`, min: PLAN_MIN.clase, url: `clase.html?asignatura=${asigId}&clase=${c.numero}`, repasable: true }));
+    (vi.data || []).filter((v) => v.unidad === "UD" + u).sort((a, b) => a.orden - b.orden).forEach((v) =>
+      items.push({ clave: `video:${v.id}`, tipo: "nuevo", sub: "video", asig: nombre, asigId, titulo: "🎬 " + v.titulo.replace(/^Del profe:\s*/, "Del profe: "), min: PLAN_MIN.video, url: v.url + (v.minuto_inicio && /youtu/.test(v.url) ? (v.url.includes("?") ? "&" : "?") + "t=" + v.minuto_inicio : ""), externo: true }));
+    const t = (te.data || []).find((x) => x.unidad_num === u);
+    if (t) {
+      items.push({ clave: `tema:${asigId}:UD${u}`, tipo: "nuevo", sub: "tema", asig: nombre, asigId, titulo: `Tema completo UD${u}: ${t.titulo}`, min: PLAN_MIN.tema, url: `tema.html?asignatura=${asigId}&tema=UD${u}`, repasable: true, repasoUrl: `repaso.html?asignatura=${asigId}&tema=UD${u}` });
+      items.push({ clave: `test:${asigId}:UD${u}`, tipo: "test", sub: "test", asig: nombre, asigId, titulo: `Test de la UD${u}`, min: PLAN_MIN.test, url: `repaso.html?asignatura=${asigId}&tema=UD${u}` });
+    }
+  });
+  return items;
+}
+
+function planGenerar(hoy, catalogos, hechos) {
+  const finde = [0, 6].includes(planDiaSemana(hoy));
+  const presupuesto = finde ? 300 : 180;
+  const tareas = [];
+  let usado = 0;
+
+  // 🟠 Repasos que tocan (el primero sin hacer de cada cosa), como mucho el 40 % del tiempo.
+  const repasos = [];
+  Object.values(catalogos).flat().filter((i) => i.repasable).forEach((i) => {
+    const h = hechos.get(i.clave);
+    if (!h) return;
+    const dia = planFechaMadrid(new Date(h));
+    const k = PLAN_REPASOS.find((n) => !hechos.has(`rep:${i.clave}:${n}`));
+    if (k === undefined) return;
+    const vence = planSumarDias(dia, k);
+    if (vence <= hoy) repasos.push({ vence, k, i });
+  });
+  repasos.sort((a, b) => a.vence.localeCompare(b.vence));
+  for (const r of repasos) {
+    if (usado + PLAN_MIN.repaso > presupuesto * 0.4) break;
+    tareas.push({ clave: `rep:${r.i.clave}:${r.k}`, tipo: "repaso", asig: r.i.asig, asigId: r.i.asigId, titulo: `Repaso (día ${r.k}): ${r.i.titulo.replace(/^Clase \d+ del profe: /, "")}`, min: PLAN_MIN.repaso, url: r.i.repasoUrl || r.i.url });
+    usado += PLAN_MIN.repaso;
+  }
+
+  // 🟣🟢 Lo nuevo, mezclando asignaturas (Interfaces solo 1 de cada 3 días).
+  const hayInterfaces = planDiaDelAnio(hoy) % 3 === 0;
+  const colas = PLAN_ASIGNATURAS.filter((a) => a !== PLAN_INTERFACES || hayInterfaces).map((a) => ({
+    id: a,
+    pend: (catalogos[a] || []).filter((i) => !hechos.has(i.clave)),
+    tope: a === PLAN_INTERFACES ? 60 : Infinity,
+    gastado: 0,
+  }));
+  let avanzo = true;
+  while (usado < presupuesto && avanzo) {
+    avanzo = false;
+    for (const c of colas) {
+      if (usado >= presupuesto) break;
+      const sig = c.pend[0];
+      if (!sig || c.gastado + sig.min > c.tope) continue;
+      c.pend.shift();
+      tareas.push({ clave: sig.clave, tipo: sig.tipo, asig: sig.asig, asigId: sig.asigId, titulo: sig.titulo, min: sig.min, url: sig.url, externo: !!sig.externo });
+      usado += sig.min; c.gastado += sig.min; avanzo = true;
+    }
+  }
+  return tareas;
+}
+
+(async function iniciar() {
+  const sesion = await exigirSesion();
+  if (!sesion) return;
+  const usuario = await obtenerOCrearUsuario(sesion);
+  if (!usuario) return;
+  pintarNavbar("plan.html", usuario, null);
+  const cont = document.getElementById("plan-cont");
+  if ((usuario.email || sesion.user?.email) !== PLAN_EMAIL) {
+    cont.innerHTML = `<div class="vacio"><div class="icono">🔒</div>Esta página es personal.</div>`;
+    return;
+  }
+  const hoy = planFechaMadrid();
+
+  async function cargar(regenerar) {
+    const [{ data: hh }, { data: dia }] = await Promise.all([
+      sb.from("plan_hecho").select("clave, hecho_en"),
+      sb.from("plan_dia").select("fecha, tareas").order("fecha", { ascending: false }).limit(8),
+    ]);
+    const hechos = new Map((hh || []).map((x) => [x.clave, x.hecho_en]));
+    let delHoy = (dia || []).find((d) => d.fecha === hoy);
+    if (!delHoy || regenerar) {
+      const catalogos = {};
+      await Promise.all(PLAN_ASIGNATURAS.map(async (a) => (catalogos[a] = await planCatalogo(a))));
+      // Lo de hoy que ya está hecho se conserva; se vuelve a generar solo lo pendiente.
+      const previas = regenerar && delHoy ? delHoy.tareas.filter((t) => hechos.has(t.clave)) : [];
+      const hechosSinHoy = new Map([...hechos].filter(([k]) => !previas.some((p) => p.clave === k)));
+      const nuevas = planGenerar(hoy, catalogos, hechosSinHoy).filter((t) => !previas.some((p) => p.clave === t.clave));
+      const tareas = [...previas, ...nuevas];
+      await sb.from("plan_dia").upsert({ fecha: hoy, tareas }, { onConflict: "auth_user_id,fecha" });
+      delHoy = { fecha: hoy, tareas };
+      (dia || []).splice(0, 0);
+    }
+    pintar(delHoy.tareas, hechos, dia || []);
+  }
+
+  async function marcar(clave, hecha) {
+    if (hecha) await sb.from("plan_hecho").upsert({ clave }, { onConflict: "auth_user_id,clave" });
+    else await sb.from("plan_hecho").delete().eq("clave", clave);
+    cargar(false);
+  }
+
+  async function pintar(tareas, hechos, dias) {
+    const hechas = tareas.filter((t) => hechos.has(t.clave));
+    const minTot = tareas.reduce((s, t) => s + t.min, 0);
+    const minHechos = hechas.reduce((s, t) => s + t.min, 0);
+    const pct = tareas.length ? Math.round((hechas.length / tareas.length) * 100) : 0;
+    const quedan = tareas.length - hechas.length;
+    const { data: fechas } = await sb.from("plan_fechas").select("titulo, fecha, asignatura_id").gte("fecha", new Date().toISOString()).order("fecha").limit(6);
+    const cuenta = (tipo) => tareas.filter((t) => t.tipo === tipo).length;
+    const histo = dias.filter((d) => d.fecha < hoy).slice(0, 6).map((d) => {
+      const h = d.tareas.filter((t) => hechos.has(t.clave)).length;
+      return `<div class="pl-fecha">${planEsc(d.fecha)} · ${h} de ${d.tareas.length} hechas</div>`;
+    }).join("");
+    cont.innerHTML = `
+      <div class="pl-resumen">
+        <h2>${quedan === 0 && tareas.length ? "🎉 ¡Hoy está hecho!" : `Hoy te quedan ${quedan} tarea${quedan === 1 ? "" : "s"}`}</h2>
+        <div>${minHechos} de ${minTot} minutos hechos</div>
+        <div class="pl-barra"><span style="width:${pct}%"></span></div>
+        <div class="pl-leyenda"><span>🟣 Nuevo: ${cuenta("nuevo")}</span><span>🟠 Repaso: ${cuenta("repaso")}</span><span>🟢 Test: ${cuenta("test")}</span></div>
+      </div>
+      ${(fechas || []).length ? `<div class="pl-aviso"><b>⏰ Próximas fechas</b>${fechas.map((f) => `<div>${planEsc(f.titulo)} — <b>${new Date(f.fecha).toLocaleString("es-ES", { timeZone: "Europe/Madrid", weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}</b></div>`).join("")}</div>` : ""}
+      ${tareas.map((t, i) => {
+        const h = hechos.has(t.clave);
+        const ico = t.tipo === "repaso" ? "🟠" : t.tipo === "test" ? "🟢" : "🟣";
+        const etq = t.tipo === "repaso" ? "Repaso" : t.tipo === "test" ? "Test" : "Nuevo";
+        return `<div class="pl-tarea ${t.tipo} ${h ? "hecha" : ""}">
+          <button class="pl-chk" data-i="${i}" title="Marcar como hecha">${h ? "✓" : ""}</button>
+          <div class="pl-cuerpo">
+            <div class="pl-etq">${ico} ${etq} · ${planEsc(t.asig)} · ${t.min} min</div>
+            <div class="pl-tit">${planEsc(t.titulo)}</div>
+            <a class="btn btn-secundario" href="${planEsc(t.url)}" ${t.externo ? 'target="_blank" rel="noopener"' : ""}>Abrir</a>
+          </div></div>`;
+      }).join("") || '<div class="vacio">Hoy no hay tareas.</div>'}
+      <p class="pl-mini">Lo que no termines pasa solo a mañana. Los repasos salen a los 1, 3, 7 y 30 días de acabar algo.</p>
+      <h3 class="pl-h3">🗓️ Días anteriores</h3>${histo || '<p class="pl-mini">Aún no hay días anteriores.</p>'}
+      <p><button class="btn btn-secundario" id="pl-rehacer">🔄 Rehacer lo que falta de hoy</button></p>`;
+    cont.querySelectorAll(".pl-chk").forEach((b) => b.addEventListener("click", () => {
+      const t = tareas[+b.dataset.i];
+      marcar(t.clave, !hechos.has(t.clave));
+    }));
+    document.getElementById("pl-rehacer").addEventListener("click", () => cargar(true));
+  }
+
+  cargar(false);
+})();
