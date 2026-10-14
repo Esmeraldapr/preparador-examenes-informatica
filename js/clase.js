@@ -331,6 +331,8 @@ function clPintar(texto) {
   document.getElementById("tm-tema").addEventListener("click", (e) => {
     const el = e.target.closest(".tm-leible");
     if (!el) return;
+    // Si vuelve a pulsar el bloque que se está leyendo, se para.
+    if (sonando && bloques.indexOf(el) === actual) { parar(); return; }
     empezarEn(bloques.indexOf(el));
   });
   document.getElementById("tm-indice").addEventListener("change", (e) => {
