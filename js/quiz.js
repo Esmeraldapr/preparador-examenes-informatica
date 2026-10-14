@@ -16,7 +16,9 @@ let BARRA_RACHA = null;
 
 /** Adónde vuelve el botón de salir: a Mi racha si vienes de ahí, si no al dashboard. */
 function urlVolver() {
-  return MODO === "racha" ? "racha.html" : enlaceAsignatura("asignatura.html", ASIGNATURA_ID);
+  if (MODO === "racha") return "racha.html";
+  if (new URLSearchParams(location.search).get("desde") === "plan") return "plan.html";
+  return enlaceAsignatura("asignatura.html", ASIGNATURA_ID);
 }
 let preguntasSet = [];
 let favoritosSet = new Set();
@@ -202,6 +204,13 @@ function leerProgresoGuardado() {
       const { data } = await sb.from("preguntas").select("*").in("id", idsFallo);
       preguntas = mezclar(data || []);
     }
+  } else if (modo === "cae") {
+    // Lo que más cae: la base de datos elige los conceptos más repetidos en
+    // exámenes oficiales y test de la universidad, empezando por los fallados.
+    tituloModo = "🎯 Lo que más cae";
+    const cuantas = parseInt(params.get("n") || "10", 10);
+    const { data } = await sb.rpc("plan_lo_que_mas_cae", { p_asignatura: ASIGNATURA_ID, p_n: cuantas });
+    preguntas = data || [];
   } else if (modo === "favoritos") {
     tituloModo = "⭐ Mis favoritas";
     const { data: preguntasAsignatura } = await sb.from("preguntas").select("id").eq("asignatura_id", ASIGNATURA_ID);
@@ -243,7 +252,8 @@ function leerProgresoGuardado() {
         <div class="icono">🎉</div>
         ${modo === "fallos" ? "No tienes ninguna pregunta fallada ahora mismo. ¡Vas genial!" : ""}
         ${modo === "favoritos" ? "Aún no has marcado ninguna pregunta como favorita. Pulsa la ⭐ durante un test para guardarla aquí." : ""}
-        ${modo !== "fallos" && modo !== "favoritos" ? "No hay preguntas disponibles para esta selección." : ""}
+        ${modo === "cae" ? "Todavía no hay preguntas etiquetadas por concepto en esta asignatura." : ""}
+        ${modo !== "fallos" && modo !== "favoritos" && modo !== "cae" ? "No hay preguntas disponibles para esta selección." : ""}
         <br/><br/><a class="btn btn-primario" href="${urlVolver()}">${MODO === "racha" ? "Volver a mi racha" : "Volver al dashboard"}</a>
       </div>`;
     return;
