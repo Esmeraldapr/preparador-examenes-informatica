@@ -15,6 +15,30 @@ const ORDEN_CURSOS = ["1º CURSO", "2º CURSO", "3º CURSO", "4º CURSO"];
   if (!usuario) return;
   pintarNavbar("index.html", usuario, null);
 
+  // Caja «Hoy toca» (solo para Esmeralda): lo que queda del plan de hoy.
+  if (usuario?.email === "esmeraldaparaiso7@gmail.com") {
+    try {
+      const hoy = new Date().toLocaleDateString("sv-SE", { timeZone: "Europe/Madrid" });
+      const [{ data: dia }, { data: hh }] = await Promise.all([
+        sb.from("plan_dia").select("tareas").eq("fecha", hoy).maybeSingle(),
+        sb.from("plan_hecho").select("clave"),
+      ]);
+      const hechas = new Set((hh || []).map((x) => x.clave));
+      const tareas = dia?.tareas || [];
+      const quedan = tareas.filter((t) => !hechas.has(t.clave));
+      const caja = document.createElement("a");
+      caja.href = "plan.html";
+      caja.className = "panel";
+      caja.style.cssText = "display:block;text-decoration:none;color:inherit;margin-bottom:16px;border-left:8px solid #7c3aed";
+      caja.innerHTML = !dia
+        ? `<b>📅 Hoy toca…</b><br>Pulsa para ver tu plan de hoy.`
+        : quedan.length
+        ? `<b>📅 Hoy te quedan ${quedan.length} tarea${quedan.length === 1 ? "" : "s"}</b><br>Siguiente: ${quedan[0].titulo.replace(/[<>&]/g, "")}`
+        : `<b>🎉 Hoy está hecho</b><br>Buen trabajo.`;
+      document.querySelector(".contenedor h1")?.insertAdjacentElement("afterend", caja);
+    } catch (e) {}
+  }
+
   const { data: asignaturas } = await sb.from("asignaturas").select("id, curso, nombre").order("id");
 
   // Cuenta las preguntas de cada asignatura (un conteo por asignatura,
