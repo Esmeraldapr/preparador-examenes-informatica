@@ -1,0 +1,41 @@
+/* ==== Historial de Mi plan (calendario + lo hecho cada día) ==== */
+
+.hi-cabecera{
+  display:flex; align-items:center; justify-content:space-between;
+  margin-bottom:14px;
+}
+.hi-cabecera h2{margin:0; font-size:1.15rem}
+.hi-cabecera button{
+  background:#fff; border:1px solid var(--borde); border-radius:10px;
+  width:38px; height:38px; font-size:1.1rem; cursor:pointer; color:var(--morado-osc);
+}
+.hi-cabecera button:hover{border-color:var(--morado)}
+
+.hi-grid{
+  display:grid; grid-template-columns:repeat(7,1fr); gap:6px;
+  margin-bottom:22px;
+}
+.hi-dia-semana{
+  text-align:center; font-size:.75rem; color:var(--texto-suave); font-weight:700;
+  padding-bottom:4px;
+}
+.hi-celda{
+  aspect-ratio:1; border-radius:10px; border:1px solid var(--borde); background:#fff;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  cursor:default; font-size:.82rem; color:var(--texto-suave); gap:2px;
+}
+.hi-celda.hi-vacia{visibility:hidden}
+.hi-celda.hi-hoy{border-color:var(--morado); border-width:2px}
+.hi-celda.hi-con-plan{cursor:pointer; color:var(--texto)}
+.hi-celda.hi-con-plan:hover{border-color:var(--morado); box-shadow:var(--sombra)}
+.hi-celda.hi-seleccionada{background:var(--morado-suave); border-color:var(--morado)}
+.hi-num{font-weight:700}
+.hi-punto{
+  width:7px; height:7px; border-radius:50%;
+}
+.hi-punto.hi-todo{background:var(--verde)}
+.hi-punto.hi-parcial{background:#e8a33d}
+.hi-punto.hi-nada{background:#c9ccd6}
+
+.hi-dia-detalle h3{margin:0 0 4px}
+.hi-dia-detalle .pl-mini{margin:0 0 14px}
