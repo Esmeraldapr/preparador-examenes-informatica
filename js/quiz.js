@@ -13,6 +13,7 @@ let usuarioActual = null;
 let ASIGNATURA_ID = null;
 let MODO = "aleatorio";
 let BARRA_RACHA = null;
+let CLAVE_PLAN = null; // si vienes de Mi plan, la tarea que hay que marcar como hecha al terminar
 
 /** Adónde vuelve el botón de salir: a Mi racha si vienes de ahí, si no al dashboard. */
 function urlVolver() {
@@ -117,6 +118,7 @@ function leerProgresoGuardado() {
   const modo = params.get("modo") || "aleatorio";
   MODO = modo;
   if (modo === "racha") BARRA_RACHA = parseInt(params.get("barra") || "0", 10);
+  CLAVE_PLAN = params.get("claveplan") || null;
 
   const { data: favs } = await sb.from("favoritos").select("pregunta_id").eq("usuario_id", usuarioActual.id);
   favoritosSet = new Set((favs || []).map((f) => f.pregunta_id));
@@ -623,9 +625,21 @@ async function pintarResultado() {
   const total = preguntasSet.length;
   const pct = Math.round((aciertos / total) * 100);
 
+  // Si este test venía de "Mi plan", se marca solo esa tarea como hecha al terminar
+  // (no hace falta volver y pulsar el check a mano).
+  let bloquePlan = "";
+  if (CLAVE_PLAN) {
+    const { error } = await sb.from("plan_hecho").upsert({ clave: CLAVE_PLAN }, { onConflict: "auth_user_id,clave" });
+    bloquePlan = error
+      ? `<p class="subtitulo" style="color:var(--rojo)">⚠️ No se pudo marcar como hecho en Mi plan. Márcalo tú a mano cuando vuelvas.</p>`
+      : `<p style="font-size:1.1rem;font-weight:800;color:var(--verde);margin:6px 0">✅ Marcado como hecho en Mi plan</p>`;
+  }
+
   // Modo racha: la tarea solo se da por hecha si has contestado todas (sin dejar en blanco).
   let bloqueRacha = "";
-  let botonesFinales = `
+  let botonesFinales = CLAVE_PLAN
+    ? `<a href="plan.html" class="btn btn-primario">📅 Volver a Mi plan</a>`
+    : `
         <a href="${enlaceAsignatura("asignatura.html", ASIGNATURA_ID)}" class="btn btn-secundario">Volver al dashboard</a>
         <a href="${enlaceAsignatura("practica.html", ASIGNATURA_ID)}" class="btn btn-primario">Otra práctica</a>`;
   if (MODO === "racha") {
@@ -643,6 +657,9 @@ async function pintarResultado() {
       bloqueRacha = `<p class="subtitulo" style="color:var(--naranja)">Dejaste ${blancos} en blanco, así que esta tarea aún no cuenta. Vuelve a Mi racha y repítela.</p>`;
     }
     botonesFinales = `<a href="racha.html${celebrar ? "?celebrar=1" : ""}" class="btn btn-primario">🔥 Volver a mi racha</a>`;
+    if (CLAVE_PLAN) {
+      botonesFinales += `<a href="plan.html" class="btn btn-secundario">📅 Volver a Mi plan</a>`;
+    }
   }
 
   let bloqueNota = "";
@@ -671,6 +688,7 @@ async function pintarResultado() {
       ${terminadoAntes && terminadoAntes.hechas < terminadoAntes.total ? `<p class="subtitulo" style="margin-bottom:6px">Terminaste antes: la nota cuenta solo las ${terminadoAntes.hechas} preguntas que hiciste (de ${terminadoAntes.total}). La próxima vez empezarás por las que aún no has hecho.</p>` : ""}
       ${bloqueNota}
       ${bloqueRacha}
+      ${bloquePlan}
       <p class="subtitulo">${
         pct >= 80 ? "¡Excelente trabajo! 🎉" : pct >= 50 ? "Vas por buen camino, sigue practicando 💪" : "Repasa este tema con calma, tú puedes 🙂"
       }</p>

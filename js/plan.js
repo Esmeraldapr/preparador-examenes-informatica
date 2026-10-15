@@ -45,7 +45,7 @@ async function planCatalogo(asigId) {
     const t = (te.data || []).find((x) => x.unidad_num === u);
     if (t) {
       items.push({ clave: `tema:${asigId}:UD${u}`, tipo: "nuevo", sub: "tema", asig: nombre, asigId, unidadNum: u, unidadTexto: t.unidad, titulo: `Tema completo UD${u}: ${t.titulo}`, min: PLAN_MIN.tema, url: `tema.html?asignatura=${asigId}&tema=UD${u}`, repasable: true, repasoUrl: `repaso.html?asignatura=${asigId}&tema=UD${u}` });
-      items.push({ clave: `test:${asigId}:UD${u}`, tipo: "test", sub: "test", asig: nombre, asigId, unidadNum: u, unidadTexto: t.unidad, titulo: `Test de la UD${u}`, min: PLAN_MIN.test, url: `repaso.html?asignatura=${asigId}&tema=UD${u}` });
+      items.push({ clave: `test:${asigId}:UD${u}`, tipo: "test", sub: "test", asig: nombre, asigId, unidadNum: u, unidadTexto: t.unidad, titulo: `Test de la UD${u}`, min: PLAN_MIN.test, url: `repaso.html?asignatura=${asigId}&tema=UD${u}&claveplan=${encodeURIComponent("test:" + asigId + ":UD" + u)}` });
     }
   });
   return items;
@@ -84,7 +84,7 @@ function planGenerar(hoy, catalogos, hechos) {
     tareas.push({
       clave: `cae:${elegida}:${hoy}`, tipo: "test", sub: "cae", asig: nombreElegida, asigId: elegida,
       titulo: `Lo que más cae en los exámenes de ${nombreElegida}`, min: PLAN_MIN.cae,
-      url: `quiz.html?asignatura=${elegida}&modo=cae&n=8&desde=plan`,
+      url: `quiz.html?asignatura=${elegida}&modo=cae&n=8&desde=plan&claveplan=${encodeURIComponent("cae:" + elegida + ":" + hoy)}`,
     });
     usado += PLAN_MIN.cae;
   }
@@ -365,6 +365,7 @@ const PLAN_CHIPS = [
 
       ${filtro ? `<p><button class="btn btn-secundario" id="pl-todas">Ver todas las tareas de hoy</button></p>` : ""}
 
+      <div id="pl-lista">
       ${visibles.map((t) => {
         const h = hechos.has(t.clave);
         const g = planGrupo(t.sub);
@@ -378,13 +379,17 @@ const PLAN_CHIPS = [
             <a class="btn btn-secundario" href="${planEsc(t.url)}" ${t.externo ? 'target="_blank" rel="noopener"' : ""}>Abrir</a>
           </div></div>`;
       }).join("") || '<div class="vacio">Hoy no hay tareas.</div>'}
+      </div>
 
       <p class="pl-mini">Lo que no termines pasa solo a mañana. Los repasos salen a los 1, 3, 7 y 30 días de acabar algo.</p>
       <h3 class="pl-h3">Días anteriores</h3>${histo || '<p class="pl-mini">Aún no hay días anteriores.</p>'}
       <p><button class="btn btn-secundario" id="pl-rehacer">Rehacer lo que falta de hoy</button></p>`;
 
     cont.querySelectorAll("[data-grupo]").forEach((b) =>
-      b.addEventListener("click", () => pintar(tareas, hechos, dias, b.dataset.grupo === filtro ? null : b.dataset.grupo, avisos, pesoMap))
+      b.addEventListener("click", async () => {
+        await pintar(tareas, hechos, dias, b.dataset.grupo === filtro ? null : b.dataset.grupo, avisos, pesoMap);
+        document.getElementById("pl-lista")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      })
     );
     document.getElementById("pl-todas")?.addEventListener("click", () => pintar(tareas, hechos, dias, null, avisos, pesoMap));
 
