@@ -27,7 +27,7 @@ const planEsc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;"
 async function planCatalogo(asigId) {
   const [cl, vi, te, as] = await Promise.all([
     sb.from("clases").select("numero, titulo, unidad_num").eq("asignatura_id", asigId),
-    sb.from("recursos").select("id, titulo, url, unidad, minuto_inicio, orden").eq("asignatura_id", asigId).eq("origen", "profe").eq("verificado", true),
+    sb.from("recursos").select("id, titulo, url, unidad, minuto_inicio, orden, tipo, duracion_min").eq("asignatura_id", asigId).eq("origen", "profe").eq("verificado", true),
     sb.from("tema_completo").select("unidad_num, unidad, titulo").eq("asignatura_id", asigId),
     sb.from("asignaturas").select("nombre").eq("id", asigId).single(),
   ]);
@@ -40,13 +40,18 @@ async function planCatalogo(asigId) {
   [...unidades].sort((a, b) => a - b).forEach((u) => {
     (cl.data || []).filter((c) => c.unidad_num === u).forEach((c) =>
       items.push({ clave: `clase:${asigId}:${c.numero}`, tipo: "nuevo", sub: "clase", asig: nombre, asigId, unidadNum: u, titulo: `Clase ${c.numero} del profe: ${c.titulo}`, min: PLAN_MIN.clase, url: `clase.html?asignatura=${asigId}&clase=${c.numero}`, repasable: true }));
-    (vi.data || []).filter((v) => v.unidad === "UD" + u).sort((a, b) => a.orden - b.orden).forEach((v) =>
-      items.push({ clave: `video:${v.id}`, tipo: "nuevo", sub: "video", asig: nombre, asigId, unidadNum: u, titulo: v.titulo, min: PLAN_MIN.video, url: v.url + (v.minuto_inicio && /youtu/.test(v.url) ? (v.url.includes("?") ? "&" : "?") + "t=" + v.minuto_inicio : ""), externo: true }));
+    // Cada vídeo es una tarea suelta, con sus minutos reales (duracion_min) si los tenemos.
+    const videosUD = (vi.data || []).filter((v) => v.unidad === "UD" + u).sort((a, b) => a.orden - b.orden);
+    const meteVideo = (v) =>
+      items.push({ clave: `video:${v.id}`, tipo: "nuevo", sub: "video", asig: nombre, asigId, unidadNum: u, titulo: v.titulo, min: v.duracion_min || PLAN_MIN.video, url: v.url + (v.minuto_inicio && /youtu/.test(v.url) ? (v.url.includes("?") ? "&" : "?") + "t=" + v.minuto_inicio : ""), externo: true });
+    // Vídeos de explicación: antes del tema. Vídeos de ejercicios: después del tema y del test.
+    videosUD.filter((v) => v.tipo !== "ejercicios").forEach(meteVideo);
     const t = (te.data || []).find((x) => x.unidad_num === u);
     if (t) {
       items.push({ clave: `tema:${asigId}:UD${u}`, tipo: "nuevo", sub: "tema", asig: nombre, asigId, unidadNum: u, unidadTexto: t.unidad, titulo: `Tema completo UD${u}: ${t.titulo}`, min: PLAN_MIN.tema, url: `tema.html?asignatura=${asigId}&tema=UD${u}`, repasable: true, repasoUrl: `repaso.html?asignatura=${asigId}&tema=UD${u}` });
       items.push({ clave: `test:${asigId}:UD${u}`, tipo: "test", sub: "test", asig: nombre, asigId, unidadNum: u, unidadTexto: t.unidad, titulo: `Test de la UD${u}`, min: PLAN_MIN.test, url: `repaso.html?asignatura=${asigId}&tema=UD${u}&claveplan=${encodeURIComponent("test:" + asigId + ":UD" + u)}` });
     }
+    videosUD.filter((v) => v.tipo === "ejercicios").forEach(meteVideo);
   });
   return items;
 }
