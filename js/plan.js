@@ -244,8 +244,10 @@ function planCajaProfe(tareas, avisos) {
   const ico = { no_entra: "⛔", entra: "🎯", ojo: "⚠️" };
   const cab = { no_entra: "No entra", entra: "Entra", ojo: "Ojo" };
   return `<details class="pl-profe" open>
-    <summary><b>🎓 Lo que dijo el profe</b> · ${suyos.length}</summary>
+    <summary><b>🎓 Lo que dijo el profe</b> · ${suyos.length} <button type="button" class="btn btn-secundario pl-profe-oir" style="margin-left:10px;padding:2px 10px;font-size:0.85rem">🔊 Escuchar</button></summary>
+    <div class="pl-profe-texto parrafo-leible">
     ${suyos.map((a) => `<div class="pl-av"><span class="pl-av-t pl-av-${a.tipo}">${ico[a.tipo]} ${cab[a.tipo]}</span> ${planEsc(a.texto)}<span class="pl-mini"> · ${planEsc(a.fuente || "")}</span></div>`).join("")}
+    </div>
   </details>`;
 }
 
@@ -403,6 +405,15 @@ const PLAN_CHIPS = [
       marcar(t.clave, !hechos.has(t.clave));
     }));
     document.getElementById("pl-rehacer").addEventListener("click", () => cargar(true));
+
+    const btnProfeOir = document.querySelector(".pl-profe-oir");
+    if (btnProfeOir) {
+      btnProfeOir.addEventListener("click", (ev) => {
+        ev.preventDefault();
+        ev.stopPropagation();
+        leerTexto("Lo que dijo el profe.", [document.querySelector(".pl-profe-texto")], ev.currentTarget);
+      });
+    }
 
     const resp = document.getElementById("pl-resp");
     const entrada = document.getElementById("pl-q");
