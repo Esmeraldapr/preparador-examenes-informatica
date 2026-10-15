@@ -97,6 +97,7 @@ function clPintar(texto) {
   const asigId = parseInt(params.get("asignatura"), 10);
   const numero = parseInt(params.get("clase"), 10);
   const clave = "clase" + numero;
+  const clavePlan = params.get("claveplan") || "";
   if (!asigId || !numero) {
     window.location.href = "index.html";
     return;
@@ -192,7 +193,8 @@ function clPintar(texto) {
 
   const botones = `
     <div class="rc-cta">
-      ${c.examen_practica_id ? `<a class="btn btn-primario" href="${enlaceAsignatura("quiz.html", asigId, "modo=examen&examen_id=" + c.examen_practica_id)}">📝 Practicar lo de esta clase</a>` : ""}
+      ${clavePlan ? `<button type="button" class="btn btn-primario cl-plan-btn">✅ Ya la vi · Volver a Mi plan</button>` : ""}
+      ${c.examen_practica_id ? `<a class="btn btn-secundario" href="${enlaceAsignatura("quiz.html", asigId, "modo=examen&examen_id=" + c.examen_practica_id)}">📝 Practicar lo de esta clase</a>` : ""}
       ${c.unidad_num ? `<a class="btn btn-secundario" href="${enlaceAsignatura("tema.html", asigId, "tema=UD" + c.unidad_num)}">📖 El tema completo de la UD${c.unidad_num}</a>` : ""}
       <a class="btn btn-secundario" href="${enlaceAsignatura("clases.html", asigId)}">← Volver a las clases</a>
     </div>`;
@@ -216,6 +218,20 @@ function clPintar(texto) {
     ${htmlFichas}
     ${htmlEnlaces}
     ${botones}`;
+
+  // ---------------- Botón "Volver a Mi plan" (solo si viene de Mi plan) ----------------
+  if (clavePlan) {
+    let yaMarcado = false;
+    document.querySelectorAll(".cl-plan-btn").forEach((b) =>
+      b.addEventListener("click", async () => {
+        if (!yaMarcado) {
+          yaMarcado = true;
+          await sb.from("plan_hecho").upsert({ clave: clavePlan }, { onConflict: "auth_user_id,clave" });
+        }
+        window.location.href = "plan.html";
+      })
+    );
+  }
 
   // ---------------- Reproductor ----------------
   const voz = window.speechSynthesis || null;

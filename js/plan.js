@@ -39,7 +39,7 @@ async function planCatalogo(asigId) {
   const items = [];
   [...unidades].sort((a, b) => a - b).forEach((u) => {
     (cl.data || []).filter((c) => c.unidad_num === u).forEach((c) =>
-      items.push({ clave: `clase:${asigId}:${c.numero}`, tipo: "nuevo", sub: "clase", asig: nombre, asigId, unidadNum: u, titulo: `Clase ${c.numero} del profe: ${c.titulo}`, min: PLAN_MIN.clase, url: `clase.html?asignatura=${asigId}&clase=${c.numero}`, repasable: true }));
+      items.push({ clave: `clase:${asigId}:${c.numero}`, tipo: "nuevo", sub: "clase", asig: nombre, asigId, unidadNum: u, titulo: `Clase ${c.numero} del profe: ${c.titulo}`, min: PLAN_MIN.clase, url: `clase.html?asignatura=${asigId}&clase=${c.numero}&claveplan=${encodeURIComponent("clase:" + asigId + ":" + c.numero)}`, repasable: true }));
     // Cada vídeo es una tarea suelta, con sus minutos reales (duracion_min) si los tenemos.
     const videosUD = (vi.data || []).filter((v) => v.unidad === "UD" + u).sort((a, b) => a.orden - b.orden);
     const meteVideo = (v) =>
@@ -48,7 +48,7 @@ async function planCatalogo(asigId) {
     videosUD.filter((v) => v.tipo !== "ejercicios").forEach(meteVideo);
     const t = (te.data || []).find((x) => x.unidad_num === u);
     if (t) {
-      items.push({ clave: `tema:${asigId}:UD${u}`, tipo: "nuevo", sub: "tema", asig: nombre, asigId, unidadNum: u, unidadTexto: t.unidad, titulo: `Tema completo UD${u}: ${t.titulo}`, min: PLAN_MIN.tema, url: `tema.html?asignatura=${asigId}&tema=UD${u}`, repasable: true, repasoUrl: `repaso.html?asignatura=${asigId}&tema=UD${u}` });
+      items.push({ clave: `tema:${asigId}:UD${u}`, tipo: "nuevo", sub: "tema", asig: nombre, asigId, unidadNum: u, unidadTexto: t.unidad, titulo: `Tema completo UD${u}: ${t.titulo}`, min: PLAN_MIN.tema, url: `tema.html?asignatura=${asigId}&tema=UD${u}&claveplan=${encodeURIComponent("tema:" + asigId + ":UD" + u)}`, repasable: true, repasoUrl: `repaso.html?asignatura=${asigId}&tema=UD${u}` });
       items.push({ clave: `test:${asigId}:UD${u}`, tipo: "test", sub: "test", asig: nombre, asigId, unidadNum: u, unidadTexto: t.unidad, titulo: `Test de la UD${u}`, min: PLAN_MIN.test, url: `repaso.html?asignatura=${asigId}&tema=UD${u}&claveplan=${encodeURIComponent("test:" + asigId + ":UD" + u)}` });
     }
     videosUD.filter((v) => v.tipo === "ejercicios").forEach(meteVideo);

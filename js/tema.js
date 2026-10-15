@@ -93,6 +93,7 @@ function tmPintar(texto) {
   const asigId = parseInt(params.get("asignatura"), 10);
   const clave = params.get("tema") || "";
   const num = /^UD\d+$/.test(clave) ? parseInt(clave.slice(2), 10) : null;
+  const clavePlan = params.get("claveplan") || "";
   if (!asigId || num === null) {
     window.location.href = "index.html";
     return;
@@ -149,7 +150,8 @@ function tmPintar(texto) {
 
   const botones = `
     <div class="rc-cta">
-      ${t.examen_practica_id ? `<a class="btn btn-primario" href="${enlaceAsignatura("quiz.html", asigId, "modo=examen&examen_id=" + t.examen_practica_id)}">📝 Hacer el test de práctica del tema</a>` : ""}
+      ${clavePlan ? `<button type="button" class="btn btn-primario tm-plan-btn">✅ Ya lo leí · Volver a Mi plan</button>` : ""}
+      ${t.examen_practica_id ? `<a class="btn btn-secundario" href="${enlaceAsignatura("quiz.html", asigId, "modo=examen&examen_id=" + t.examen_practica_id)}">📝 Hacer el test de práctica del tema</a>` : ""}
       ${t.unidad ? `<a class="btn btn-secundario" href="${enlaceAsignatura("quiz.html", asigId, "modo=tema&unidad=" + encodeURIComponent(t.unidad))}">🎯 Todas las preguntas de este tema</a>` : ""}
       ${clase.data ? `<a class="btn btn-secundario" href="${enlaceAsignatura("clase.html", asigId, "clase=" + clase.data.numero)}">🎓 La clase ${clase.data.numero} del profesor</a>` : ""}
       <a class="btn btn-secundario" href="${enlaceAsignatura("temas.html", asigId)}">← Volver a los temas</a>
@@ -172,6 +174,20 @@ function tmPintar(texto) {
     <div class="panel tm-tema" id="tm-tema">${html}</div>
     ${htmlEnlaces}
     ${botones}`;
+
+  // ---------------- Botón "Volver a Mi plan" (solo si viene de Mi plan) ----------------
+  if (clavePlan) {
+    let yaMarcado = false;
+    document.querySelectorAll(".tm-plan-btn").forEach((b) =>
+      b.addEventListener("click", async () => {
+        if (!yaMarcado) {
+          yaMarcado = true;
+          await sb.from("plan_hecho").upsert({ clave: clavePlan }, { onConflict: "auth_user_id,clave" });
+        }
+        window.location.href = "plan.html";
+      })
+    );
+  }
 
   // ---------------- Reproductor ----------------
   const voz = window.speechSynthesis || null;
