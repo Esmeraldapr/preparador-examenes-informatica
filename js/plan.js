@@ -27,7 +27,7 @@ const planEsc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;"
 async function planCatalogo(asigId) {
   const [cl, vi, te, as] = await Promise.all([
     sb.from("clases").select("numero, titulo, unidad_num").eq("asignatura_id", asigId),
-    sb.from("recursos").select("id, titulo, url, unidad, minuto_inicio, orden, tipo, duracion_min").eq("asignatura_id", asigId).eq("origen", "profe").eq("verificado", true),
+    sb.from("recursos").select("id, titulo, url, unidad, minuto_inicio, orden, tipo, duracion_min").eq("asignatura_id", asigId).in("origen", ["profe", "recomendado"]).eq("verificado", true),
     sb.from("tema_completo").select("unidad_num, unidad, titulo").eq("asignatura_id", asigId),
     sb.from("asignaturas").select("nombre").eq("id", asigId).single(),
   ]);
