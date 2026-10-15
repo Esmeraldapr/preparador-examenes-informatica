@@ -390,6 +390,7 @@ const PLAN_CHIPS = [
 
       <p class="pl-mini">Lo que no termines pasa solo a mañana. Los repasos salen a los 1, 3, 7 y 30 días de acabar algo.</p>
       <h3 class="pl-h3">Días anteriores</h3>${histo || '<p class="pl-mini">Aún no hay días anteriores.</p>'}
+      <p><a class="btn btn-secundario" href="historial.html">📆 Ver historial completo</a></p>
       <p><button class="btn btn-secundario" id="pl-rehacer">Rehacer lo que falta de hoy</button></p>`;
 
     cont.querySelectorAll("[data-grupo]").forEach((b) =>
