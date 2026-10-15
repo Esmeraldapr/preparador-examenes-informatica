@@ -72,7 +72,8 @@ function rpTarjeta(icono, nombre, idx, cuerpo, imagen) {
     return;
   }
 
-  const urlPreguntas = `quiz.html?asignatura=${asigId}&modo=racha&barra=3`;
+  const clavePlan = params.get("claveplan") || "";
+  const urlPreguntas = `quiz.html?asignatura=${asigId}&modo=racha&barra=3${clavePlan ? `&desde=plan&claveplan=${encodeURIComponent(clavePlan)}` : ""}`;
   const [asig, intro, fs, gs, ts, est, ej, rc, tc] = await Promise.all([
     sb.from("asignaturas").select("nombre").eq("id", asigId).maybeSingle(),
     sb.from("repaso_unidad").select("titulo, intro").eq("asignatura_id", asigId).eq("unidad_num", num).maybeSingle(),
