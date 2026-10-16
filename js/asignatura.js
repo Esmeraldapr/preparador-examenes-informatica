@@ -23,7 +23,7 @@ let ASIGNATURA_ID = null;
   document.getElementById("subtitulo-asignatura").textContent = `${asignatura.curso} · Ingeniería Informática`;
   document.title = `${asignatura.nombre} · Preparador`;
 
-  const [{ data: intentos }, { data: favoritos }, { count: totalPreguntas }, { data: examenesAsig }, { count: totalTrucos }, { count: totalEntregables }] =
+  const [{ data: intentos }, { data: favoritos }, { count: totalPreguntas }, { data: examenesAsig }, { count: totalTrucos }, { count: totalEntregables }, { data: videosAsig }] =
     await Promise.all([
       sb.from("intentos").select("id, pregunta_id, acierto, fecha").eq("usuario_id", usuario.id).order("fecha", { ascending: true }),
       sb.from("favoritos").select("id").eq("usuario_id", usuario.id),
@@ -31,6 +31,7 @@ let ASIGNATURA_ID = null;
       sb.from("examenes").select("id, tipo").eq("asignatura_id", ASIGNATURA_ID),
       sb.from("trucos").select("id", { count: "exact", head: true }).eq("asignatura_id", ASIGNATURA_ID),
       sb.from("entregables").select("id", { count: "exact", head: true }).eq("asignatura_id", ASIGNATURA_ID),
+      sb.from("recursos").select("origen").eq("asignatura_id", ASIGNATURA_ID).eq("verificado", true),
     ]);
 
   const { data: preguntasAsignatura } = await sb.from("preguntas").select("id").eq("asignatura_id", ASIGNATURA_ID);
@@ -52,6 +53,8 @@ let ASIGNATURA_ID = null;
     daypo: cuentaTipo("daypo"),
     trucos: totalTrucos || 0,
     entregables: totalEntregables || 0,
+    videosProfe: (videosAsig || []).filter((v) => v.origen === "profe").length,
+    videosCompis: (videosAsig || []).filter((v) => v.origen === "recomendado").length,
   });
 
   document.getElementById("btn-reiniciar").addEventListener("click", async () => {
@@ -249,6 +252,12 @@ function pintarAccesos(n) {
     tarjetas.splice(1, 0, `<a class="tarjeta" href="guia-funciones.html">
       <div class="cabecera g3"><span class="icono">📐</span><h3>Guía de funciones paso a paso</h3></div>
       <div class="cuerpo"><div class="meta">Dominio, cortes, asíntotas y rango. Se puede escuchar</div></div>
+    </a>`);
+  }
+  if (n.videosProfe + n.videosCompis > 0) {
+    tarjetas.push(`<a class="tarjeta" href="${enlaceAsignatura("videos.html", ASIGNATURA_ID)}">
+      <div class="cabecera g3"><span class="icono">🎬</span><h3>Vídeos</h3></div>
+      <div class="cuerpo"><div class="meta">${n.videosProfe} del profe · ${n.videosCompis} de compañeros</div></div>
     </a>`);
   }
   if (n.daypo > 0) {
