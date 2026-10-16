@@ -1,0 +1,110 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 240" preserveAspectRatio="xMidYMid slice">
+<defs>
+<linearGradient id="bgarq" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#03122b"/><stop offset=".55" stop-color="#00203F"/><stop offset="1" stop-color="#050a1f"/></linearGradient>
+<radialGradient id="haloarq" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#36ECDE" stop-opacity=".22"/><stop offset=".5" stop-color="#3b82f6" stop-opacity=".10"/><stop offset="1" stop-color="#3b82f6" stop-opacity="0"/></radialGradient>
+<filter id="garq" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="3.2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+<filter id="sarq" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="1.4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+</defs>
+<rect width="600" height="240" fill="url(#bgarq)"/>
+<g><polyline points="0,199 64,199 82,217 146,217" fill="none" stroke="#3b82f6" stroke-width="1.6" opacity="0.25"/>
+<circle cx="146" cy="217" r="3" fill="none" stroke="#3b82f6" stroke-width="1.6" opacity="0.4"/>
+<polyline points="600,183 535,183 517,201 452,201" fill="none" stroke="#3b82f6" stroke-width="1.6" opacity="0.32"/>
+<circle cx="452" cy="201" r="3" fill="none" stroke="#3b82f6" stroke-width="1.6" opacity="0.47"/>
+<polyline points="600,49 544,49 519,74 463,74" fill="none" stroke="#3b82f6" stroke-width="1.6" opacity="0.25"/>
+<circle cx="463" cy="74" r="3" fill="none" stroke="#3b82f6" stroke-width="1.6" opacity="0.4"/>
+<polyline points="600,123 556,123 533,100 489,100" fill="none" stroke="#36ECDE" stroke-width="1.6" opacity="0.32"/>
+<circle cx="489" cy="100" r="3" fill="none" stroke="#36ECDE" stroke-width="1.6" opacity="0.47"/>
+<polyline points="0,168 89,168 114,143 203,143" fill="none" stroke="#36ECDE" stroke-width="1.6" opacity="0.25"/>
+<circle cx="203" cy="143" r="3" fill="none" stroke="#36ECDE" stroke-width="1.6" opacity="0.4"/>
+<polyline points="0,189 56,189 72,174 128,174" fill="none" stroke="#36ECDE" stroke-width="1.6" opacity="0.32"/>
+<circle cx="128" cy="174" r="3" fill="none" stroke="#36ECDE" stroke-width="1.6" opacity="0.47"/>
+<polyline points="0,193 50,193 90,153 141,153" fill="none" stroke="#3b82f6" stroke-width="1.6" opacity="0.32"/>
+<circle cx="141" cy="153" r="3" fill="none" stroke="#3b82f6" stroke-width="1.6" opacity="0.47"/>
+<polyline points="600,195 540,195 528,182 468,182" fill="none" stroke="#3b82f6" stroke-width="1.6" opacity="0.18"/>
+<circle cx="468" cy="182" r="3" fill="none" stroke="#3b82f6" stroke-width="1.6" opacity="0.32999999999999996"/>
+<polyline points="600,87 556,87 528,58 484,58" fill="none" stroke="#36ECDE" stroke-width="1.6" opacity="0.32"/>
+<circle cx="484" cy="58" r="3" fill="none" stroke="#36ECDE" stroke-width="1.6" opacity="0.47"/>
+<polyline points="0,205 65,205 76,216 141,216" fill="none" stroke="#36ECDE" stroke-width="1.6" opacity="0.25"/>
+<circle cx="141" cy="216" r="3" fill="none" stroke="#36ECDE" stroke-width="1.6" opacity="0.4"/>
+<polyline points="600,50 534,50 506,79 440,79" fill="none" stroke="#36ECDE" stroke-width="1.6" opacity="0.25"/>
+<circle cx="440" cy="79" r="3" fill="none" stroke="#36ECDE" stroke-width="1.6" opacity="0.4"/>
+<polyline points="0,65 42,65 71,94 113,94" fill="none" stroke="#36ECDE" stroke-width="1.6" opacity="0.18"/>
+<circle cx="113" cy="94" r="3" fill="none" stroke="#36ECDE" stroke-width="1.6" opacity="0.32999999999999996"/>
+<polyline points="600,221 508,221 490,238 398,238" fill="none" stroke="#a855f7" stroke-width="1.6" opacity="0.32"/>
+<circle cx="398" cy="238" r="3" fill="none" stroke="#a855f7" stroke-width="1.6" opacity="0.47"/>
+<polyline points="600,17 556,17 524,-15 481,-15" fill="none" stroke="#3b82f6" stroke-width="1.6" opacity="0.32"/>
+<circle cx="481" cy="-15" r="3" fill="none" stroke="#3b82f6" stroke-width="1.6" opacity="0.47"/>
+<polyline points="600,51 544,51 517,78 461,78" fill="none" stroke="#a855f7" stroke-width="1.6" opacity="0.32"/>
+<circle cx="461" cy="78" r="3" fill="none" stroke="#a855f7" stroke-width="1.6" opacity="0.47"/>
+<polyline points="0,39 84,39 103,20 187,20" fill="none" stroke="#3b82f6" stroke-width="1.6" opacity="0.18"/>
+<circle cx="187" cy="20" r="3" fill="none" stroke="#3b82f6" stroke-width="1.6" opacity="0.32999999999999996"/>
+<circle cx="139" cy="197" r="1.3" fill="#36ECDE" opacity="0.5"/>
+<circle cx="456" cy="87" r="1.8" fill="#e6fbff" opacity="0.5"/>
+<circle cx="250" cy="91" r="1" fill="#36ECDE" opacity="0.5"/>
+<circle cx="175" cy="12" r="1.3" fill="#e6fbff" opacity="0.3"/>
+<circle cx="105" cy="135" r="1.3" fill="#a855f7" opacity="0.7"/>
+<circle cx="162" cy="141" r="1.3" fill="#e6fbff" opacity="0.7"/>
+<circle cx="169" cy="166" r="1.8" fill="#36ECDE" opacity="0.7"/>
+<circle cx="112" cy="69" r="1.8" fill="#36ECDE" opacity="0.5"/>
+<circle cx="455" cy="215" r="1" fill="#3b82f6" opacity="0.7"/>
+<circle cx="358" cy="226" r="0.8" fill="#3b82f6" opacity="0.3"/>
+<circle cx="437" cy="154" r="0.8" fill="#3b82f6" opacity="0.5"/>
+<circle cx="197" cy="189" r="1.8" fill="#a855f7" opacity="0.7"/>
+<circle cx="292" cy="215" r="0.8" fill="#e6fbff" opacity="0.5"/>
+<circle cx="536" cy="46" r="1.3" fill="#3b82f6" opacity="0.7"/>
+<circle cx="289" cy="188" r="0.8" fill="#e6fbff" opacity="0.7"/>
+<circle cx="178" cy="163" r="0.8" fill="#a855f7" opacity="0.7"/>
+<circle cx="486" cy="90" r="1.3" fill="#36ECDE" opacity="0.3"/>
+<circle cx="554" cy="222" r="1.8" fill="#e6fbff" opacity="0.3"/>
+<circle cx="329" cy="85" r="0.8" fill="#36ECDE" opacity="0.5"/>
+<circle cx="10" cy="94" r="1.8" fill="#a855f7" opacity="0.5"/>
+<circle cx="343" cy="12" r="1" fill="#a855f7" opacity="0.5"/>
+<circle cx="517" cy="80" r="1.3" fill="#3b82f6" opacity="0.5"/>
+<circle cx="179" cy="8" r="1" fill="#3b82f6" opacity="0.3"/>
+<circle cx="445" cy="41" r="1.3" fill="#36ECDE" opacity="0.5"/>
+<circle cx="595" cy="203" r="1.8" fill="#3b82f6" opacity="0.5"/>
+<circle cx="592" cy="234" r="1.3" fill="#3b82f6" opacity="0.3"/>
+<circle cx="505" cy="23" r="0.8" fill="#a855f7" opacity="0.5"/>
+<circle cx="508" cy="9" r="1.8" fill="#a855f7" opacity="0.3"/>
+<circle cx="313" cy="101" r="0.8" fill="#e6fbff" opacity="0.5"/>
+<circle cx="439" cy="163" r="1.8" fill="#36ECDE" opacity="0.7"/>
+<circle cx="526" cy="75" r="1.3" fill="#36ECDE" opacity="0.5"/>
+<circle cx="282" cy="64" r="0.8" fill="#a855f7" opacity="0.3"/>
+<circle cx="562" cy="7" r="1.3" fill="#36ECDE" opacity="0.3"/>
+<circle cx="482" cy="11" r="1.8" fill="#36ECDE" opacity="0.3"/>
+<circle cx="552" cy="88" r="1.8" fill="#a855f7" opacity="0.7"/>
+<circle cx="555" cy="25" r="0.8" fill="#3b82f6" opacity="0.3"/>
+<circle cx="439" cy="135" r="0.8" fill="#36ECDE" opacity="0.3"/>
+<circle cx="23" cy="87" r="0.8" fill="#3b82f6" opacity="0.5"/>
+<circle cx="416" cy="63" r="1.8" fill="#a855f7" opacity="0.3"/>
+<circle cx="249" cy="162" r="1" fill="#a855f7" opacity="0.3"/></g>
+<ellipse cx="300" cy="120" rx="230" ry="125" fill="url(#haloarq)"/>
+<g filter="url(#garq)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+<rect x="220" y="45" width="160" height="150" rx="14" stroke="#36ECDE" stroke-width="4" fill="#041a33"/>
+<rect x="245" y="70" width="110" height="100" rx="8" stroke="#3b82f6" stroke-width="2.5"/>
+<path d="M235 45 v-20 M235 195 v20" stroke="#36ECDE" stroke-width="3"/>
+<path d="M220 58 h-22 M380 58 h22" stroke="#36ECDE" stroke-width="3"/>
+<path d="M256 45 v-20 M256 195 v20" stroke="#36ECDE" stroke-width="3"/>
+<path d="M220 79 h-22 M380 79 h22" stroke="#36ECDE" stroke-width="3"/>
+<path d="M278 45 v-20 M278 195 v20" stroke="#36ECDE" stroke-width="3"/>
+<path d="M220 100 h-22 M380 100 h22" stroke="#36ECDE" stroke-width="3"/>
+<path d="M300 45 v-20 M300 195 v20" stroke="#36ECDE" stroke-width="3"/>
+<path d="M220 121 h-22 M380 121 h22" stroke="#36ECDE" stroke-width="3"/>
+<path d="M321 45 v-20 M321 195 v20" stroke="#36ECDE" stroke-width="3"/>
+<path d="M220 142 h-22 M380 142 h22" stroke="#36ECDE" stroke-width="3"/>
+<path d="M342 45 v-20 M342 195 v20" stroke="#36ECDE" stroke-width="3"/>
+<path d="M220 163 h-22 M380 163 h22" stroke="#36ECDE" stroke-width="3"/>
+<path d="M364 45 v-20 M364 195 v20" stroke="#36ECDE" stroke-width="3"/>
+<path d="M220 184 h-22 M380 184 h22" stroke="#36ECDE" stroke-width="3"/>
+<polyline points="198,58 150,58 125,80 70,80" stroke="#a855f7" stroke-width="2.5"/><circle cx="66" cy="80" r="5" stroke="#a855f7" stroke-width="2.5"/>
+<polyline points="402,58 450,58 475,36 530,36" stroke="#ec4899" stroke-width="2.5"/><circle cx="534" cy="36" r="5" stroke="#ec4899" stroke-width="2.5"/>
+<polyline points="198,100 150,100 125,122 70,122" stroke="#a855f7" stroke-width="2.5"/><circle cx="66" cy="122" r="5" stroke="#a855f7" stroke-width="2.5"/>
+<polyline points="402,100 450,100 475,78 530,78" stroke="#ec4899" stroke-width="2.5"/><circle cx="534" cy="78" r="5" stroke="#ec4899" stroke-width="2.5"/>
+<polyline points="198,142 150,142 125,164 70,164" stroke="#a855f7" stroke-width="2.5"/><circle cx="66" cy="164" r="5" stroke="#a855f7" stroke-width="2.5"/>
+<polyline points="402,142 450,142 475,120 530,120" stroke="#ec4899" stroke-width="2.5"/><circle cx="534" cy="120" r="5" stroke="#ec4899" stroke-width="2.5"/>
+<rect x="255" y="78" width="40" height="38" rx="5" stroke="#a855f7" stroke-width="2.5"/>
+<rect x="305" y="78" width="40" height="38" rx="5" stroke="#a855f7" stroke-width="2.5"/>
+<rect x="255" y="123" width="40" height="38" rx="5" stroke="#a855f7" stroke-width="2.5"/>
+<rect x="305" y="123" width="40" height="38" rx="5" stroke="#a855f7" stroke-width="2.5"/>
+</g>
+</svg>

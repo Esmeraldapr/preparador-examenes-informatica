@@ -1,0 +1,93 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 240" preserveAspectRatio="xMidYMid slice">
+<defs>
+<linearGradient id="bgforense" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#03122b"/><stop offset=".55" stop-color="#00203F"/><stop offset="1" stop-color="#050a1f"/></linearGradient>
+<radialGradient id="haloforense" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#36ECDE" stop-opacity=".22"/><stop offset=".5" stop-color="#3b82f6" stop-opacity=".10"/><stop offset="1" stop-color="#3b82f6" stop-opacity="0"/></radialGradient>
+<filter id="gforense" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="3.2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+<filter id="sforense" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="1.4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+</defs>
+<rect width="600" height="240" fill="url(#bgforense)"/>
+<g><polyline points="0,10 87,10 108,31 195,31" fill="none" stroke="#3b82f6" stroke-width="1.6" opacity="0.18"/>
+<circle cx="195" cy="31" r="3" fill="none" stroke="#3b82f6" stroke-width="1.6" opacity="0.32999999999999996"/>
+<polyline points="600,110 508,110 476,143 384,143" fill="none" stroke="#3b82f6" stroke-width="1.6" opacity="0.32"/>
+<circle cx="384" cy="143" r="3" fill="none" stroke="#3b82f6" stroke-width="1.6" opacity="0.47"/>
+<polyline points="600,135 533,135 516,152 449,152" fill="none" stroke="#36ECDE" stroke-width="1.6" opacity="0.25"/>
+<circle cx="449" cy="152" r="3" fill="none" stroke="#36ECDE" stroke-width="1.6" opacity="0.4"/>
+<polyline points="0,211 86,211 96,201 181,201" fill="none" stroke="#36ECDE" stroke-width="1.6" opacity="0.18"/>
+<circle cx="181" cy="201" r="3" fill="none" stroke="#36ECDE" stroke-width="1.6" opacity="0.32999999999999996"/>
+<polyline points="0,47 94,47 128,81 222,81" fill="none" stroke="#3b82f6" stroke-width="1.6" opacity="0.18"/>
+<circle cx="222" cy="81" r="3" fill="none" stroke="#3b82f6" stroke-width="1.6" opacity="0.32999999999999996"/>
+<polyline points="600,50 524,50 500,26 423,26" fill="none" stroke="#3b82f6" stroke-width="1.6" opacity="0.25"/>
+<circle cx="423" cy="26" r="3" fill="none" stroke="#3b82f6" stroke-width="1.6" opacity="0.4"/>
+<polyline points="0,139 71,139 104,172 175,172" fill="none" stroke="#3b82f6" stroke-width="1.6" opacity="0.25"/>
+<circle cx="175" cy="172" r="3" fill="none" stroke="#3b82f6" stroke-width="1.6" opacity="0.4"/>
+<polyline points="0,61 58,61 94,98 152,98" fill="none" stroke="#3b82f6" stroke-width="1.6" opacity="0.18"/>
+<circle cx="152" cy="98" r="3" fill="none" stroke="#3b82f6" stroke-width="1.6" opacity="0.32999999999999996"/>
+<polyline points="0,87 50,87 69,68 119,68" fill="none" stroke="#3b82f6" stroke-width="1.6" opacity="0.18"/>
+<circle cx="119" cy="68" r="3" fill="none" stroke="#3b82f6" stroke-width="1.6" opacity="0.32999999999999996"/>
+<polyline points="600,14 566,14 526,-25 492,-25" fill="none" stroke="#a855f7" stroke-width="1.6" opacity="0.25"/>
+<circle cx="492" cy="-25" r="3" fill="none" stroke="#a855f7" stroke-width="1.6" opacity="0.4"/>
+<polyline points="0,46 66,46 86,25 152,25" fill="none" stroke="#36ECDE" stroke-width="1.6" opacity="0.25"/>
+<circle cx="152" cy="25" r="3" fill="none" stroke="#36ECDE" stroke-width="1.6" opacity="0.4"/>
+<polyline points="0,169 70,169 110,209 181,209" fill="none" stroke="#3b82f6" stroke-width="1.6" opacity="0.25"/>
+<circle cx="181" cy="209" r="3" fill="none" stroke="#3b82f6" stroke-width="1.6" opacity="0.4"/>
+<polyline points="0,115 60,115 90,145 151,145" fill="none" stroke="#3b82f6" stroke-width="1.6" opacity="0.25"/>
+<circle cx="151" cy="145" r="3" fill="none" stroke="#3b82f6" stroke-width="1.6" opacity="0.4"/>
+<polyline points="600,134 508,134 496,121 404,121" fill="none" stroke="#36ECDE" stroke-width="1.6" opacity="0.25"/>
+<circle cx="404" cy="121" r="3" fill="none" stroke="#36ECDE" stroke-width="1.6" opacity="0.4"/>
+<polyline points="600,76 528,76 499,47 427,47" fill="none" stroke="#3b82f6" stroke-width="1.6" opacity="0.32"/>
+<circle cx="427" cy="47" r="3" fill="none" stroke="#3b82f6" stroke-width="1.6" opacity="0.47"/>
+<polyline points="0,158 88,158 121,125 209,125" fill="none" stroke="#3b82f6" stroke-width="1.6" opacity="0.32"/>
+<circle cx="209" cy="125" r="3" fill="none" stroke="#3b82f6" stroke-width="1.6" opacity="0.47"/>
+<circle cx="73" cy="205" r="1.3" fill="#a855f7" opacity="0.3"/>
+<circle cx="59" cy="11" r="1.3" fill="#3b82f6" opacity="0.5"/>
+<circle cx="471" cy="119" r="1.8" fill="#3b82f6" opacity="0.7"/>
+<circle cx="27" cy="99" r="1.8" fill="#a855f7" opacity="0.3"/>
+<circle cx="149" cy="143" r="1.8" fill="#3b82f6" opacity="0.7"/>
+<circle cx="398" cy="53" r="0.8" fill="#e6fbff" opacity="0.3"/>
+<circle cx="170" cy="17" r="0.8" fill="#3b82f6" opacity="0.7"/>
+<circle cx="467" cy="218" r="1" fill="#36ECDE" opacity="0.5"/>
+<circle cx="375" cy="169" r="0.8" fill="#a855f7" opacity="0.7"/>
+<circle cx="149" cy="40" r="1.8" fill="#3b82f6" opacity="0.5"/>
+<circle cx="233" cy="211" r="1.8" fill="#a855f7" opacity="0.7"/>
+<circle cx="271" cy="91" r="1.3" fill="#e6fbff" opacity="0.3"/>
+<circle cx="353" cy="86" r="0.8" fill="#e6fbff" opacity="0.5"/>
+<circle cx="584" cy="84" r="1.8" fill="#3b82f6" opacity="0.5"/>
+<circle cx="168" cy="67" r="0.8" fill="#3b82f6" opacity="0.3"/>
+<circle cx="391" cy="131" r="0.8" fill="#a855f7" opacity="0.5"/>
+<circle cx="585" cy="147" r="1" fill="#3b82f6" opacity="0.7"/>
+<circle cx="127" cy="215" r="1.3" fill="#3b82f6" opacity="0.5"/>
+<circle cx="549" cy="103" r="1.8" fill="#3b82f6" opacity="0.5"/>
+<circle cx="3" cy="152" r="1.3" fill="#e6fbff" opacity="0.7"/>
+<circle cx="171" cy="163" r="1.3" fill="#3b82f6" opacity="0.3"/>
+<circle cx="21" cy="114" r="1" fill="#36ECDE" opacity="0.5"/>
+<circle cx="268" cy="69" r="0.8" fill="#a855f7" opacity="0.5"/>
+<circle cx="14" cy="10" r="0.8" fill="#3b82f6" opacity="0.3"/>
+<circle cx="82" cy="19" r="1" fill="#e6fbff" opacity="0.3"/>
+<circle cx="328" cy="123" r="1.8" fill="#a855f7" opacity="0.3"/>
+<circle cx="149" cy="107" r="1" fill="#e6fbff" opacity="0.7"/>
+<circle cx="527" cy="51" r="1" fill="#a855f7" opacity="0.5"/>
+<circle cx="319" cy="17" r="1" fill="#36ECDE" opacity="0.5"/>
+<circle cx="244" cy="109" r="1" fill="#36ECDE" opacity="0.5"/>
+<circle cx="438" cy="10" r="1.8" fill="#e6fbff" opacity="0.7"/>
+<circle cx="516" cy="65" r="1" fill="#36ECDE" opacity="0.5"/>
+<circle cx="587" cy="74" r="0.8" fill="#e6fbff" opacity="0.7"/>
+<circle cx="426" cy="46" r="1.8" fill="#e6fbff" opacity="0.5"/>
+<circle cx="223" cy="161" r="0.8" fill="#3b82f6" opacity="0.5"/>
+<circle cx="11" cy="182" r="1.8" fill="#3b82f6" opacity="0.7"/>
+<circle cx="349" cy="178" r="1.8" fill="#e6fbff" opacity="0.3"/>
+<circle cx="383" cy="193" r="0.8" fill="#e6fbff" opacity="0.7"/>
+<circle cx="191" cy="203" r="1.8" fill="#3b82f6" opacity="0.5"/>
+<circle cx="350" cy="25" r="0.8" fill="#a855f7" opacity="0.7"/></g>
+<ellipse cx="300" cy="120" rx="230" ry="125" fill="url(#haloforense)"/>
+<g filter="url(#gforense)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+<path d="M286 129.2 a14 16.099999999999998 0 0 1 28 0" stroke="#36ECDE" stroke-width="3.2" stroke-dasharray="60 12"/>
+<path d="M275 132.5 a25 28.749999999999996 0 0 1 50 0" stroke="#3b82f6" stroke-width="3.2" stroke-dasharray="74 12"/>
+<path d="M264 135.8 a36 41.4 0 0 1 72 0" stroke="#a855f7" stroke-width="3.2" stroke-dasharray="88 12"/>
+<path d="M253 139.1 a47 54.05 0 0 1 94 0" stroke="#ec4899" stroke-width="3.2" stroke-dasharray="102 12"/>
+<path d="M242 142.4 a58 66.69999999999999 0 0 1 116 0" stroke="#36ECDE" stroke-width="3.2" stroke-dasharray="116 12"/>
+<path d="M231 145.7 a69 79.35 0 0 1 138 0" stroke="#3b82f6" stroke-width="3.2" stroke-dasharray="130 12"/>
+<path d="M220 149.0 a80 92.0 0 0 1 160 0" stroke="#a855f7" stroke-width="3.2" stroke-dasharray="144 12"/>
+<path d="M300 129 v40 M314 133 q4 30 -8 52" stroke="#36ECDE" stroke-width="3"/>
+<circle cx="400" cy="100" r="48" stroke="#fbbf24" stroke-width="5"/><path d="M434 134 l50 50" stroke="#fbbf24" stroke-width="8"/>
+</g>
+</svg>
