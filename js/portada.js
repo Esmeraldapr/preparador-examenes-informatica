@@ -41,7 +41,7 @@ function imagenAsignatura(a) {
       const caja = document.createElement("a");
       caja.href = "plan.html";
       caja.className = "panel";
-      caja.style.cssText = "display:block;text-decoration:none;color:inherit;margin-bottom:16px;border-left:8px solid #7c3aed";
+      caja.style.cssText = "display:block;text-decoration:none;color:inherit;margin-bottom:16px;border-left:8px solid #36ECDE";
       caja.innerHTML = !dia
         ? `<b>📅 Hoy toca…</b><br>Pulsa para ver tu plan de hoy.`
         : quedan.length
