@@ -25,10 +25,10 @@
 .rc-sem-dia .rc-bolita{
   width:38px; height:38px; margin:6px auto 0; border-radius:50%;
   display:flex; align-items:center; justify-content:center; font-size:1.1rem;
-  background:#ece9fb; color:#b8b2dd;
+  background:#e6eef5; color:#94a3b8;
 }
 .rc-sem-dia.rc-ok .rc-bolita{background:var(--grad-2); color:#fff;}
-.rc-sem-dia.rc-hoy .rc-bolita{box-shadow:0 0 0 3px var(--morado-suave), 0 0 0 5px #8b93f0;}
+.rc-sem-dia.rc-hoy .rc-bolita{box-shadow:0 0 0 3px var(--morado-suave), 0 0 0 5px #36ECDE;}
 .rc-sem-dia.rc-hoy{color:var(--morado);}
 
 /* ---------- Hoy toca ---------- */
@@ -48,7 +48,7 @@
 .rc-tarea .rc-check{
   width:42px; height:42px; border-radius:50%; flex:none;
   display:flex; align-items:center; justify-content:center; font-size:1.3rem;
-  background:#ece9fb; color:#b8b2dd; font-weight:800;
+  background:#e6eef5; color:#94a3b8; font-weight:800;
 }
 .rc-tarea .rc-info{flex:1; min-width:180px;}
 .rc-tarea .rc-titulo{font-weight:800;}
@@ -67,11 +67,11 @@
 .rc-mes-grid{display:grid; grid-template-columns:repeat(7,1fr); gap:6px; max-width:420px;}
 .rc-mes-grid .rc-cab{font-size:.72rem; font-weight:700; color:var(--texto-suave); text-align:center;}
 .rc-mes-grid .rc-celda{
-  aspect-ratio:1; border-radius:10px; background:#f3f1fc; color:#a29cc9; font-size:.8rem; font-weight:700;
+  aspect-ratio:1; border-radius:10px; background:#e6eef5; color:#64748b; font-size:.8rem; font-weight:700;
   display:flex; align-items:center; justify-content:center;
 }
 .rc-mes-grid .rc-celda.rc-ok{background:var(--grad-2); color:#fff;}
-.rc-mes-grid .rc-celda.rc-hoy{box-shadow:0 0 0 2px #8b93f0;}
+.rc-mes-grid .rc-celda.rc-hoy{box-shadow:0 0 0 2px #36ECDE;}
 .rc-mes-grid .rc-celda.rc-vacia{background:transparent;}
 
 /* ---------- Elegir asignaturas ---------- */
@@ -83,7 +83,7 @@
   border-radius:12px; margin-bottom:8px; cursor:pointer; background:#fff;
 }
 .rc-check-asig input{width:20px; height:20px; accent-color:var(--morado); flex:none;}
-.rc-check-asig.rc-marcada{border-color:#a78bfa; background:var(--morado-suave);}
+.rc-check-asig.rc-marcada{border-color:#5eead4; background:var(--morado-suave);}
 .rc-check-asig .rc-n{margin-left:auto; color:var(--texto-suave); font-size:.8rem; white-space:nowrap;}
 .rc-aviso{font-size:.88rem; margin-top:10px; font-weight:600;}
 .rc-aviso.rc-ok{color:var(--verde);}
@@ -115,7 +115,7 @@
 .rc-cta{display:flex; gap:12px; flex-wrap:wrap; margin:0 0 20px;}
 .rc-intro .rc-h{margin:22px 0 8px; font-size:1.15rem; color:var(--morado-osc);}
 .rc-intro p, .rc-desplegable p{line-height:1.65; font-size:1rem; margin:0 0 12px;}
-.rc-fig{background:#faf9ff; border:1px solid var(--borde); border-radius:14px; padding:10px; margin:12px 0;}
+.rc-fig{background:#f5fafc; border:1px solid var(--borde); border-radius:14px; padding:10px; margin:12px 0;}
 .rc-desplegable summary{cursor:pointer; font-weight:800; font-size:1.05rem; margin-bottom:6px;}
 .rc-desplegable[open] summary{margin-bottom:14px;}
 .rc-acciones{display:flex; flex-direction:column; align-items:flex-start; gap:6px;}
