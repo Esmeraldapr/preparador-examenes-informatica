@@ -28,7 +28,7 @@ const planEsc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;"
 // Lista ordenada de cosas nuevas de una asignatura (en el orden del curso).
 async function planCatalogo(asigId) {
   const [cl, vi, te, as] = await Promise.all([
-    sb.from("clases").select("numero, titulo, unidad_num").eq("asignatura_id", asigId),
+    sb.from("clases").select("numero, titulo, unidad_num, examen_practica_id").eq("asignatura_id", asigId),
     sb.from("recursos").select("id, titulo, url, unidad, minuto_inicio, orden, tipo, duracion_min").eq("asignatura_id", asigId).in("origen", ["profe", "recomendado"]).eq("verificado", true),
     sb.from("tema_completo").select("unidad_num, unidad, titulo").eq("asignatura_id", asigId),
     sb.from("asignaturas").select("nombre").eq("id", asigId).single(),
@@ -41,7 +41,12 @@ async function planCatalogo(asigId) {
   const items = [];
   [...unidades].sort((a, b) => a - b).forEach((u) => {
     (cl.data || []).filter((c) => c.unidad_num === u).forEach((c) =>
-      items.push({ clave: `clase:${asigId}:${c.numero}`, tipo: "nuevo", sub: "clase", asig: nombre, asigId, unidadNum: u, titulo: `Clase ${c.numero} del profe: ${c.titulo}`, min: PLAN_MIN.clase, url: `clase.html?asignatura=${asigId}&clase=${c.numero}&claveplan=${encodeURIComponent("clase:" + asigId + ":" + c.numero)}`, repasable: true }));
+      items.push({ clave: `clase:${asigId}:${c.numero}`, tipo: "nuevo", sub: "clase", asig: nombre, asigId, unidadNum: u, titulo: `Clase ${c.numero} del profe: ${c.titulo}`, min: PLAN_MIN.clase, url: `clase.html?asignatura=${asigId}&clase=${c.numero}&claveplan=${encodeURIComponent("clase:" + asigId + ":" + c.numero)}`, repasable: true,
+        // Repaso de una clase: NO la clase entera, sino unas pocas preguntas de esa clase
+        // (o, si la clase no tiene preguntas propias, el repaso corto de su unidad).
+        repasoUrl: c.examen_practica_id
+          ? `quiz.html?asignatura=${asigId}&modo=examen&examen_id=${c.examen_practica_id}&n=8&desde=plan`
+          : `repaso.html?asignatura=${asigId}&tema=UD${u}` }));
     // Cada vídeo es una tarea suelta, con sus minutos reales (duracion_min) si los tenemos.
     const videosUD = (vi.data || []).filter((v) => v.unidad === "UD" + u).sort((a, b) => a.orden - b.orden);
     const meteVideo = (v) =>

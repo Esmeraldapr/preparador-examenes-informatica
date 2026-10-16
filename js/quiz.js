@@ -59,7 +59,9 @@ function claveProgreso() {
     // Un día distinto (hora local del móvil, aproximada) es una tarea distinta.
     extra = `racha_b${params.get("barra") || ""}_${new Date().toISOString().slice(0, 10)}`;
   } else if (MODO === "examen") {
-    extra = `examen_${params.get("examen_id") || ""}`;
+    extra = `examen_${params.get("examen_id") || ""}${params.get("n") ? "_n" + params.get("n") : ""}`;
+  } else if (MODO === "plan") {
+    extra = `plan_ud${params.get("ud") || ""}`;
   } else if (MODO === "tema") {
     extra = params.get("grupo") ? `tema_g${params.get("grupo")}` : `tema_${params.get("unidad") || ""}`;
   }
@@ -191,7 +193,10 @@ function leerProgresoGuardado() {
     tituloModo = `📝 ${examen ? examen.nombre : "Cuestionario"}`;
     examenOficialActual = !!examen && (examen.tipo === "oficial" || examen.tipo === "cuestionario");
     const { data } = await sb.from("preguntas").select("*").eq("examen_id", examenId).order("orden", { ascending: true });
-    preguntas = noHechasPrimero(data || []);
+    const cuantasEx = parseInt(params.get("n") || "0", 10);
+    // Con &n=8 (repasos de Mi plan): solo unas pocas preguntas al azar del examen.
+    preguntas = cuantasEx > 0 ? mezclar(data || []).slice(0, cuantasEx) : noHechasPrimero(data || []);
+    if (cuantasEx > 0) tituloModo = `🔁 Repaso: ${examen ? examen.nombre : "Cuestionario"}`;
   } else if (modo === "fallos") {
     tituloModo = "🔁 Repaso de fallos";
     const { data: preguntasAsignatura } = await sb.from("preguntas").select("id").eq("asignatura_id", ASIGNATURA_ID);
