@@ -1,0 +1,94 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 240" preserveAspectRatio="xMidYMid slice">
+<defs>
+<linearGradient id="bgweb" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#03122b"/><stop offset=".55" stop-color="#00203F"/><stop offset="1" stop-color="#050a1f"/></linearGradient>
+<radialGradient id="haloweb" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#36ECDE" stop-opacity=".22"/><stop offset=".5" stop-color="#3b82f6" stop-opacity=".10"/><stop offset="1" stop-color="#3b82f6" stop-opacity="0"/></radialGradient>
+<filter id="gweb" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="3.2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+<filter id="sweb" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="1.4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+</defs>
+<rect width="600" height="240" fill="url(#bgweb)"/>
+<g><polyline points="0,142 42,142 60,160 101,160" fill="none" stroke="#3b82f6" stroke-width="1.6" opacity="0.25"/>
+<circle cx="101" cy="160" r="3" fill="none" stroke="#3b82f6" stroke-width="1.6" opacity="0.4"/>
+<polyline points="0,100 78,100 94,85 172,85" fill="none" stroke="#a855f7" stroke-width="1.6" opacity="0.18"/>
+<circle cx="172" cy="85" r="3" fill="none" stroke="#a855f7" stroke-width="1.6" opacity="0.32999999999999996"/>
+<polyline points="600,74 524,74 502,53 426,53" fill="none" stroke="#3b82f6" stroke-width="1.6" opacity="0.25"/>
+<circle cx="426" cy="53" r="3" fill="none" stroke="#3b82f6" stroke-width="1.6" opacity="0.4"/>
+<polyline points="600,85 512,85 482,55 395,55" fill="none" stroke="#36ECDE" stroke-width="1.6" opacity="0.18"/>
+<circle cx="395" cy="55" r="3" fill="none" stroke="#36ECDE" stroke-width="1.6" opacity="0.32999999999999996"/>
+<polyline points="600,12 525,12 489,-24 414,-24" fill="none" stroke="#36ECDE" stroke-width="1.6" opacity="0.32"/>
+<circle cx="414" cy="-24" r="3" fill="none" stroke="#36ECDE" stroke-width="1.6" opacity="0.47"/>
+<polyline points="0,53 95,53 134,14 229,14" fill="none" stroke="#3b82f6" stroke-width="1.6" opacity="0.32"/>
+<circle cx="229" cy="14" r="3" fill="none" stroke="#3b82f6" stroke-width="1.6" opacity="0.47"/>
+<polyline points="600,33 562,33 538,57 500,57" fill="none" stroke="#36ECDE" stroke-width="1.6" opacity="0.18"/>
+<circle cx="500" cy="57" r="3" fill="none" stroke="#36ECDE" stroke-width="1.6" opacity="0.32999999999999996"/>
+<polyline points="600,44 537,44 525,56 462,56" fill="none" stroke="#3b82f6" stroke-width="1.6" opacity="0.32"/>
+<circle cx="462" cy="56" r="3" fill="none" stroke="#3b82f6" stroke-width="1.6" opacity="0.47"/>
+<polyline points="600,110 522,110 492,80 413,80" fill="none" stroke="#3b82f6" stroke-width="1.6" opacity="0.32"/>
+<circle cx="413" cy="80" r="3" fill="none" stroke="#3b82f6" stroke-width="1.6" opacity="0.47"/>
+<polyline points="0,19 39,19 54,34 93,34" fill="none" stroke="#36ECDE" stroke-width="1.6" opacity="0.18"/>
+<circle cx="93" cy="34" r="3" fill="none" stroke="#36ECDE" stroke-width="1.6" opacity="0.32999999999999996"/>
+<polyline points="600,166 557,166 530,139 487,139" fill="none" stroke="#36ECDE" stroke-width="1.6" opacity="0.25"/>
+<circle cx="487" cy="139" r="3" fill="none" stroke="#36ECDE" stroke-width="1.6" opacity="0.4"/>
+<polyline points="0,185 81,185 96,170 177,170" fill="none" stroke="#36ECDE" stroke-width="1.6" opacity="0.25"/>
+<circle cx="177" cy="170" r="3" fill="none" stroke="#36ECDE" stroke-width="1.6" opacity="0.4"/>
+<polyline points="0,213 63,213 77,227 140,227" fill="none" stroke="#3b82f6" stroke-width="1.6" opacity="0.25"/>
+<circle cx="140" cy="227" r="3" fill="none" stroke="#3b82f6" stroke-width="1.6" opacity="0.4"/>
+<polyline points="600,22 536,22 508,-7 444,-7" fill="none" stroke="#36ECDE" stroke-width="1.6" opacity="0.32"/>
+<circle cx="444" cy="-7" r="3" fill="none" stroke="#36ECDE" stroke-width="1.6" opacity="0.47"/>
+<polyline points="0,73 52,73 75,50 127,50" fill="none" stroke="#a855f7" stroke-width="1.6" opacity="0.32"/>
+<circle cx="127" cy="50" r="3" fill="none" stroke="#a855f7" stroke-width="1.6" opacity="0.47"/>
+<polyline points="0,104 50,104 76,78 127,78" fill="none" stroke="#3b82f6" stroke-width="1.6" opacity="0.18"/>
+<circle cx="127" cy="78" r="3" fill="none" stroke="#3b82f6" stroke-width="1.6" opacity="0.32999999999999996"/>
+<circle cx="238" cy="21" r="1.8" fill="#3b82f6" opacity="0.5"/>
+<circle cx="565" cy="35" r="1.3" fill="#e6fbff" opacity="0.3"/>
+<circle cx="584" cy="89" r="1.3" fill="#36ECDE" opacity="0.7"/>
+<circle cx="103" cy="93" r="1.3" fill="#36ECDE" opacity="0.7"/>
+<circle cx="94" cy="44" r="1" fill="#3b82f6" opacity="0.3"/>
+<circle cx="135" cy="97" r="1.3" fill="#a855f7" opacity="0.7"/>
+<circle cx="156" cy="154" r="1" fill="#a855f7" opacity="0.7"/>
+<circle cx="395" cy="140" r="1.3" fill="#36ECDE" opacity="0.3"/>
+<circle cx="581" cy="176" r="1" fill="#e6fbff" opacity="0.3"/>
+<circle cx="175" cy="78" r="1.3" fill="#36ECDE" opacity="0.5"/>
+<circle cx="277" cy="162" r="1.3" fill="#36ECDE" opacity="0.5"/>
+<circle cx="111" cy="42" r="1.8" fill="#a855f7" opacity="0.7"/>
+<circle cx="361" cy="123" r="1" fill="#e6fbff" opacity="0.3"/>
+<circle cx="105" cy="117" r="1.8" fill="#36ECDE" opacity="0.3"/>
+<circle cx="204" cy="194" r="1" fill="#3b82f6" opacity="0.3"/>
+<circle cx="462" cy="0" r="1.3" fill="#36ECDE" opacity="0.3"/>
+<circle cx="315" cy="72" r="0.8" fill="#a855f7" opacity="0.5"/>
+<circle cx="75" cy="195" r="1.8" fill="#e6fbff" opacity="0.7"/>
+<circle cx="443" cy="68" r="1" fill="#e6fbff" opacity="0.7"/>
+<circle cx="171" cy="231" r="1.8" fill="#36ECDE" opacity="0.7"/>
+<circle cx="64" cy="24" r="1" fill="#36ECDE" opacity="0.5"/>
+<circle cx="2" cy="118" r="1.8" fill="#36ECDE" opacity="0.7"/>
+<circle cx="57" cy="171" r="1" fill="#3b82f6" opacity="0.5"/>
+<circle cx="511" cy="37" r="0.8" fill="#3b82f6" opacity="0.3"/>
+<circle cx="12" cy="14" r="1.8" fill="#a855f7" opacity="0.5"/>
+<circle cx="514" cy="177" r="1.8" fill="#a855f7" opacity="0.3"/>
+<circle cx="594" cy="110" r="1.8" fill="#3b82f6" opacity="0.3"/>
+<circle cx="484" cy="3" r="1.3" fill="#a855f7" opacity="0.7"/>
+<circle cx="336" cy="47" r="1" fill="#a855f7" opacity="0.7"/>
+<circle cx="222" cy="47" r="0.8" fill="#e6fbff" opacity="0.3"/>
+<circle cx="184" cy="27" r="1.3" fill="#e6fbff" opacity="0.5"/>
+<circle cx="270" cy="192" r="1.8" fill="#36ECDE" opacity="0.5"/>
+<circle cx="505" cy="115" r="0.8" fill="#3b82f6" opacity="0.5"/>
+<circle cx="420" cy="190" r="1.3" fill="#3b82f6" opacity="0.3"/>
+<circle cx="94" cy="83" r="1" fill="#a855f7" opacity="0.7"/>
+<circle cx="494" cy="57" r="1" fill="#e6fbff" opacity="0.5"/>
+<circle cx="453" cy="239" r="0.8" fill="#3b82f6" opacity="0.7"/>
+<circle cx="498" cy="75" r="1.3" fill="#36ECDE" opacity="0.3"/>
+<circle cx="239" cy="84" r="0.8" fill="#e6fbff" opacity="0.7"/>
+<circle cx="538" cy="122" r="0.8" fill="#e6fbff" opacity="0.5"/></g>
+<ellipse cx="300" cy="120" rx="230" ry="125" fill="url(#haloweb)"/>
+<g filter="url(#gweb)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+<rect x="140" y="35" width="320" height="175" rx="12" stroke="#36ECDE" stroke-width="3.5" fill="#041a33"/>
+<path d="M140 62 h320" stroke="#36ECDE" stroke-width="2.5"/>
+<rect x="210" y="42" width="190" height="14" rx="7" stroke="#3b82f6" stroke-width="2"/>
+<circle cx="158" cy="49" r="4" stroke="#ec4899" stroke-width="2.5"/><circle cx="174" cy="49" r="4" stroke="#fbbf24" stroke-width="2.5"/>
+<rect x="158" y="76" width="284" height="40" rx="6" stroke="#a855f7" stroke-width="3"/>
+<rect x="158" y="128" width="88" height="66" rx="6" stroke="#ec4899" stroke-width="3"/>
+<rect x="256" y="128" width="88" height="66" rx="6" stroke="#3b82f6" stroke-width="3"/>
+<rect x="354" y="128" width="88" height="66" rx="6" stroke="#36ECDE" stroke-width="3"/>
+<text x="95" y="130" fill="#36ECDE" stroke="none" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="26" font-weight="800" text-anchor="middle">www</text>
+<text x="505" y="130" fill="#a855f7" stroke="none" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="28" font-weight="800" text-anchor="middle">&lt;/&gt;</text>
+</g>
+</svg>

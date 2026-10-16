@@ -1,0 +1,97 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 240" preserveAspectRatio="xMidYMid slice">
+<defs>
+<linearGradient id="bgproyectos" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#03122b"/><stop offset=".55" stop-color="#00203F"/><stop offset="1" stop-color="#050a1f"/></linearGradient>
+<radialGradient id="haloproyectos" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#36ECDE" stop-opacity=".22"/><stop offset=".5" stop-color="#3b82f6" stop-opacity=".10"/><stop offset="1" stop-color="#3b82f6" stop-opacity="0"/></radialGradient>
+<filter id="gproyectos" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="3.2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+<filter id="sproyectos" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="1.4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+</defs>
+<rect width="600" height="240" fill="url(#bgproyectos)"/>
+<g><polyline points="600,21 527,21 504,-2 431,-2" fill="none" stroke="#36ECDE" stroke-width="1.6" opacity="0.32"/>
+<circle cx="431" cy="-2" r="3" fill="none" stroke="#36ECDE" stroke-width="1.6" opacity="0.47"/>
+<polyline points="0,215 66,215 76,226 142,226" fill="none" stroke="#36ECDE" stroke-width="1.6" opacity="0.18"/>
+<circle cx="142" cy="226" r="3" fill="none" stroke="#36ECDE" stroke-width="1.6" opacity="0.32999999999999996"/>
+<polyline points="0,108 46,108 70,84 115,84" fill="none" stroke="#36ECDE" stroke-width="1.6" opacity="0.25"/>
+<circle cx="115" cy="84" r="3" fill="none" stroke="#36ECDE" stroke-width="1.6" opacity="0.4"/>
+<polyline points="0,133 34,133 44,123 79,123" fill="none" stroke="#3b82f6" stroke-width="1.6" opacity="0.18"/>
+<circle cx="79" cy="123" r="3" fill="none" stroke="#3b82f6" stroke-width="1.6" opacity="0.32999999999999996"/>
+<polyline points="0,215 48,215 76,187 124,187" fill="none" stroke="#3b82f6" stroke-width="1.6" opacity="0.18"/>
+<circle cx="124" cy="187" r="3" fill="none" stroke="#3b82f6" stroke-width="1.6" opacity="0.32999999999999996"/>
+<polyline points="600,103 554,103 519,138 473,138" fill="none" stroke="#36ECDE" stroke-width="1.6" opacity="0.25"/>
+<circle cx="473" cy="138" r="3" fill="none" stroke="#36ECDE" stroke-width="1.6" opacity="0.4"/>
+<polyline points="0,27 79,27 89,37 168,37" fill="none" stroke="#3b82f6" stroke-width="1.6" opacity="0.25"/>
+<circle cx="168" cy="37" r="3" fill="none" stroke="#3b82f6" stroke-width="1.6" opacity="0.4"/>
+<polyline points="600,41 542,41 504,3 445,3" fill="none" stroke="#36ECDE" stroke-width="1.6" opacity="0.32"/>
+<circle cx="445" cy="3" r="3" fill="none" stroke="#36ECDE" stroke-width="1.6" opacity="0.47"/>
+<polyline points="600,81 510,81 478,49 387,49" fill="none" stroke="#36ECDE" stroke-width="1.6" opacity="0.25"/>
+<circle cx="387" cy="49" r="3" fill="none" stroke="#36ECDE" stroke-width="1.6" opacity="0.4"/>
+<polyline points="600,31 516,31 498,13 415,13" fill="none" stroke="#3b82f6" stroke-width="1.6" opacity="0.18"/>
+<circle cx="415" cy="13" r="3" fill="none" stroke="#3b82f6" stroke-width="1.6" opacity="0.32999999999999996"/>
+<polyline points="600,175 544,175 514,205 458,205" fill="none" stroke="#3b82f6" stroke-width="1.6" opacity="0.18"/>
+<circle cx="458" cy="205" r="3" fill="none" stroke="#3b82f6" stroke-width="1.6" opacity="0.32999999999999996"/>
+<polyline points="0,128 36,128 50,142 86,142" fill="none" stroke="#a855f7" stroke-width="1.6" opacity="0.18"/>
+<circle cx="86" cy="142" r="3" fill="none" stroke="#a855f7" stroke-width="1.6" opacity="0.32999999999999996"/>
+<polyline points="0,10 56,10 86,-21 142,-21" fill="none" stroke="#3b82f6" stroke-width="1.6" opacity="0.18"/>
+<circle cx="142" cy="-21" r="3" fill="none" stroke="#3b82f6" stroke-width="1.6" opacity="0.32999999999999996"/>
+<polyline points="600,80 548,80 508,41 456,41" fill="none" stroke="#a855f7" stroke-width="1.6" opacity="0.25"/>
+<circle cx="456" cy="41" r="3" fill="none" stroke="#a855f7" stroke-width="1.6" opacity="0.4"/>
+<polyline points="600,130 534,130 500,96 433,96" fill="none" stroke="#3b82f6" stroke-width="1.6" opacity="0.18"/>
+<circle cx="433" cy="96" r="3" fill="none" stroke="#3b82f6" stroke-width="1.6" opacity="0.32999999999999996"/>
+<polyline points="600,37 550,37 532,55 482,55" fill="none" stroke="#36ECDE" stroke-width="1.6" opacity="0.25"/>
+<circle cx="482" cy="55" r="3" fill="none" stroke="#36ECDE" stroke-width="1.6" opacity="0.4"/>
+<circle cx="207" cy="16" r="1" fill="#3b82f6" opacity="0.3"/>
+<circle cx="396" cy="104" r="1.8" fill="#36ECDE" opacity="0.7"/>
+<circle cx="217" cy="99" r="1.3" fill="#3b82f6" opacity="0.3"/>
+<circle cx="549" cy="40" r="1.8" fill="#a855f7" opacity="0.3"/>
+<circle cx="113" cy="123" r="0.8" fill="#e6fbff" opacity="0.5"/>
+<circle cx="80" cy="212" r="1.8" fill="#a855f7" opacity="0.7"/>
+<circle cx="136" cy="72" r="0.8" fill="#3b82f6" opacity="0.7"/>
+<circle cx="544" cy="99" r="0.8" fill="#a855f7" opacity="0.3"/>
+<circle cx="33" cy="155" r="1.8" fill="#e6fbff" opacity="0.3"/>
+<circle cx="14" cy="149" r="1" fill="#a855f7" opacity="0.7"/>
+<circle cx="536" cy="189" r="1.8" fill="#e6fbff" opacity="0.3"/>
+<circle cx="426" cy="172" r="1.3" fill="#3b82f6" opacity="0.3"/>
+<circle cx="403" cy="73" r="1.8" fill="#36ECDE" opacity="0.5"/>
+<circle cx="153" cy="213" r="1" fill="#e6fbff" opacity="0.7"/>
+<circle cx="271" cy="163" r="1" fill="#e6fbff" opacity="0.3"/>
+<circle cx="42" cy="224" r="0.8" fill="#a855f7" opacity="0.7"/>
+<circle cx="8" cy="55" r="1.3" fill="#a855f7" opacity="0.3"/>
+<circle cx="90" cy="44" r="0.8" fill="#36ECDE" opacity="0.3"/>
+<circle cx="571" cy="25" r="1" fill="#36ECDE" opacity="0.7"/>
+<circle cx="214" cy="24" r="1.3" fill="#36ECDE" opacity="0.3"/>
+<circle cx="527" cy="93" r="0.8" fill="#3b82f6" opacity="0.5"/>
+<circle cx="59" cy="127" r="0.8" fill="#3b82f6" opacity="0.3"/>
+<circle cx="40" cy="66" r="0.8" fill="#e6fbff" opacity="0.3"/>
+<circle cx="29" cy="10" r="0.8" fill="#36ECDE" opacity="0.5"/>
+<circle cx="185" cy="0" r="0.8" fill="#e6fbff" opacity="0.5"/>
+<circle cx="324" cy="156" r="1.3" fill="#36ECDE" opacity="0.5"/>
+<circle cx="121" cy="26" r="1.8" fill="#3b82f6" opacity="0.3"/>
+<circle cx="559" cy="221" r="1.3" fill="#36ECDE" opacity="0.3"/>
+<circle cx="539" cy="196" r="1" fill="#e6fbff" opacity="0.3"/>
+<circle cx="185" cy="162" r="1" fill="#e6fbff" opacity="0.3"/>
+<circle cx="127" cy="1" r="1" fill="#a855f7" opacity="0.3"/>
+<circle cx="215" cy="96" r="1" fill="#a855f7" opacity="0.7"/>
+<circle cx="568" cy="108" r="1" fill="#36ECDE" opacity="0.3"/>
+<circle cx="566" cy="81" r="1.3" fill="#a855f7" opacity="0.5"/>
+<circle cx="96" cy="128" r="0.8" fill="#e6fbff" opacity="0.7"/>
+<circle cx="411" cy="135" r="1" fill="#3b82f6" opacity="0.5"/>
+<circle cx="548" cy="81" r="1" fill="#36ECDE" opacity="0.3"/>
+<circle cx="522" cy="41" r="1" fill="#e6fbff" opacity="0.7"/>
+<circle cx="242" cy="18" r="1.3" fill="#a855f7" opacity="0.7"/>
+<circle cx="360" cy="84" r="1" fill="#36ECDE" opacity="0.5"/></g>
+<ellipse cx="300" cy="120" rx="230" ry="125" fill="url(#haloproyectos)"/>
+<g filter="url(#gproyectos)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+<path d="M150 40 V205 M150 205 H470" stroke="#36ECDE" stroke-width="2.5"/>
+<rect x="170" y="50" width="110" height="20" rx="6" stroke="#3b82f6" stroke-width="3"/>
+<rect x="240" y="80" width="90" height="20" rx="6" stroke="#a855f7" stroke-width="3"/>
+<rect x="290" y="110" width="120" height="20" rx="6" stroke="#ec4899" stroke-width="3"/>
+<rect x="350" y="140" width="80" height="20" rx="6" stroke="#36ECDE" stroke-width="3"/>
+<rect x="400" y="170" width="60" height="20" rx="6" stroke="#fbbf24" stroke-width="3"/>
+<path d="M200 40 V205" stroke="#3b82f6" stroke-width="1" opacity=".4"/>
+<path d="M260 40 V205" stroke="#3b82f6" stroke-width="1" opacity=".4"/>
+<path d="M320 40 V205" stroke="#3b82f6" stroke-width="1" opacity=".4"/>
+<path d="M380 40 V205" stroke="#3b82f6" stroke-width="1" opacity=".4"/>
+<path d="M440 40 V205" stroke="#3b82f6" stroke-width="1" opacity=".4"/>
+<path d="M500 80 a40 40 0 1 1 -10 50" stroke="#36ECDE" stroke-width="3.5"/><path d="M482 122 l8 10 12 -6" stroke="#36ECDE" stroke-width="3.5"/>
+<path d="M508 100 l10 12 20 -24" stroke="#22c55e" stroke-width="4"/>
+</g>
+</svg>
