@@ -73,7 +73,12 @@ function rpTarjeta(icono, nombre, idx, cuerpo, imagen) {
   }
 
   const clavePlan = params.get("claveplan") || "";
-  const urlPreguntas = `quiz.html?asignatura=${asigId}&modo=racha&barra=3${clavePlan ? `&desde=plan&claveplan=${encodeURIComponent(clavePlan)}` : ""}`;
+  // Si venimos de la racha, las preguntas son las de la tarea 3 de HOY (modo=racha).
+  // Si venimos de Mi plan (tarea "test" de una unidad concreta), las preguntas son
+  // de ESA unidad (modo=tema), no las del día de racha (que puede ser otra unidad).
+  const urlPreguntas = clavePlan.startsWith("test:")
+    ? `quiz.html?asignatura=${asigId}&modo=tema&unidad=${encodeURIComponent(clave)}&desde=plan&claveplan=${encodeURIComponent(clavePlan)}`
+    : `quiz.html?asignatura=${asigId}&modo=racha&barra=3${clavePlan ? `&desde=plan&claveplan=${encodeURIComponent(clavePlan)}` : ""}`;
   const [asig, intro, fs, gs, ts, est, ej, rc, tc] = await Promise.all([
     sb.from("asignaturas").select("nombre").eq("id", asigId).maybeSingle(),
     sb.from("repaso_unidad").select("titulo, intro").eq("asignatura_id", asigId).eq("unidad_num", num).maybeSingle(),
