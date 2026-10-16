@@ -551,3 +551,128 @@ h2{font-size:1.25rem; margin:0 0 14px;}
 .calendario .dia[data-nivel="2"]{background:#5eead4;}
 .calendario .dia[data-nivel="3"]{background:#14b8a6; box-shadow:0 0 4px rgba(20,184,166,.6);}
 .calendario .dia[data-nivel="4"]{background:#0b3a6b; box-shadow:0 0 6px rgba(54,236,222,.7); outline:1px solid #36ECDE;}
+
+
+/* ---------- Estilo neón (16-oct, 4ª parte): números de la asignatura ---------- */
+.grid-stats .stat{
+  background:
+    radial-gradient(circle at 100% 0%, var(--acento-stat) -80%, transparent 60%),
+    linear-gradient(135deg,#00203F 0%,#05305e 100%);
+  border:1px solid rgba(54,236,222,.25);
+  box-shadow:0 10px 24px -14px rgba(0,32,63,.7);
+  color:#fff;
+}
+.grid-stats .stat::before{background:var(--acento-stat); box-shadow:0 0 12px var(--acento-stat); width:4px;}
+.grid-stats .stat .valor{color:#fff; text-shadow:0 0 14px var(--acento-stat);}
+.grid-stats .stat .etiqueta{color:#b8d4ea;}
+.grid-stats .stat:nth-child(6n+1){--acento-stat:#36ECDE;}
+.grid-stats .stat:nth-child(6n+2){--acento-stat:#3b82f6;}
+.grid-stats .stat:nth-child(6n+3){--acento-stat:#ec4899;}
+.grid-stats .stat:nth-child(6n+4){--acento-stat:#fbbf24;}
+.grid-stats .stat:nth-child(6n+5){--acento-stat:#a855f7;}
+.grid-stats .stat:nth-child(6n+6){--acento-stat:#14b8a6;}
+.grid-stats .stat .tendencia.subida{background:rgba(74,222,128,.15); color:#4ade80;}
+.grid-stats .stat .tendencia.bajada{background:rgba(248,113,113,.15); color:#f87171;}
+.grid-stats .stat .tendencia.neutra{background:rgba(255,255,255,.08); color:#b8d4ea;}
+
+/* ---------- Estilo neón (16-oct, 5ª parte): Mi racha, Mi plan e Historial ----------
+   Van aquí con «body» delante para ganar a racha.css / plan.css / historial.css
+   sin tener que tocar esos archivos. */
+
+/* Mi racha: cabecera */
+body .rc-hero{
+  background:
+    radial-gradient(circle at 0% 50%, rgba(251,146,60,.45) 0%, transparent 45%),
+    linear-gradient(135deg,#00203F 0%,#05305e 100%);
+  border:1px solid rgba(251,146,60,.5);
+  box-shadow:0 0 22px -6px rgba(251,146,60,.55);
+  text-shadow:none;
+}
+body .rc-hero.rc-hecha{
+  background:
+    radial-gradient(circle at 0% 50%, rgba(54,236,222,.45) 0%, transparent 45%),
+    linear-gradient(135deg,#00203F 0%,#05305e 100%);
+  border-color:rgba(54,236,222,.6); box-shadow:0 0 24px -6px rgba(54,236,222,.6);
+}
+body .rc-hero.rc-apagada{
+  background:
+    radial-gradient(circle at 0% 50%, rgba(168,85,247,.35) 0%, transparent 45%),
+    linear-gradient(135deg,#0a1830 0%,#13294a 100%);
+  border-color:rgba(168,85,247,.45); box-shadow:0 0 22px -8px rgba(168,85,247,.5);
+}
+body .rc-hero .rc-num{text-shadow:0 0 18px rgba(54,236,222,.7);}
+body .rc-hero .rc-msg small{color:#b8d4ea; opacity:1;}
+
+/* Mi racha: últimos 7 días */
+body .rc-sem-dia .rc-bolita{background:#e6eef5; color:#94a3b8;}
+body .rc-sem-dia.rc-ok .rc-bolita{
+  background:#0b3a6b; color:#36ECDE; outline:1.5px solid #36ECDE;
+  box-shadow:0 0 10px rgba(54,236,222,.65);
+}
+body .rc-sem-dia.rc-hoy{color:#0f766e;}
+body .rc-sem-dia.rc-hoy .rc-bolita{box-shadow:0 0 0 3px #fff, 0 0 0 5px #36ECDE, 0 0 14px rgba(54,236,222,.6); animation:neon-latido 2.4s ease-in-out infinite;}
+@keyframes neon-latido{50%{box-shadow:0 0 0 3px #fff, 0 0 0 5px #36ECDE, 0 0 22px rgba(54,236,222,.9);}}
+@media (prefers-reduced-motion: reduce){ body .rc-sem-dia.rc-hoy .rc-bolita{animation:none;} }
+
+/* Mi racha: hoy toca y tareas */
+body .rc-pildora.rc-asig{background:#00203F; color:#36ECDE; border:1px solid rgba(54,236,222,.5);}
+body .rc-pildora.rc-tema{background:#d9fbf7; color:#0b3a6b;}
+body .rc-tarea{border:1.5px solid #dbe7f0;}
+body .rc-tarea:hover{border-color:#5eead4; box-shadow:0 0 14px -4px rgba(54,236,222,.5);}
+body .rc-tarea .rc-check{background:#0b3a6b; color:#36ECDE; box-shadow:inset 0 0 0 1.5px rgba(54,236,222,.6);}
+body .rc-tarea.rc-hecha{background:#e8fdfb; border-color:#5eead4;}
+body .rc-tarea.rc-hecha .rc-check{background:#14b8a6; color:#fff; box-shadow:0 0 10px rgba(20,184,166,.6);}
+
+/* Mi racha: histórico del mes */
+body .rc-flecha{color:#0b3a6b; border-color:#9fe9e1;}
+body .rc-flecha:hover:not(:disabled){box-shadow:0 0 10px rgba(54,236,222,.5);}
+body .rc-mes-grid .rc-celda{background:#e6eef5; color:#64748b;}
+body .rc-mes-grid .rc-celda.rc-ok{
+  background:#0b3a6b; color:#fff; outline:1.5px solid #36ECDE; box-shadow:0 0 10px rgba(54,236,222,.6);
+}
+body .rc-mes-grid .rc-celda.rc-hoy{box-shadow:0 0 0 2px #36ECDE;}
+body .rc-mes-grid .rc-celda.rc-vacia{background:transparent;}
+body .rc-check-asig.rc-marcada{border-color:#14b8a6; background:#e8fdfb;}
+body .rc-check-asig input{accent-color:#14b8a6;}
+
+/* Mi plan: contadores */
+body .pl-cont{
+  background:linear-gradient(135deg,#00203F 0%,#05305e 100%); color:#fff;
+  border:1px solid rgba(54,236,222,.3);
+}
+body .pl-cont:hover{box-shadow:0 0 14px -2px rgba(54,236,222,.5);}
+body .pl-cont.activo{border-color:#36ECDE; box-shadow:0 0 0 2px rgba(54,236,222,.35), 0 0 16px rgba(54,236,222,.45);}
+body .pl-cont .pl-ico{filter:drop-shadow(0 0 5px rgba(54,236,222,.6));}
+body .pl-cont .pl-num{background:#ec4899; color:#fff; box-shadow:0 0 10px rgba(236,72,153,.7);}
+body .pl-cont.listo .pl-num{background:#14b8a6; color:#fff; box-shadow:0 0 8px rgba(20,184,166,.6);}
+body .pl-cont.listo{opacity:.8;}
+
+/* Mi plan: barra, tareas y avisos */
+body .pl-barra{background:#e6eef5;}
+body .pl-barra>span{background:linear-gradient(90deg,#14b8a6,#36ECDE,#3b82f6); box-shadow:0 0 10px rgba(54,236,222,.6);}
+body .pl-tarea{border-left-color:#36ECDE;}
+body .pl-tarea.hecha{border-left-color:#14b8a6;}
+body .pl-chk:hover{border-color:#36ECDE; box-shadow:0 0 8px rgba(54,236,222,.5);}
+body .pl-tarea.hecha .pl-chk{background:#14b8a6; border-color:#14b8a6;}
+body .pl-aviso{border-left-color:#ec4899;}
+body .pl-aviso .pl-dias{color:#db2777;}
+body .pl-pregunta{border-left-color:#36ECDE;}
+body .pl-profe{border-left-color:#3b82f6;}
+body .pl-escribe input:focus{border-color:#36ECDE; box-shadow:0 0 0 3px rgba(54,236,222,.2);}
+body .pl-av-entra{background:#d9fbf7; color:#0b3a6b;}
+
+/* Historial de Mi plan */
+body .hi-cabecera button{color:#0b3a6b; border-color:#9fe9e1;}
+body .hi-cabecera button:hover{border-color:#36ECDE; box-shadow:0 0 10px rgba(54,236,222,.5);}
+body .hi-celda{border-color:#dbe7f0;}
+body .hi-celda.hi-con-plan{background:#f2fbfb;}
+body .hi-celda.hi-con-plan:hover{border-color:#36ECDE; box-shadow:0 0 12px -2px rgba(54,236,222,.55);}
+body .hi-celda.hi-hoy{border-color:#36ECDE; border-width:2px;}
+body .hi-celda.hi-seleccionada{background:#0b3a6b; border-color:#36ECDE; color:#fff; box-shadow:0 0 14px rgba(54,236,222,.55);}
+body .hi-celda.hi-seleccionada .hi-num{color:#fff;}
+body .hi-punto{width:9px; height:9px;}
+body .hi-punto.hi-todo{background:#14b8a6; box-shadow:0 0 6px rgba(20,184,166,.8);}
+body .hi-punto.hi-parcial{background:#fbbf24; box-shadow:0 0 6px rgba(251,191,36,.8);}
+body .hi-punto.hi-nada{background:#cbd5e1;}
+body .hi-grid{max-width:520px;}
+body .hi-celda{border-radius:12px;}
