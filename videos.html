@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Vídeos · Preparador de Exámenes</title>
+<link rel="icon" type="image/png" href="img/favicon-64.png" />
+<link rel="stylesheet" href="css/style.css" />
+<style>
+  .vd-bloque{margin:22px 0 10px}
+  .vd-bloque h2{margin:0 0 4px; font-size:1.25rem}
+  .vd-bloque .vd-sub{margin:0 0 12px; color:var(--texto-suave); font-size:.92rem}
+  .vd-ud{background:#fff; border:1px solid var(--borde); border-radius:14px; margin-bottom:10px; overflow:hidden}
+  .vd-ud > summary{cursor:pointer; padding:12px 16px; font-weight:700; color:var(--morado-osc); list-style:none}
+  .vd-ud > summary::-webkit-details-marker{display:none}
+  .vd-ud > summary::before{content:"▸ "; display:inline-block; transition:transform .15s}
+  .vd-ud[open] > summary::before{transform:rotate(90deg)}
+  .vd-ud > summary .vd-n{font-weight:400; color:var(--texto-suave); margin-left:6px}
+  .vd-lista{padding:0 12px 10px}
+  .vd-item{display:flex; gap:12px; align-items:flex-start; padding:10px 6px; border-top:1px solid var(--borde); text-decoration:none; color:inherit}
+  .vd-item:hover{background:rgba(54,236,222,.08)}
+  .vd-play{flex:0 0 34px; height:34px; border-radius:50%; background:#ef4444; color:#fff; display:flex; align-items:center; justify-content:center; font-size:.9rem}
+  .vd-tit{font-weight:600; line-height:1.35}
+  .vd-meta{font-size:.82rem; color:var(--texto-suave); margin-top:2px}
+  .vd-para{font-size:.86rem; margin-top:4px; line-height:1.45}
+</style>
+</head>
+<body>
+  <div class="navbar" id="navbar"></div>
+  <div class="contenedor">
+    <h1>🎬 Vídeos</h1>
+    <p class="subtitulo"><span id="nombre-asignatura"></span> · Toca un vídeo para abrirlo en YouTube. Están ordenados por unidad.</p>
+    <div id="lista-videos"><div class="spinner"></div></div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/config.js"></script>
+  <script src="js/common.js"></script>
+  <script src="js/videos.js"></script>
+</body>
+</html>
