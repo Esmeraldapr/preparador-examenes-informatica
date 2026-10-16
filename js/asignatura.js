@@ -182,17 +182,34 @@ function pintarEvolucion(intentos) {
         {
           label: "% de acierto por día",
           data: datos,
-          borderColor: "#7c3aed",
-          backgroundColor: "rgba(124,58,237,.15)",
+          borderColor: "#14b8a6",
+          borderWidth: 3,
+          // Relleno degradado menta → transparente (estilo neón)
+          backgroundColor: (ctx) => {
+            const { chart } = ctx;
+            const area = chart.chartArea;
+            if (!area) return "rgba(54,236,222,.18)";
+            const g = chart.ctx.createLinearGradient(0, area.top, 0, area.bottom);
+            g.addColorStop(0, "rgba(54,236,222,.45)");
+            g.addColorStop(1, "rgba(54,236,222,0)");
+            return g;
+          },
           fill: true,
           tension: 0.35,
-          pointBackgroundColor: "#06b6d4",
-          pointRadius: 4,
+          // Puntos como los cuadraditos de «Actividad reciente»: marino con borde menta
+          pointBackgroundColor: "#0b3a6b",
+          pointBorderColor: "#36ECDE",
+          pointBorderWidth: 2,
+          pointRadius: 5,
+          pointHoverRadius: 7,
         },
       ],
     },
     options: {
-      scales: { y: { min: 0, max: 100, ticks: { callback: (v) => v + "%" } } },
+      scales: {
+        y: { min: 0, max: 100, ticks: { callback: (v) => v + "%", color: "#475569" }, grid: { color: "rgba(11,58,107,.08)" } },
+        x: { ticks: { color: "#475569" }, grid: { color: "rgba(11,58,107,.06)" } },
+      },
       plugins: { legend: { display: false } },
     },
   });
