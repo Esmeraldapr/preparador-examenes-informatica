@@ -7,6 +7,18 @@ const COLORES_TARJETA = ["", "g2", "g3", "g4"];
 // Asignaturas del primer trimestre (salen primero, en este orden).
 const PRIMER_TRIMESTRE = ["Cálculo", "Fundamentos Físicos"];
 const ORDEN_CURSOS = ["1º CURSO", "2º CURSO", "3º CURSO", "4º CURSO"];
+// Dibujo neón de cada asignatura (img/asig-<nombre>.svg), según su id.
+const IMAGEN_ASIGNATURA = {
+  1: "calculo", 2: "ingles", 3: "eda", 4: "etc1", 5: "etc2", 6: "ffe", 7: "prog", 8: "discreta",
+  9: "tcp", 10: "arq", 11: "bd", 12: "ingles", 13: "poo", 14: "empresa", 15: "ia", 16: "estad",
+  17: "redes", 18: "so", 19: "web", 20: "proyectos", 21: "so", 22: "seguridad", 23: "ingsoft",
+  24: "interfaces", 25: "ia", 26: "concurrente", 27: "redes", 28: "hacking", 29: "biometria",
+  30: "comercio", 31: "cripto", 32: "proyectos", 33: "bd", 34: "agil", 35: "web", 36: "servidor",
+  37: "libre", 38: "hacking", 39: "forense", 40: "valores",
+};
+function imagenAsignatura(a) {
+  return `img/asig-${IMAGEN_ASIGNATURA[a.id] || "prog"}.svg`;
+}
 
 (async function iniciar() {
   const sesion = await exigirSesion();
@@ -90,14 +102,11 @@ const ORDEN_CURSOS = ["1º CURSO", "2º CURSO", "3º CURSO", "4º CURSO"];
     contenidoEl.innerHTML = `<div class="grid-tarjetas">${lista
       .map((a) => {
         const n = conteoPreguntas.get(a.id) || 0;
-        const clase = COLORES_TARJETA[a._color % COLORES_TARJETA.length];
         return `
-        <a class="tarjeta" href="asignatura.html?asignatura=${a.id}">
-          <div class="cabecera ${clase}">
-            <span class="icono">📘</span>
-            <h3>${a.nombre}</h3>
-          </div>
+        <a class="tarjeta tarjeta-asig" href="asignatura.html?asignatura=${a.id}">
+          <div class="asig-imagen" style="background-image:url('${imagenAsignatura(a)}')"></div>
           <div class="cuerpo">
+            <h3>${a.nombre}</h3>
             ${n > 0 ? `<div class="meta">${n} preguntas cargadas</div>` : `<div class="meta">Próximamente</div>`}
           </div>
           <div class="pie"><span class="btn btn-primario btn-bloque">Entrar</span></div>
