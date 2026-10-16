@@ -76,8 +76,8 @@ function rpTarjeta(icono, nombre, idx, cuerpo, imagen) {
   // Si venimos de la racha, las preguntas son las de la tarea 3 de HOY (modo=racha).
   // Si venimos de Mi plan (tarea "test" de una unidad concreta), las preguntas son
   // de ESA unidad (modo=tema), no las del día de racha (que puede ser otra unidad).
-  const urlPreguntas = clavePlan.startsWith("test:")
-    ? `quiz.html?asignatura=${asigId}&modo=tema&unidad=${encodeURIComponent(clave)}&desde=plan&claveplan=${encodeURIComponent(clavePlan)}`
+  const urlPreguntas = clavePlan
+    ? `quiz.html?asignatura=${asigId}&modo=plan&ud=${num}&n=15&desde=plan&claveplan=${encodeURIComponent(clavePlan)}`
     : `quiz.html?asignatura=${asigId}&modo=racha&barra=3${clavePlan ? `&desde=plan&claveplan=${encodeURIComponent(clavePlan)}` : ""}`;
   const [asig, intro, fs, gs, ts, est, ej, rc, tc] = await Promise.all([
     sb.from("asignaturas").select("nombre").eq("id", asigId).maybeSingle(),
@@ -110,7 +110,7 @@ function rpTarjeta(icono, nombre, idx, cuerpo, imagen) {
     <div class="rc-cta">
       <a class="btn btn-primario" href="${urlPreguntas}">Empezar las preguntas →</a>
       ${hayTemaCompleto ? `<a class="btn btn-secundario" href="tema.html?asignatura=${asigId}&tema=${clave}">📖 Tema completo (leer o escuchar)</a>` : ""}
-      <a class="btn btn-secundario" href="racha.html">← Volver a mi racha</a>
+      ${clavePlan ? `<a class="btn btn-secundario" href="plan.html">← Volver a Mi plan</a>` : `<a class="btn btn-secundario" href="racha.html">← Volver a mi racha</a>`}
     </div>`;
 
   html += cta();

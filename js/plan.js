@@ -49,11 +49,17 @@ async function planCatalogo(asigId) {
     const t = (te.data || []).find((x) => x.unidad_num === u);
     if (t) {
       items.push({ clave: `tema:${asigId}:UD${u}`, tipo: "nuevo", sub: "tema", asig: nombre, asigId, unidadNum: u, unidadTexto: t.unidad, titulo: `Tema completo UD${u}: ${t.titulo}`, min: PLAN_MIN.tema, url: `tema.html?asignatura=${asigId}&tema=UD${u}&claveplan=${encodeURIComponent("tema:" + asigId + ":UD" + u)}`, repasable: true, repasoUrl: `repaso.html?asignatura=${asigId}&tema=UD${u}` });
-      items.push({ clave: `test:${asigId}:UD${u}`, tipo: "test", sub: "test", asig: nombre, asigId, unidadNum: u, unidadTexto: t.unidad, titulo: `Test de la UD${u}`, min: PLAN_MIN.test, url: `repaso.html?asignatura=${asigId}&tema=UD${u}&claveplan=${encodeURIComponent("test:" + asigId + ":UD" + u)}` });
+      items.push({ clave: `test:${asigId}:UD${u}`, tipo: "test", sub: "test", asig: nombre, asigId, unidadNum: u, unidadTexto: t.unidad, titulo: `Test de la UD${u}`, min: PLAN_MIN.test, url: `repaso.html?asignatura=${asigId}&tema=UD${u}&claveplan=${encodeURIComponent("test:" + asigId + ":UD" + u)}`, repasable: true, repasoUrl: `quiz.html?asignatura=${asigId}&modo=plan&ud=${u}&n=10&desde=plan` });
     }
     videosUD.filter((v) => v.tipo === "ejercicios").forEach(meteVideo);
   });
   return items;
+}
+
+// El repaso lleva su propia clave, para que al terminarlo se marque solo como hecho.
+function planUrlRepaso(base, clave) {
+  const limpia = base.replace(/&claveplan=[^&]*/g, "").replace(/&desde=plan/g, "");
+  return `${limpia}&desde=plan&claveplan=${encodeURIComponent(clave)}`;
 }
 
 function planGenerar(hoy, catalogos, hechos) {
@@ -76,7 +82,7 @@ function planGenerar(hoy, catalogos, hechos) {
   repasos.sort((a, b) => a.vence.localeCompare(b.vence));
   for (const r of repasos) {
     if (usado + PLAN_MIN.repaso > presupuesto * 0.4) break;
-    tareas.push({ clave: `rep:${r.i.clave}:${r.k}`, tipo: "repaso", sub: "repaso", asig: r.i.asig, asigId: r.i.asigId, titulo: `Repaso (día ${r.k}): ${r.i.titulo.replace(/^Clase \d+ del profe: /, "")}`, min: PLAN_MIN.repaso, url: r.i.repasoUrl || r.i.url });
+    tareas.push({ clave: `rep:${r.i.clave}:${r.k}`, tipo: "repaso", sub: "repaso", asig: r.i.asig, asigId: r.i.asigId, titulo: `Repaso (día ${r.k}): ${r.i.titulo.replace(/^Clase \d+ del profe: /, "")}`, min: PLAN_MIN.repaso, url: planUrlRepaso(r.i.repasoUrl || r.i.url, `rep:${r.i.clave}:${r.k}`) });
     usado += PLAN_MIN.repaso;
   }
 

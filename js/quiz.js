@@ -213,6 +213,14 @@ function leerProgresoGuardado() {
     const cuantas = parseInt(params.get("n") || "10", 10);
     const { data } = await sb.rpc("plan_lo_que_mas_cae", { p_asignatura: ASIGNATURA_ID, p_n: cuantas });
     preguntas = data || [];
+  } else if (modo === "plan") {
+    // Test de Mi plan: preguntas de UNA unidad del temario (oficiales, test no evaluables
+    // y prácticas), sin gemelas, primero las falladas, luego las nunca vistas.
+    const ud = parseInt(params.get("ud") || "0", 10);
+    const cuantas = parseInt(params.get("n") || "15", 10);
+    tituloModo = `✍️ Test de la UD${ud}`;
+    const { data } = await sb.rpc("plan_preguntas_unidad", { p_asignatura: ASIGNATURA_ID, p_ud: ud, p_n: cuantas });
+    preguntas = data || [];
   } else if (modo === "favoritos") {
     tituloModo = "⭐ Mis favoritas";
     const { data: preguntasAsignatura } = await sb.from("preguntas").select("id").eq("asignatura_id", ASIGNATURA_ID);
@@ -307,7 +315,7 @@ function htmlTrucos(p) {
       <details class="qz-truco" ${unico ? "open" : ""}>
         <summary>💡 ${t.nombre}</summary>
         <div class="qz-truco-cuerpo">
-          <button type="button" class="btn-altavoz qz-truco-voz" style="position:static; width:auto; height:auto; padding:6px 14px; border-radius:999px; background:#d9fbf7; font-size:.85rem; font-weight:600; gap:6px" title="Escuchar este truco desde el principio" aria-label="Escuchar este truco desde el principio">🔊 Escuchar este truco</button>
+          <button type="button" class="btn-altavoz qz-truco-voz" style="position:static; width:auto; height:auto; padding:6px 14px; border-radius:999px; background:#ede9fe; font-size:.85rem; font-weight:600; gap:6px" title="Escuchar este truco desde el principio" aria-label="Escuchar este truco desde el principio">🔊 Escuchar este truco</button>
           ${t.imagen_url ? `<img class="ampliable" src="${t.imagen_url}" alt="${t.nombre}" title="Pulsa para ver en grande" />` : ""}
           ${htmlCuerpoTruco(t)}
         </div>
@@ -518,7 +526,7 @@ async function elegirOpcion(el, pregunta) {
   document.getElementById("zona-explicacion").innerHTML = htmlExplicacion(pregunta, esCorrecta);
   activarAltavozExplicacion(esCorrecta);
 
-  await guardarIntento({
+  await sb.from("intentos").insert({
     usuario_id: usuarioActual.id,
     pregunta_id: pregunta.id,
     acierto: esCorrecta,
@@ -645,11 +653,9 @@ async function pintarResultado() {
   if (MODO === "racha") {
     let celebrar = false;
     if (blancos === 0) {
-      const { data, error, pendiente } = await completarBarraRacha(BARRA_RACHA);
+      const { data, error } = await sb.rpc("racha_completar_barra_web", { p_barra: BARRA_RACHA });
       const fila = data && data[0];
-      if (pendiente) {
-        bloqueRacha = `<p style="font-size:1.05rem;font-weight:800;color:var(--morado);margin:6px 0">📴 Sin cobertura: la tarea se guardará sola en cuanto vuelva la conexión (hoy).</p>`;
-      } else if (error || !fila) {
+      if (error || !fila) {
         bloqueRacha = `<p class="subtitulo" style="color:var(--rojo)">⚠️ No se pudo guardar la tarea. Vuelve a Mi racha e inténtalo otra vez.</p>`;
       } else {
         celebrar = !!fila.completado_hoy;
