@@ -484,3 +484,70 @@ h2{font-size:1.25rem; margin:0 0 14px;}
   body:not(.pagina-login)::before{left:0;}
   body:not(.pagina-login)::after{right:0; transform:scaleX(-1);}
 }
+
+/* ---------- Estilo neón (16-oct, 2ª parte): barra de arriba y botones ---------- */
+.navbar{
+  background:
+    radial-gradient(circle at 15% 0%, rgba(54,236,222,.18) 0%, transparent 40%),
+    linear-gradient(90deg,#00203F 0%,#05305e 55%,#00203F 100%);
+  border-bottom:2px solid #36ECDE;
+  box-shadow:0 4px 18px -6px rgba(54,236,222,.45);
+}
+.navbar nav a{background:rgba(255,255,255,.06); border:1px solid rgba(54,236,222,.25);}
+.navbar nav a:hover{background:rgba(54,236,222,.14); color:#36ECDE;}
+.navbar nav a.activa{
+  background:#36ECDE; color:#00203F; border-color:#36ECDE;
+  box-shadow:0 0 12px rgba(54,236,222,.6);
+}
+.navbar .usuario button{background:rgba(255,255,255,.06); border:1px solid rgba(54,236,222,.35);}
+.navbar .usuario button:hover{background:rgba(54,236,222,.18); color:#36ECDE;}
+
+/* Botón principal: azul marino con borde menta que brilla y un destello al pasar el ratón */
+.btn-primario{
+  position:relative; overflow:hidden;
+  background:linear-gradient(135deg,#00203F 0%,#0b3a6b 100%);
+  color:#fff; border:1.5px solid #36ECDE;
+  box-shadow:0 0 10px rgba(54,236,222,.28), inset 0 0 10px rgba(54,236,222,.12);
+}
+.btn-primario::after{
+  content:""; position:absolute; top:0; left:-60%; width:40%; height:100%;
+  background:linear-gradient(100deg,transparent,rgba(54,236,222,.35),transparent);
+  transform:skewX(-20deg); transition:left .5s ease;
+}
+.btn-primario:hover{filter:none; color:#36ECDE; box-shadow:0 0 18px rgba(54,236,222,.55), inset 0 0 12px rgba(54,236,222,.2);}
+.btn-primario:hover::after{left:120%;}
+.btn-secundario{background:#fff; color:#00203F; border:2px solid #14b8a6;}
+.btn-secundario:hover{background:#e8fdfb; box-shadow:0 0 12px rgba(20,184,166,.35);}
+.btn-exito{background:linear-gradient(135deg,#0f766e 0%,#14b8a6 100%); color:#fff; box-shadow:0 0 10px rgba(20,184,166,.35);}
+
+/* Pestañas de filtro (cursos, tipos de examen…) */
+.filtro-btn.activo{
+  background:linear-gradient(135deg,#00203F 0%,#0b3a6b 100%); color:#36ECDE;
+  border-color:#36ECDE; box-shadow:0 0 12px rgba(54,236,222,.4);
+}
+
+
+/* ---------- Estilo neón (16-oct, 3ª parte): cabeceras de tarjetas y calendario ---------- */
+.tarjeta .cabecera,
+.tarjeta .cabecera.g2,
+.tarjeta .cabecera.g3,
+.tarjeta .cabecera.g4{
+  background:
+    url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%20300%20120%22%20preserveAspectRatio%3D%22xMaxYMid%20slice%22%3E%3Cg%20fill%3D%22none%22%20stroke%3D%22%2336ECDE%22%20stroke-width%3D%221.4%22%20opacity%3D%22.35%22%3E%3Cpath%20d%3D%22M300%2020H250l-15%2015h-40%22/%3E%3Ccircle%20cx%3D%22192%22%20cy%3D%2235%22%20r%3D%223%22/%3E%3Cpath%20d%3D%22M300%2050h-30l-20%2020h-60%22/%3E%3Ccircle%20cx%3D%22187%22%20cy%3D%2270%22%20r%3D%223%22/%3E%3Cpath%20d%3D%22M300%2085h-60l-12-12h-18%22/%3E%3Ccircle%20cx%3D%22207%22%20cy%3D%2273%22%20r%3D%223%22/%3E%3Cpath%20d%3D%22M300%20105h-25l-10%2010h-50%22/%3E%3Ccircle%20cx%3D%22212%22%20cy%3D%22115%22%20r%3D%223%22/%3E%3Cpath%20d%3D%22M260%200v12l10%2010%22/%3E%3Cpath%20d%3D%22M230%20120v-10l-12-12h-30%22/%3E%3Ccircle%20cx%3D%22185%22%20cy%3D%2298%22%20r%3D%223%22/%3E%3C/g%3E%3C/svg%3E") right center / auto 100% no-repeat,
+    radial-gradient(circle at 0% 0%, var(--acento-cab, #36ECDE) -60%, transparent 55%),
+    linear-gradient(135deg,#00203F 0%,#05305e 100%);
+  border-bottom:2px solid var(--acento-cab, #36ECDE);
+}
+.tarjeta .cabecera{--acento-cab:#36ECDE;}
+.tarjeta .cabecera.g2{--acento-cab:#a855f7;}
+.tarjeta .cabecera.g3{--acento-cab:#3b82f6;}
+.tarjeta .cabecera.g4{--acento-cab:#ec4899;}
+.tarjeta .cabecera .icono{filter:drop-shadow(0 0 6px var(--acento-cab, #36ECDE));}
+.tarjeta .cabecera h3{text-shadow:0 0 10px rgba(54,236,222,.25);}
+.tarjeta:hover{box-shadow:0 0 0 2px #36ECDE, 0 14px 30px -10px rgba(54,236,222,.5);}
+
+.calendario .dia{background:#e6eef5;}
+.calendario .dia[data-nivel="1"]{background:#b9f5ef;}
+.calendario .dia[data-nivel="2"]{background:#5eead4;}
+.calendario .dia[data-nivel="3"]{background:#14b8a6; box-shadow:0 0 4px rgba(20,184,166,.6);}
+.calendario .dia[data-nivel="4"]{background:#0b3a6b; box-shadow:0 0 6px rgba(54,236,222,.7); outline:1px solid #36ECDE;}
