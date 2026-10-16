@@ -14,6 +14,134 @@
   }
 })();
 
+// ============================================================
+// Mala cobertura (metro): copia de la web en el móvil, aviso de
+// «sin conexión» y respuestas que se guardan y se envían al volver.
+// ============================================================
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("sw.js").catch(() => {});
+  });
+}
+
+const COLA_INTENTOS = "cola_intentos";
+const COLA_RACHA = "cola_racha";
+
+function leerCola(clave) {
+  try {
+    return JSON.parse(localStorage.getItem(clave)) || [];
+  } catch (e) {
+    return [];
+  }
+}
+function escribirCola(clave, lista) {
+  try {
+    if (lista.length) localStorage.setItem(clave, JSON.stringify(lista));
+    else localStorage.removeItem(clave);
+  } catch (e) {}
+}
+/** Un error «de red» (sin cobertura o tiempo agotado) no trae código de la base de datos. */
+function esErrorDeRed(error) {
+  return !!error && !error.code;
+}
+function hoyMadrid() {
+  return new Date().toLocaleDateString("sv-SE", { timeZone: "Europe/Madrid" });
+}
+
+/** Guarda una respuesta. Si no hay cobertura, la deja en cola y la envía al volver. */
+async function guardarIntento(fila) {
+  const conFecha = { ...fila, fecha: fila.fecha || new Date().toISOString() };
+  let error = null;
+  try {
+    ({ error } = await sb.from("intentos").insert(conFecha));
+  } catch (e) {
+    error = { message: String(e) };
+  }
+  if (error && esErrorDeRed(error)) {
+    escribirCola(COLA_INTENTOS, [...leerCola(COLA_INTENTOS), conFecha]);
+    pintarAvisoConexion();
+  }
+}
+
+/** Marca una tarea de la racha; si no hay cobertura, la deja apuntada para hoy. */
+async function completarBarraRacha(barra) {
+  let res;
+  try {
+    res = await sb.rpc("racha_completar_barra_web", { p_barra: barra });
+  } catch (e) {
+    res = { data: null, error: { message: String(e) } };
+  }
+  if (res.error && esErrorDeRed(res.error)) {
+    const cola = leerCola(COLA_RACHA).filter((x) => x.dia === hoyMadrid() && x.barra !== barra);
+    escribirCola(COLA_RACHA, [...cola, { barra, dia: hoyMadrid() }]);
+    res.pendiente = true;
+    pintarAvisoConexion();
+  }
+  return res;
+}
+
+let enviandoPendientes = false;
+/** Envía lo que se quedó guardado sin conexión (respuestas y tareas de la racha). */
+async function enviarPendientes() {
+  if (enviandoPendientes || !navigator.onLine) return;
+  enviandoPendientes = true;
+  try {
+    const intentos = leerCola(COLA_INTENTOS);
+    if (intentos.length) {
+      const { error } = await sb.from("intentos").insert(intentos);
+      if (!error || !esErrorDeRed(error)) escribirCola(COLA_INTENTOS, []);
+    }
+    const racha = leerCola(COLA_RACHA).filter((x) => x.dia === hoyMadrid());
+    const quedan = [];
+    for (const r of racha) {
+      const { error } = await sb.rpc("racha_completar_barra_web", { p_barra: r.barra });
+      if (error && esErrorDeRed(error)) quedan.push(r);
+    }
+    escribirCola(COLA_RACHA, quedan);
+  } catch (e) {
+  } finally {
+    enviandoPendientes = false;
+    pintarAvisoConexion();
+  }
+}
+
+/** Pastilla abajo: «Sin conexión» o «X respuestas por enviar». */
+function pintarAvisoConexion() {
+  if (!document.body) return;
+  let el = document.getElementById("aviso-conexion");
+  const pendientes = leerCola(COLA_INTENTOS).length + leerCola(COLA_RACHA).length;
+  const sinRed = !navigator.onLine;
+  if (!sinRed && !pendientes) {
+    if (el) el.remove();
+    return;
+  }
+  if (!el) {
+    el = document.createElement("div");
+    el.id = "aviso-conexion";
+    el.setAttribute("role", "status");
+    el.style.cssText =
+      "position:fixed;left:50%;bottom:16px;transform:translateX(-50%);z-index:9000;" +
+      "background:#00203F;color:#fff;border:1.5px solid #36ECDE;border-radius:999px;" +
+      "padding:9px 16px;font-size:.88rem;font-weight:600;box-shadow:0 0 16px rgba(54,236,222,.45);" +
+      "max-width:calc(100vw - 32px);text-align:center";
+    document.body.appendChild(el);
+  }
+  el.textContent = sinRed
+    ? "📴 Sin cobertura: puedes seguir; lo que hagas se envía al volver" +
+      (pendientes ? ` (${pendientes} pendiente${pendientes === 1 ? "" : "s"})` : "")
+    : `🔄 Enviando ${pendientes} respuesta${pendientes === 1 ? "" : "s"} guardada${pendientes === 1 ? "" : "s"}…`;
+}
+
+window.addEventListener("online", () => {
+  pintarAvisoConexion();
+  enviarPendientes();
+});
+window.addEventListener("offline", pintarAvisoConexion);
+window.addEventListener("load", () => {
+  pintarAvisoConexion();
+  enviarPendientes();
+});
+
 /** Devuelve la sesión activa o null. */
 async function obtenerSesion() {
   const { data } = await sb.auth.getSession();
@@ -35,48 +163,85 @@ async function exigirSesion() {
  * al usuario autenticado, y actualiza su última conexión / contador.
  */
 async function obtenerOCrearUsuario(sesion) {
+  // Se usa la copia guardada en el móvil para abrir al momento (también sin cobertura)
+  // y por detrás se pide la versión nueva.
   const authId = sesion.user.id;
-  let { data: usuario, error } = await sb
-    .from("usuarios")
-    .select("*")
-    .eq("auth_user_id", authId)
-    .maybeSingle();
+  const claveCopia = "usuario_" + authId;
+  let copia = null;
+  try {
+    copia = JSON.parse(localStorage.getItem(claveCopia));
+  } catch (e) {}
 
-  if (!usuario) {
-    const nombre = sesion.user.user_metadata?.nombre || null;
-    const { data: nuevo, error: errInsert } = await sb
+  const pedir = async () => {
+    const { data: usuario, error } = await sb
       .from("usuarios")
-      .insert({
-        auth_user_id: authId,
-        email: sesion.user.email,
-        nombre,
-        numero_conexiones: 1,
-        ultima_conexion: new Date().toISOString(),
-      })
-      .select()
-      .single();
-    if (errInsert) {
-      console.error("Error creando usuario:", errInsert);
-      return null;
+      .select("*")
+      .eq("auth_user_id", authId)
+      .maybeSingle();
+    if (error) return null; // Sin cobertura: no se intenta crear nada.
+
+    let resultado = usuario;
+    if (!usuario) {
+      const nombre = sesion.user.user_metadata?.nombre || null;
+      const { data: nuevo, error: errInsert } = await sb
+        .from("usuarios")
+        .insert({
+          auth_user_id: authId,
+          email: sesion.user.email,
+          nombre,
+          numero_conexiones: 1,
+          ultima_conexion: new Date().toISOString(),
+        })
+        .select()
+        .single();
+      if (errInsert) {
+        console.error("Error creando usuario:", errInsert);
+        return null;
+      }
+      resultado = nuevo;
+    } else {
+      // La conexión se cuenta como mucho una vez cada 30 minutos (antes, en cada página).
+      const ultima = Date.parse(usuario.ultima_conexion || 0) || 0;
+      if (Date.now() - ultima > 30 * 60 * 1000) {
+        const { data: actualizado } = await sb
+          .from("usuarios")
+          .update({
+            ultima_conexion: new Date().toISOString(),
+            numero_conexiones: (usuario.numero_conexiones || 0) + 1,
+          })
+          .eq("id", usuario.id)
+          .select()
+          .single();
+        if (actualizado) resultado = actualizado;
+      }
     }
-    usuario = nuevo;
-  } else {
-    const { data: actualizado } = await sb
-      .from("usuarios")
-      .update({
-        ultima_conexion: new Date().toISOString(),
-        numero_conexiones: (usuario.numero_conexiones || 0) + 1,
-      })
-      .eq("id", usuario.id)
-      .select()
-      .single();
-    if (actualizado) usuario = actualizado;
+    try {
+      localStorage.setItem(claveCopia, JSON.stringify(resultado));
+    } catch (e) {}
+    return resultado;
+  };
+
+  if (copia && copia.auth_user_id === authId) {
+    pedir().catch(() => {});
+    return copia;
   }
-  return usuario;
+  return await pedir();
 }
 
 async function cerrarSesion() {
-  await sb.auth.signOut();
+  await enviarPendientes();
+  try {
+    Object.keys(localStorage)
+      .filter((k) => k.startsWith("usuario_"))
+      .forEach((k) => localStorage.removeItem(k));
+  } catch (e) {}
+  // Borra la copia de los datos guardada en este dispositivo.
+  try {
+    navigator.serviceWorker?.controller?.postMessage("borrar-datos");
+    const claves = await caches.keys();
+    await Promise.all(claves.filter((k) => k.startsWith("datos-")).map((k) => caches.delete(k)));
+  } catch (e) {}
+  await sb.auth.signOut().catch(() => {});
   window.location.href = "login.html";
 }
 
@@ -110,7 +275,8 @@ function enlaceAsignatura(pagina, asignaturaId, extra) {
 function pintarNavbar(activa, usuario, asignatura) {
   const el = document.getElementById("navbar");
   if (!el) return;
-  const nombre = usuario?.nombre || usuario?.email || "Estudiante";
+  const nombre = String(usuario?.nombre || usuario?.email || "Estudiante")
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
   if (!asignatura) {
     el.innerHTML = `

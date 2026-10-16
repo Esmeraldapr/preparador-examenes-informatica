@@ -518,7 +518,7 @@ async function elegirOpcion(el, pregunta) {
   document.getElementById("zona-explicacion").innerHTML = htmlExplicacion(pregunta, esCorrecta);
   activarAltavozExplicacion(esCorrecta);
 
-  await sb.from("intentos").insert({
+  await guardarIntento({
     usuario_id: usuarioActual.id,
     pregunta_id: pregunta.id,
     acierto: esCorrecta,
@@ -645,9 +645,11 @@ async function pintarResultado() {
   if (MODO === "racha") {
     let celebrar = false;
     if (blancos === 0) {
-      const { data, error } = await sb.rpc("racha_completar_barra_web", { p_barra: BARRA_RACHA });
+      const { data, error, pendiente } = await completarBarraRacha(BARRA_RACHA);
       const fila = data && data[0];
-      if (error || !fila) {
+      if (pendiente) {
+        bloqueRacha = `<p style="font-size:1.05rem;font-weight:800;color:var(--morado);margin:6px 0">📴 Sin cobertura: la tarea se guardará sola en cuanto vuelva la conexión (hoy).</p>`;
+      } else if (error || !fila) {
         bloqueRacha = `<p class="subtitulo" style="color:var(--rojo)">⚠️ No se pudo guardar la tarea. Vuelve a Mi racha e inténtalo otra vez.</p>`;
       } else {
         celebrar = !!fila.completado_hoy;
