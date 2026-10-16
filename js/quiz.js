@@ -307,7 +307,7 @@ function htmlTrucos(p) {
       <details class="qz-truco" ${unico ? "open" : ""}>
         <summary>💡 ${t.nombre}</summary>
         <div class="qz-truco-cuerpo">
-          <button type="button" class="btn-altavoz qz-truco-voz" style="position:static; width:auto; height:auto; padding:6px 14px; border-radius:999px; background:#ede9fe; font-size:.85rem; font-weight:600; gap:6px" title="Escuchar este truco desde el principio" aria-label="Escuchar este truco desde el principio">🔊 Escuchar este truco</button>
+          <button type="button" class="btn-altavoz qz-truco-voz" style="position:static; width:auto; height:auto; padding:6px 14px; border-radius:999px; background:#d9fbf7; font-size:.85rem; font-weight:600; gap:6px" title="Escuchar este truco desde el principio" aria-label="Escuchar este truco desde el principio">🔊 Escuchar este truco</button>
           ${t.imagen_url ? `<img class="ampliable" src="${t.imagen_url}" alt="${t.nombre}" title="Pulsa para ver en grande" />` : ""}
           ${htmlCuerpoTruco(t)}
         </div>

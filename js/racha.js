@@ -248,7 +248,7 @@ function rcCelebrar(racha) {
       <button class="btn btn-primario" id="rc-cerrar-modal">¡Genial!</button>
     </div>`;
   document.body.appendChild(fondo);
-  const colores = ["#7c6ff0", "#4fa3e3", "#f28ba0", "#f3d675", "#7ed6a7", "#f5a97a"];
+  const colores = ["#36ECDE", "#3b82f6", "#ec4899", "#fbbf24", "#a855f7", "#14b8a6"];
   const confeti = [];
   for (let i = 0; i < 70; i++) {
     const c = document.createElement("div");
