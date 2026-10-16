@@ -6,16 +6,16 @@
 .cl-fichas{margin-top:18px;}
 .cl-fichas summary{cursor:pointer;font-weight:700;}
 .cl-aviso{margin:10px 0 14px;color:var(--texto-suave,#6b7280);font-size:.92rem;line-height:1.5;}
-.cl-grupo{margin:18px 0 8px;font-weight:700;color:#7c3aed;}
+.cl-grupo{margin:18px 0 8px;font-weight:700;color:#0f766e;}
 .cl-rejilla{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px;}
 .cl-ficha{background:#fff;border:1px solid var(--borde,#e5e7eb);border-radius:12px;overflow:hidden;display:flex;flex-direction:column;}
 .cl-ficha img{width:100%;display:block;background:#f8fafc;cursor:zoom-in;}
 .cl-ficha .cl-pie{padding:8px 10px;font-size:.84rem;line-height:1.35;color:var(--texto-suave,#6b7280);overflow-wrap:anywhere;}
-.cl-ficha .cl-num{display:inline-block;background:#ede9fe;color:#6d28d9;border-radius:999px;padding:1px 8px;font-size:.76rem;font-weight:700;margin-right:6px;}
+.cl-ficha .cl-num{display:inline-block;background:#d9fbf7;color:#0b3a6b;border-radius:999px;padding:1px 8px;font-size:.76rem;font-weight:700;margin-right:6px;}
 .cl-ficha-sola{margin:14px 0;}
 
 .cl-datos{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 14px;}
-.cl-dato{background:#f5f3ff;border:1px solid #ddd6fe;color:#5b21b6;border-radius:999px;padding:4px 12px;font-size:.86rem;}
+.cl-dato{background:#ecfdfb;border:1px solid #a7f3eb;color:#0b3a6b;border-radius:999px;padding:4px 12px;font-size:.86rem;}
 
 @media (max-width:600px){
   /* En el móvil, una ficha por fila: son diapositivas apaisadas con letra pequeña. */
