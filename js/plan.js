@@ -7,6 +7,8 @@ const PLAN_ASIGNATURAS = [1, 6, 24]; // Cálculo, FFE, Interfaces (Interfaces: 1
 const PLAN_INTERFACES = 24;
 const PLAN_REPASOS = [1, 3, 7, 30];
 const PLAN_MIN = { clase: 40, video: 20, tema: 45, test: 15, repaso: 10, cae: 15 };
+const PLAN_VIDEOS_MAX = 10; // vídeos de ejercicios al día, como mucho
+const PLAN_VIDEOS_MIN = { semana: 45, finde: 75 }; // minutos de vídeos de ejercicios al día
 
 function planFechaMadrid(d) {
   return (d || new Date()).toLocaleDateString("sv-SE", { timeZone: "Europe/Madrid" });
@@ -51,7 +53,11 @@ async function planCatalogo(asigId) {
       items.push({ clave: `tema:${asigId}:UD${u}`, tipo: "nuevo", sub: "tema", asig: nombre, asigId, unidadNum: u, unidadTexto: t.unidad, titulo: `Tema completo UD${u}: ${t.titulo}`, min: PLAN_MIN.tema, url: `tema.html?asignatura=${asigId}&tema=UD${u}&claveplan=${encodeURIComponent("tema:" + asigId + ":UD" + u)}`, repasable: true, repasoUrl: `repaso.html?asignatura=${asigId}&tema=UD${u}` });
       items.push({ clave: `test:${asigId}:UD${u}`, tipo: "test", sub: "test", asig: nombre, asigId, unidadNum: u, unidadTexto: t.unidad, titulo: `Test de la UD${u}`, min: PLAN_MIN.test, url: `repaso.html?asignatura=${asigId}&tema=UD${u}&claveplan=${encodeURIComponent("test:" + asigId + ":UD" + u)}`, repasable: true, repasoUrl: `quiz.html?asignatura=${asigId}&modo=plan&ud=${u}&n=10&desde=plan` });
     }
-    videosUD.filter((v) => v.tipo === "ejercicios").forEach(meteVideo);
+    // Vídeos de ejercicios: carril aparte, unos pocos cada día (ver planGenerar).
+    videosUD.filter((v) => v.tipo === "ejercicios").forEach((v) => {
+      meteVideo(v);
+      items[items.length - 1].carril = "video";
+    });
   });
   return items;
 }
@@ -100,10 +106,29 @@ function planGenerar(hoy, catalogos, hechos) {
     usado += PLAN_MIN.cae;
   }
 
+  // 🎬 Vídeos de ejercicios: unos pocos cada día (como mucho PLAN_VIDEOS_MAX y
+  // PLAN_VIDEOS_MIN minutos), solo de unidades ya empezadas (tema o test hechos),
+  // en orden y repartidos entre asignaturas.
+  const unidadAbierta = (i) => hechos.has(`tema:${i.asigId}:UD${i.unidadNum}`) || hechos.has(`test:${i.asigId}:UD${i.unidadNum}`);
+  const colasVideo = activas.map((a) => (catalogos[a] || []).filter((i) => i.carril === "video" && !hechos.has(i.clave) && unidadAbierta(i)));
+  const topeVideo = finde ? PLAN_VIDEOS_MIN.finde : PLAN_VIDEOS_MIN.semana;
+  const tareasVideo = []; // se apartan ahora (reservan tiempo) y se ponen al final de la lista
+  let minVideo = 0, nVideo = 0, sigueVideo = true;
+  while (sigueVideo && nVideo < PLAN_VIDEOS_MAX) {
+    sigueVideo = false;
+    for (const cola of colasVideo) {
+      const v = cola[0];
+      if (!v || nVideo >= PLAN_VIDEOS_MAX || minVideo + v.min > topeVideo) continue;
+      cola.shift();
+      tareasVideo.push({ clave: v.clave, tipo: v.tipo, sub: v.sub, asig: v.asig, asigId: v.asigId, unidadNum: v.unidadNum, titulo: v.titulo, min: v.min, url: v.url, externo: true });
+      minVideo += v.min; nVideo++; usado += v.min; sigueVideo = true;
+    }
+  }
+
   // 📖✍️ Lo nuevo, mezclando asignaturas (Interfaces solo 1 de cada 3 días).
   const colas = activas.map((a) => ({
     id: a,
-    pend: (catalogos[a] || []).filter((i) => !hechos.has(i.clave)),
+    pend: (catalogos[a] || []).filter((i) => !hechos.has(i.clave) && i.carril !== "video"),
     tope: a === PLAN_INTERFACES ? 60 : Infinity,
     gastado: 0,
   }));
@@ -119,7 +144,7 @@ function planGenerar(hoy, catalogos, hechos) {
       usado += sig.min; c.gastado += sig.min; avanzo = true;
     }
   }
-  return tareas;
+  return tareas.concat(tareasVideo);
 }
 
 
