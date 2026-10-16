@@ -1,0 +1,44 @@
+<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 600 410' width='600' height='410'>
+<rect width='600' height='410' fill='white'/>
+<text x='20' y='30' font-family='Arial, Helvetica, sans-serif' font-size='19' font-weight='bold' fill='#1e1b4b'>Monótona + acotada ⇒ convergente: aₙ = 1 − 1/n</text>
+<line x1='50' y1='264.2857142857143' x2='580' y2='264.2857142857143' stroke='#999' stroke-width='1.5'/>
+<line x1='60' y1='40' x2='60' y2='298' stroke='#999' stroke-width='1.5'/>
+<text x='52' y='97.85714285714283' font-family='Arial, Helvetica, sans-serif' font-size='13' fill='#444' text-anchor='end'>1</text>
+<text x='52' y='183.57142857142856' font-family='Arial, Helvetica, sans-serif' font-size='13' fill='#444' text-anchor='end'>0,5</text>
+<text x='52' y='269.2857142857143' font-family='Arial, Helvetica, sans-serif' font-size='13' fill='#444' text-anchor='end'>0</text>
+<line x1='60' y1='92.85714285714283' x2='580' y2='92.85714285714283' stroke='#ef4444' stroke-width='2' stroke-dasharray='7 5'/>
+<text x='576' y='86.85714285714283' font-family='Arial, Helvetica, sans-serif' font-size='13' font-weight='bold' fill='#ef4444' text-anchor='end'>límite = 1 = supremo (no lo toca nunca)</text>
+<line x1='60' y1='264.2857142857143' x2='580' y2='264.2857142857143' stroke='#3b82f6' stroke-width='2' stroke-dasharray='7 5'/>
+<text x='576' y='258.2857142857143' font-family='Arial, Helvetica, sans-serif' font-size='13' font-weight='bold' fill='#3b82f6' text-anchor='end'>cota de abajo: 0 = mínimo (a₁ = 0)</text>
+<text x='84.76190476190476' y='312' font-family='Arial, Helvetica, sans-serif' font-size='12' fill='#666' text-anchor='middle'>1</text>
+<text x='134.28571428571428' y='312' font-family='Arial, Helvetica, sans-serif' font-size='12' fill='#666' text-anchor='middle'>2</text>
+<text x='183.8095238095238' y='312' font-family='Arial, Helvetica, sans-serif' font-size='12' fill='#666' text-anchor='middle'>3</text>
+<text x='233.33333333333334' y='312' font-family='Arial, Helvetica, sans-serif' font-size='12' fill='#666' text-anchor='middle'>4</text>
+<text x='282.8571428571429' y='312' font-family='Arial, Helvetica, sans-serif' font-size='12' fill='#666' text-anchor='middle'>5</text>
+<text x='332.3809523809524' y='312' font-family='Arial, Helvetica, sans-serif' font-size='12' fill='#666' text-anchor='middle'>6</text>
+<text x='381.9047619047619' y='312' font-family='Arial, Helvetica, sans-serif' font-size='12' fill='#666' text-anchor='middle'>7</text>
+<text x='431.42857142857144' y='312' font-family='Arial, Helvetica, sans-serif' font-size='12' fill='#666' text-anchor='middle'>8</text>
+<text x='480.95238095238096' y='312' font-family='Arial, Helvetica, sans-serif' font-size='12' fill='#666' text-anchor='middle'>9</text>
+<text x='530.4761904761905' y='312' font-family='Arial, Helvetica, sans-serif' font-size='12' fill='#666' text-anchor='middle'>10</text>
+<text x='580' y='312' font-family='Arial, Helvetica, sans-serif' font-size='12' fill='#666' text-anchor='end'>n →</text>
+<polyline points='84.8,264.3 134.3,178.6 183.8,150.0 233.3,135.7 282.9,127.1 332.4,121.4 381.9,117.3 431.4,114.3 481.0,111.9 530.5,110.0' fill='none' stroke='#7c3aed' stroke-width='1' stroke-opacity='.35'/>
+<circle cx='84.8' cy='264.3' r='6' fill='#7c3aed'/>
+<circle cx='134.3' cy='178.6' r='6' fill='#7c3aed'/>
+<circle cx='183.8' cy='150.0' r='6' fill='#7c3aed'/>
+<circle cx='233.3' cy='135.7' r='6' fill='#7c3aed'/>
+<circle cx='282.9' cy='127.1' r='6' fill='#7c3aed'/>
+<circle cx='332.4' cy='121.4' r='6' fill='#7c3aed'/>
+<circle cx='381.9' cy='117.3' r='6' fill='#7c3aed'/>
+<circle cx='431.4' cy='114.3' r='6' fill='#7c3aed'/>
+<circle cx='481.0' cy='111.9' r='6' fill='#7c3aed'/>
+<circle cx='530.5' cy='110.0' r='6' fill='#7c3aed'/>
+<text x='193.71428571428572' y='187.14285714285714' font-family='Arial, Helvetica, sans-serif' font-size='13' fill='#7c3aed' text-anchor='start'>sube siempre, pero cada vez menos</text>
+<rect x='20' y='318' width='114' height='28' rx='14' fill='white' stroke='#16a34a' stroke-width='2'/>
+<text x='34' y='337' font-family='Arial, Helvetica, sans-serif' font-size='15' font-weight='bold' fill='#16a34a'>✓ Acotada</text>
+<rect x='143.5' y='318' width='124' height='28' rx='14' fill='white' stroke='#16a34a' stroke-width='2'/>
+<text x='157.5' y='337' font-family='Arial, Helvetica, sans-serif' font-size='15' font-weight='bold' fill='#16a34a'>✓ Monótona</text>
+<rect x='277.5' y='318' width='156' height='28' rx='14' fill='white' stroke='#16a34a' stroke-width='2'/>
+<text x='291.5' y='337' font-family='Arial, Helvetica, sans-serif' font-size='15' font-weight='bold' fill='#16a34a'>✓ Convergente</text>
+<text x='20' y='372' font-family='Arial, Helvetica, sans-serif' font-size='14' fill='#1e1b4b'>Sube siempre (monótona) y tiene techo en 1 (acotada) ⇒ se acerca a 1: CONVERGE.</text>
+<text x='20' y='396' font-family='Arial, Helvetica, sans-serif' font-size='14' fill='#1e1b4b'>Ojo: 1 es el supremo, pero NO es máximo, porque la sucesión nunca vale 1.</text>
+</svg>

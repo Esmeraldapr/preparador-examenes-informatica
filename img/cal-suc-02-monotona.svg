@@ -1,0 +1,39 @@
+<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 600 410' width='600' height='410'>
+<rect width='600' height='410' fill='white'/>
+<text x='20' y='30' font-family='Arial, Helvetica, sans-serif' font-size='19' font-weight='bold' fill='#1e1b4b'>Monótona pero NO acotada: aₙ = n</text>
+<line x1='50' y1='290.0' x2='580' y2='290.0' stroke='#999' stroke-width='1.5'/>
+<line x1='60' y1='40' x2='60' y2='298' stroke='#999' stroke-width='1.5'/>
+<text x='52' y='295.0' font-family='Arial, Helvetica, sans-serif' font-size='13' fill='#444' text-anchor='end'>0</text>
+<text x='52' y='244.4736842105263' font-family='Arial, Helvetica, sans-serif' font-size='13' fill='#444' text-anchor='end'>2</text>
+<text x='52' y='193.94736842105263' font-family='Arial, Helvetica, sans-serif' font-size='13' fill='#444' text-anchor='end'>4</text>
+<text x='52' y='143.42105263157896' font-family='Arial, Helvetica, sans-serif' font-size='13' fill='#444' text-anchor='end'>6</text>
+<text x='52' y='92.89473684210526' font-family='Arial, Helvetica, sans-serif' font-size='13' fill='#444' text-anchor='end'>8</text>
+<text x='90.58823529411765' y='312' font-family='Arial, Helvetica, sans-serif' font-size='12' fill='#666' text-anchor='middle'>1</text>
+<text x='151.76470588235293' y='312' font-family='Arial, Helvetica, sans-serif' font-size='12' fill='#666' text-anchor='middle'>2</text>
+<text x='212.94117647058823' y='312' font-family='Arial, Helvetica, sans-serif' font-size='12' fill='#666' text-anchor='middle'>3</text>
+<text x='274.11764705882354' y='312' font-family='Arial, Helvetica, sans-serif' font-size='12' fill='#666' text-anchor='middle'>4</text>
+<text x='335.29411764705884' y='312' font-family='Arial, Helvetica, sans-serif' font-size='12' fill='#666' text-anchor='middle'>5</text>
+<text x='396.47058823529414' y='312' font-family='Arial, Helvetica, sans-serif' font-size='12' fill='#666' text-anchor='middle'>6</text>
+<text x='457.6470588235294' y='312' font-family='Arial, Helvetica, sans-serif' font-size='12' fill='#666' text-anchor='middle'>7</text>
+<text x='518.8235294117646' y='312' font-family='Arial, Helvetica, sans-serif' font-size='12' fill='#666' text-anchor='middle'>8</text>
+<text x='580' y='312' font-family='Arial, Helvetica, sans-serif' font-size='12' fill='#666' text-anchor='end'>n →</text>
+<polyline points='90.6,264.7 151.8,239.5 212.9,214.2 274.1,188.9 335.3,163.7 396.5,138.4 457.6,113.2 518.8,87.9' fill='none' stroke='#7c3aed' stroke-width='1' stroke-opacity='.35'/>
+<circle cx='90.6' cy='264.7' r='6' fill='#7c3aed'/>
+<circle cx='151.8' cy='239.5' r='6' fill='#7c3aed'/>
+<circle cx='212.9' cy='214.2' r='6' fill='#7c3aed'/>
+<circle cx='274.1' cy='188.9' r='6' fill='#7c3aed'/>
+<circle cx='335.3' cy='163.7' r='6' fill='#7c3aed'/>
+<circle cx='396.5' cy='138.4' r='6' fill='#7c3aed'/>
+<circle cx='457.6' cy='113.2' r='6' fill='#7c3aed'/>
+<circle cx='518.8' cy='87.9' r='6' fill='#7c3aed'/>
+<text x='212.94117647058823' y='100.52631578947367' font-family='Arial, Helvetica, sans-serif' font-size='13' fill='#7c3aed' text-anchor='middle'>siempre sube (creciente)…</text>
+<text x='212.94117647058823' y='123.26315789473685' font-family='Arial, Helvetica, sans-serif' font-size='13' fill='#ef4444' text-anchor='middle'>…y no hay techo: no está acotada</text>
+<rect x='20' y='318' width='114' height='28' rx='14' fill='white' stroke='#ef4444' stroke-width='2'/>
+<text x='34' y='337' font-family='Arial, Helvetica, sans-serif' font-size='15' font-weight='bold' fill='#ef4444'>✗ Acotada</text>
+<rect x='143.5' y='318' width='124' height='28' rx='14' fill='white' stroke='#16a34a' stroke-width='2'/>
+<text x='157.5' y='337' font-family='Arial, Helvetica, sans-serif' font-size='15' font-weight='bold' fill='#16a34a'>✓ Monótona</text>
+<rect x='277.5' y='318' width='156' height='28' rx='14' fill='white' stroke='#ef4444' stroke-width='2'/>
+<text x='291.5' y='337' font-family='Arial, Helvetica, sans-serif' font-size='15' font-weight='bold' fill='#ef4444'>✗ Convergente</text>
+<text x='20' y='372' font-family='Arial, Helvetica, sans-serif' font-size='14' fill='#1e1b4b'>Cada número es más grande que el anterior: 1, 2, 3, 4… (monótona creciente).</text>
+<text x='20' y='396' font-family='Arial, Helvetica, sans-serif' font-size='14' fill='#1e1b4b'>Pero no tiene techo, se va a infinito: NO converge. Monótona sola NO basta.</text>
+</svg>
