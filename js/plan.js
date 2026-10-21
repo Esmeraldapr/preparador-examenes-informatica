@@ -8,6 +8,8 @@ const PLAN_INTERFACES = 24;
 const PLAN_REPASOS = [1, 3, 7, 14, 30]; // curva del olvido; después, cada 21 días hasta el examen
 const PLAN_REPASO_LUEGO = 21;
 const PLAN_EXAMEN = "2026-12-12"; // examen de las tres asignaturas
+// 6 unidades por asignatura; entra una nueva cada dos semanas (la UD3 empezó el 21-oct).
+const PLAN_UNIDADES_FECHAS = [[4, "2026-11-04"], [5, "2026-11-18"], [6, "2026-12-02"]];
 /** Días en que toca repasar algo terminado el día `dia`: 1, 3, 7, 14, 30 y luego cada 21 hasta el examen. */
 function planDiasRepaso(dia) {
   const ks = [...PLAN_REPASOS];
@@ -484,7 +486,16 @@ function planTiempoTxt(seg) {
         <div class="pl-respuesta" id="pl-resp" hidden></div>
       </div>
 
-      <div class="pl-aviso" style="text-align:center"><b>📅 Faltan ${Math.max(0, planDiasHasta(hoy, PLAN_EXAMEN))} días para el examen</b> (12 de diciembre)</div>
+      <div class="pl-aviso" style="text-align:center"><b>📅 Faltan ${Math.max(0, planDiasHasta(hoy, PLAN_EXAMEN))} días para el examen</b> (12 de diciembre)
+        ${(() => {
+          const sig = PLAN_UNIDADES_FECHAS.find(([, f]) => f >= hoy);
+          if (!sig) return `<br><span class="pl-mini">Ya están las 6 unidades: ahora toca repasar y hacer simulacros.</span>`;
+          const d = planDiasHasta(hoy, sig[1]);
+          const fecha = new Date(sig[1] + "T12:00:00Z").toLocaleDateString("es-ES", { day: "numeric", month: "long" });
+          const atras = tareas.filter((t) => !hechos.has(t.clave) && t.unidadNum && t.unidadNum < sig[0] - 1).length;
+          return `<br><span class="pl-mini">Próxima unidad nueva: UD${sig[0]}, hacia el ${fecha} (${d === 0 ? "hoy" : d === 1 ? "mañana" : "en " + d + " días"}). Lo ideal es llegar con todo lo anterior hecho.${atras ? ` Hoy tienes ${atras} tarea${atras === 1 ? "" : "s"} de unidades anteriores.` : ""}</span>`;
+        })()}
+      </div>
 
       <div class="pl-resumen">
         <h2>${!pendientes.length && tareas.length ? "Hoy está hecho" : `Hoy te quedan ${pendientes.length} tarea${pendientes.length === 1 ? "" : "s"}`}</h2>
