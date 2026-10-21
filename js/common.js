@@ -505,8 +505,10 @@ function limpiarResaltadoPalabras() {
 }
 
 /** Detiene cualquier lectura en curso y restaura el icono del botón activo. */
+let lecturaActual = 0;
 function detenerLectura() {
-  if (sintesisVoz && sintesisVoz.speaking) sintesisVoz.cancel();
+  lecturaActual++;
+  if (sintesisVoz && (sintesisVoz.speaking || sintesisVoz.pending)) sintesisVoz.cancel();
   if (botonVozActivo) {
     botonVozActivo.textContent = botonVozActivo.dataset.iconoReposo || "🔊";
     botonVozActivo.dataset.leyendo = "0";
@@ -531,44 +533,35 @@ function leerTexto(prefijo, elementos, boton) {
 
   const lista = elementos ? (Array.isArray(elementos) ? elementos : [elementos]) : [];
   palabrasResaltables = [];
-  lista.forEach((el) => palabrasResaltables.push(...envolverPalabras(el)));
-  const textoElementos = palabrasResaltables.map((s) => s.textContent).join(" ");
+  // Trozos cortos (frase a frase): Android se calla sin avisar si recibe un texto muy largo de golpe.
+  const trozos = [];
+  const pre = String(prefijo || "").replace(/\s+/g, " ").trim();
+  if (pre) trozos.push({ texto: pre, desde: -1 });
+  lista.forEach((el) => {
+    const spans = envolverPalabras(el);
+    let actual = null;
+    spans.forEach((sp) => {
+      const idx = palabrasResaltables.push(sp) - 1;
+      const w = sp.textContent;
+      if (!actual) { actual = { palabras: [], desde: idx }; trozos.push(actual); }
+      actual.palabras.push(w);
+      const largo = actual.palabras.join(" ").length;
+      if ((/[.!?;:]["»)]?$/.test(w) && largo > 40) || largo > 220) actual = null;
+    });
+  });
+  trozos.forEach((t) => { if (t.palabras) t.texto = t.palabras.join(" "); });
+  const validos = trozos.filter((t) => t.texto && t.texto.trim());
+  if (!validos.length) return;
 
-  const limpio = `${prefijo || ""} ${textoElementos}`.replace(/\s+/g, " ").trim();
-  if (!limpio) return;
-
-  const utterancia = new SpeechSynthesisUtterance(limpio);
-  utterancia.lang = "es-ES";
-  utterancia.rate = velocidadLectura;
-
-  const palabrasPrefijo = contarPalabras(prefijo);
-  let contadorPalabraHablada = 0;
-  if (palabrasResaltables.length) {
-    utterancia.onboundary = (ev) => {
-      if (ev.name && ev.name !== "word") return;
-      if (indicePalabraActual >= 0 && palabrasResaltables[indicePalabraActual]) {
-        palabrasResaltables[indicePalabraActual].classList.remove("palabra-tts-activa");
-      }
-      contadorPalabraHablada++;
-      const idx = contadorPalabraHablada - palabrasPrefijo - 1;
-      if (idx < 0 || idx >= palabrasResaltables.length) {
-        indicePalabraActual = -1;
-        return;
-      }
-      indicePalabraActual = idx;
-      const span = palabrasResaltables[idx];
-      span.classList.add("palabra-tts-activa");
-      span.scrollIntoView({ block: "nearest", behavior: "smooth" });
-    };
-  }
-
+  const miLectura = ++lecturaActual;
   if (boton) {
     if (!boton.dataset.iconoReposo) boton.dataset.iconoReposo = boton.textContent;
     boton.textContent = "⏸️";
     boton.dataset.leyendo = "1";
     botonVozActivo = boton;
   }
-  utterancia.onend = () => {
+  const terminar = () => {
+    if (miLectura !== lecturaActual) return;
     limpiarResaltadoPalabras();
     if (boton && botonVozActivo === boton) {
       boton.textContent = boton.dataset.iconoReposo;
@@ -577,7 +570,36 @@ function leerTexto(prefijo, elementos, boton) {
     }
   };
 
-  sintesisVoz.speak(utterancia);
+  const decir = (n) => {
+    if (miLectura !== lecturaActual) return;
+    if (n >= validos.length) { terminar(); return; }
+    const t = validos[n];
+    const u = new SpeechSynthesisUtterance(t.texto);
+    u.lang = "es-ES";
+    u.rate = velocidadLectura;
+    if (t.desde >= 0) {
+      let contador = 0;
+      u.onboundary = (ev) => {
+        if (miLectura !== lecturaActual) return;
+        if (ev.name && ev.name !== "word") return;
+        if (indicePalabraActual >= 0 && palabrasResaltables[indicePalabraActual]) {
+          palabrasResaltables[indicePalabraActual].classList.remove("palabra-tts-activa");
+        }
+        const idx = t.desde + contador;
+        contador++;
+        if (idx >= t.desde + t.palabras.length || !palabrasResaltables[idx]) { indicePalabraActual = -1; return; }
+        indicePalabraActual = idx;
+        palabrasResaltables[idx].classList.add("palabra-tts-activa");
+        palabrasResaltables[idx].scrollIntoView({ block: "nearest", behavior: "smooth" });
+      };
+    }
+    let hecho = false;
+    const siguiente = () => { if (hecho) return; hecho = true; decir(n + 1); };
+    u.onend = siguiente;
+    u.onerror = (ev) => { if (ev && (ev.error === "interrupted" || ev.error === "canceled")) return; siguiente(); };
+    sintesisVoz.speak(u);
+  };
+  decir(0);
 }
 
 /** Abre la imagen a pantalla completa (lightbox). */
