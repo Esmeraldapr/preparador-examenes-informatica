@@ -295,6 +295,13 @@ const PLAN_CHIPS = [
   ["¿Por dónde empiezo?", "primero"],
 ];
 
+/** 4500 s -> «1 h 15 min». */
+function planTiempoTxt(seg) {
+  const m = Math.floor((seg || 0) / 60);
+  const h = Math.floor(m / 60);
+  return h ? `${h} h ${m % 60} min` : `${m} min`;
+}
+
 (async function iniciar() {
   const sesion = await exigirSesion();
   if (!sesion) return;
@@ -307,6 +314,24 @@ const PLAN_CHIPS = [
     return;
   }
   const hoy = planFechaMadrid();
+
+  // Al volver de una tarea que se abrió fuera (vídeo de YouTube), se suma el tiempo que
+  // estuviste fuera, como mucho lo que dura esa tarea.
+  async function sumarTiempoExterno() {
+    let o = null;
+    try { o = JSON.parse(localStorage.getItem("plan_externo") || "null"); localStorage.removeItem("plan_externo"); } catch (e) { o = null; }
+    if (!o || !o.desde) return false;
+    const seg = Math.min((Date.now() - o.desde) / 1000, o.max || 0);
+    if (seg < 30) return false;
+    cronoSumar(seg);
+    await cronoEnviar();
+    return true;
+  }
+  await sumarTiempoExterno();
+  await cronoEnviar();
+  document.addEventListener("visibilitychange", async () => {
+    if (document.visibilityState === "visible" && (await sumarTiempoExterno())) cargar(false);
+  });
 
   async function cargar(regenerar) {
     const [{ data: hh }, { data: dia }] = await Promise.all([
@@ -347,11 +372,18 @@ const PLAN_CHIPS = [
     const minHechos = hechas.reduce((s, t) => s + t.min, 0);
     const pct = tareas.length ? Math.round((hechas.length / tareas.length) * 100) : 0;
     const quedan = tareas.length - hechas.length;
+    const { data: tiempos } = await sb.from("plan_tiempo").select("fecha, segundos").order("fecha", { ascending: false }).limit(15);
+    const tiempoDe = new Map((tiempos || []).map((x) => [x.fecha, x.segundos]));
+    const segHoy = (tiempoDe.get(hoy) || 0) + cronoPendiente();
+    const metaMin = [0, 6].includes(planDiaSemana(hoy)) ? 300 : 180;
+    const pctTiempo = Math.min(100, Math.round((segHoy / 60 / metaMin) * 100));
+    const faltaSeg = Math.max(0, metaMin * 60 - segHoy);
     const { data: fechas } = await sb.from("plan_fechas").select("titulo, fecha, asignatura_id, nota, listo").eq("hecho", false).gte("fecha", new Date().toISOString()).order("fecha").limit(8);
     const cuenta = (tipo) => tareas.filter((t) => t.tipo === tipo).length;
     const histo = dias.filter((d) => d.fecha < hoy).slice(0, 6).map((d) => {
       const h = d.tareas.filter((t) => hechos.has(t.clave)).length;
-      return `<div class="pl-fecha">${planEsc(d.fecha)} · ${h} de ${d.tareas.length} hechas</div>`;
+      const s = tiempoDe.get(d.fecha);
+      return `<div class="pl-fecha">${planEsc(d.fecha)} · ${h} de ${d.tareas.length} hechas${s ? ` · ⏱ ${planTiempoTxt(s)}` : ""}</div>`;
     }).join("");
     const pendientes = tareas.filter((t) => !hechos.has(t.clave));
     const ctx = { tareas, hechos, fechas: fechas || [], avisos: avisos || [] };
@@ -402,9 +434,12 @@ const PLAN_CHIPS = [
         <h2>${!pendientes.length && tareas.length ? "Hoy está hecho" : `Hoy te quedan ${pendientes.length} tarea${pendientes.length === 1 ? "" : "s"}`}</h2>
         <p class="pl-mini">${minHechos} de ${minTot} minutos · ${hechas.length} de ${tareas.length} tareas</p>
         <div class="pl-barra"><span style="width:${pct}%"></span></div>
+        <p style="margin:12px 0 4px;font-size:1.05rem">⏱ Hoy llevas <b>${planTiempoTxt(segHoy)}</b> de ${metaMin / 60} h${faltaSeg ? ` · te falta${faltaSeg >= 7200 ? "n" : ""} ${planTiempoTxt(faltaSeg)}` : " · ✅ ¡tiempo de hoy cumplido!"}</p>
+        <div class="pl-barra"><span style="width:${pctTiempo}%;background:#16a34a"></span></div>
+        <p class="pl-mini">El tiempo cuenta solo cuando abres una tarea desde aquí y estás con ella (si pasas 5 minutos sin tocar nada, se para).</p>
       </div>
 
-      ${pendientes.length ? `<p><a class="btn btn-primario btn-bloque" href="${planEsc(pendientes[0].url)}" ${pendientes[0].externo ? 'target="_blank" rel="noopener"' : ""}>▶ Empezar ahora · ${planGrupo(pendientes[0].sub)[1]} ${planEsc(pendientes[0].titulo)}</a></p>` : ""}
+      ${pendientes.length ? `<p><a class="btn btn-primario btn-bloque" href="${planEsc(pendientes[0].url)}" data-min="${pendientes[0].min}" ${pendientes[0].externo ? 'data-ext="1" target="_blank" rel="noopener"' : ""}>▶ Empezar ahora · ${planGrupo(pendientes[0].sub)[1]} ${planEsc(pendientes[0].titulo)}</a></p>` : ""}
 
       ${filtro ? `<p><button class="btn btn-secundario" id="pl-todas">Ver todas las tareas de hoy</button></p>` : ""}
 
@@ -419,7 +454,7 @@ const PLAN_CHIPS = [
             <div class="pl-etq">${g[1]} ${g[2]} · ${planEsc(t.asig)} · ${t.min} min</div>
             <div class="pl-tit">${planEsc(t.titulo)}</div>
             ${planEtiquetaExamen(t, pesoMap)}
-            <a class="btn btn-secundario" href="${planEsc(t.url)}" ${t.externo ? 'target="_blank" rel="noopener"' : ""}>Abrir</a>
+            <a class="btn btn-secundario" href="${planEsc(t.url)}" data-min="${t.min}" ${t.externo ? 'data-ext="1" target="_blank" rel="noopener"' : ""}>Abrir</a>
           </div></div>`;
       }).join("") || '<div class="vacio">Hoy no hay tareas.</div>'}
       </div>
@@ -442,6 +477,16 @@ const PLAN_CHIPS = [
       marcar(t.clave, !hechos.has(t.clave));
     }));
     document.getElementById("pl-rehacer").addEventListener("click", () => cargar(true));
+
+    // Abrir una tarea pone en marcha el cronómetro de hoy.
+    cont.querySelectorAll("a[data-min]").forEach((a) =>
+      a.addEventListener("click", () => {
+        cronoActivar();
+        if (a.dataset.ext === "1") {
+          try { localStorage.setItem("plan_externo", JSON.stringify({ desde: Date.now(), max: (+a.dataset.min || 20) * 60 })); } catch (e) { /* sin almacenamiento */ }
+        }
+      })
+    );
 
     const btnProfeOir = document.querySelector(".pl-profe-oir");
     if (btnProfeOir) {

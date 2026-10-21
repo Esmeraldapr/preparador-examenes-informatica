@@ -36,10 +36,18 @@ const hiGrupo = (sub) => PLAN_GRUPOS_HI.find((g) => g[0] === sub) || ["otros", "
   }
 
   const hoy = hiFechaHoy();
-  const [{ data: dias }, { data: hh }] = await Promise.all([
+  const [{ data: dias }, { data: hh }, { data: tiempos }] = await Promise.all([
     sb.from("plan_dia").select("fecha, tareas").order("fecha", { ascending: true }),
     sb.from("plan_hecho").select("clave, hecho_en"),
+    sb.from("plan_tiempo").select("fecha, segundos"),
   ]);
+  const tiempoDe = new Map((tiempos || []).map((x) => [x.fecha, x.segundos]));
+  /** 4500 s -> «1 h 15 min»; corto: «1h15». */
+  const hiTiempo = (seg, corto) => {
+    const m = Math.floor((seg || 0) / 60), h = Math.floor(m / 60);
+    if (corto) return h ? `${h}h${String(m % 60).padStart(2, "0")}` : `${m}'`;
+    return h ? `${h} h ${m % 60} min` : `${m} min`;
+  };
   const hechos = new Map((hh || []).map((x) => [x.clave, x.hecho_en]));
   const porFecha = new Map((dias || []).map((d) => [d.fecha, d.tareas]));
 
@@ -69,7 +77,7 @@ const hiGrupo = (sub) => PLAN_GRUPOS_HI.find((g) => g[0] === sub) || ["otros", "
       }
       celdas.push(
         `<div class="hi-celda ${tareas ? "hi-con-plan" : ""} ${esHoy ? "hi-hoy" : ""} ${esSel ? "hi-seleccionada" : ""}" ${tareas ? `data-fecha="${fecha}"` : ""}>
-          <span class="hi-num">${d}</span>${punto}
+          <span class="hi-num">${d}</span>${punto}${tiempoDe.get(fecha) >= 60 ? `<span style="display:block;font-size:.7rem;color:#16a34a;font-weight:700">⏱${hiTiempo(tiempoDe.get(fecha), true)}</span>` : ""}
         </div>`
       );
     }
@@ -116,14 +124,16 @@ const hiGrupo = (sub) => PLAN_GRUPOS_HI.find((g) => g[0] === sub) || ["otros", "
     const tareas = porFecha.get(seleccionada);
     const fechaTxt = new Date(seleccionada + "T12:00:00Z").toLocaleDateString("es-ES", { weekday: "long", day: "numeric", month: "long" });
     if (!tareas) {
-      det.innerHTML = `<h3>${hiEsc(fechaTxt)}</h3><p class="pl-mini">Ese día no había plan generado.</p>`;
+      const s0 = tiempoDe.get(seleccionada);
+      det.innerHTML = `<h3>${hiEsc(fechaTxt)}</h3><p class="pl-mini">Ese día no había plan generado.${s0 ? ` Tiempo de estudio: ${hiTiempo(s0)}.` : ""}</p>`;
       return;
     }
     const hechas = tareas.filter((t) => hechos.has(t.clave));
     const minHechos = hechas.reduce((s, t) => s + (t.min || 0), 0);
     det.innerHTML = `
       <h3>${hiEsc(fechaTxt)}</h3>
-      <p class="pl-mini">${hechas.length} de ${tareas.length} tareas hechas · ${minHechos} min</p>
+      <p class="pl-mini">${hechas.length} de ${tareas.length} tareas hechas · ${minHechos} min previstos</p>
+      <p style="font-size:1.05rem;margin:4px 0 10px">⏱ Tiempo de estudio: <b>${tiempoDe.get(seleccionada) ? hiTiempo(tiempoDe.get(seleccionada)) : "sin registrar"}</b></p>
       ${
         hechas.length
           ? hechas.map((t) => {

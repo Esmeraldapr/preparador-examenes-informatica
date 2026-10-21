@@ -754,3 +754,59 @@ const ASIGNATURAS_CON_FRACCIONES = [1, 8]; // 1 = Cálculo, 8 = Matemática Disc
   };
 })();
 // FIN-FRACCIONES
+
+// ============================================================
+// ⏱ Cronómetro de Mi plan: empieza al abrir una tarea desde Mi plan y suma
+// el tiempo de estudio de HOY en Supabase (tabla plan_tiempo). Solo cuenta con
+// la página a la vista y si has tocado algo en los últimos 5 minutos
+// (o si la voz está leyendo). Si no hay conexión, se guarda y se envía después.
+// ============================================================
+const CRONO_DIA = "plan_crono_dia";
+const CRONO_PEND = "plan_crono_pend";
+let cronoUltimoToque = Date.now();
+let cronoEnviando = false;
+
+function cronoActivar() {
+  try { localStorage.setItem(CRONO_DIA, hoyMadrid()); } catch (e) { /* sin almacenamiento */ }
+}
+function cronoActivo() {
+  try { return localStorage.getItem(CRONO_DIA) === hoyMadrid(); } catch (e) { return false; }
+}
+function cronoPendiente() {
+  try {
+    const o = JSON.parse(localStorage.getItem(CRONO_PEND) || "null");
+    return o && o.dia === hoyMadrid() ? o.seg : 0;
+  } catch (e) { return 0; }
+}
+function cronoGuardarPendiente(seg) {
+  try { localStorage.setItem(CRONO_PEND, JSON.stringify({ dia: hoyMadrid(), seg })); } catch (e) { /* sin almacenamiento */ }
+}
+/** Suma `seg` segundos al tiempo de hoy (se envían en cuanto se pueda). */
+function cronoSumar(seg) {
+  if (seg > 0) cronoGuardarPendiente(cronoPendiente() + seg);
+}
+async function cronoEnviar() {
+  const seg = Math.round(cronoPendiente());
+  if (seg < 1 || cronoEnviando || typeof sb === "undefined") return;
+  cronoEnviando = true;
+  cronoGuardarPendiente(0);
+  try {
+    const { error } = await sb.rpc("plan_sumar_tiempo", { p_segundos: seg });
+    if (error) cronoSumar(seg);
+  } catch (e) {
+    cronoSumar(seg);
+  }
+  cronoEnviando = false;
+}
+["click", "keydown", "scroll", "touchstart", "pointermove"].forEach((ev) =>
+  document.addEventListener(ev, () => { cronoUltimoToque = Date.now(); }, { passive: true })
+);
+setInterval(() => {
+  if (!cronoActivo() || document.visibilityState !== "visible") return;
+  const hablando = window.speechSynthesis && window.speechSynthesis.speaking;
+  if (!hablando && Date.now() - cronoUltimoToque > 5 * 60 * 1000) return;
+  cronoSumar(15);
+  if (cronoPendiente() >= 60) cronoEnviar();
+}, 15000);
+document.addEventListener("visibilitychange", () => { if (document.visibilityState === "hidden") cronoEnviar(); });
+window.addEventListener("pagehide", () => { cronoEnviar(); });
