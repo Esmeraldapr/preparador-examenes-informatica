@@ -383,7 +383,9 @@ function planTiempoTxt(seg) {
     const histo = dias.filter((d) => d.fecha < hoy).slice(0, 6).map((d) => {
       const h = d.tareas.filter((t) => hechos.has(t.clave)).length;
       const s = tiempoDe.get(d.fecha);
-      return `<div class="pl-fecha">${planEsc(d.fecha)} · ${h} de ${d.tareas.length} hechas${s ? ` · ⏱ ${planTiempoTxt(s)}` : ""}</div>`;
+      const meta = ([0, 6].includes(planDiaSemana(d.fecha)) ? 300 : 180) * 60;
+      const extra = s && s > meta + 59 ? ` (+${planTiempoTxt(s - meta)})` : "";
+      return `<div class="pl-fecha">${planEsc(d.fecha)} · ${h} de ${d.tareas.length} hechas${s ? ` · ⏱ ${planTiempoTxt(s)}${extra}` : ""}</div>`;
     }).join("");
     const pendientes = tareas.filter((t) => !hechos.has(t.clave));
     const ctx = { tareas, hechos, fechas: fechas || [], avisos: avisos || [] };
@@ -434,7 +436,7 @@ function planTiempoTxt(seg) {
         <h2>${!pendientes.length && tareas.length ? "Hoy está hecho" : `Hoy te quedan ${pendientes.length} tarea${pendientes.length === 1 ? "" : "s"}`}</h2>
         <p class="pl-mini">${minHechos} de ${minTot} minutos · ${hechas.length} de ${tareas.length} tareas</p>
         <div class="pl-barra"><span style="width:${pct}%"></span></div>
-        <p style="margin:12px 0 4px;font-size:1.05rem">⏱ Hoy llevas <b>${planTiempoTxt(segHoy)}</b> de ${metaMin / 60} h${faltaSeg ? ` · te falta${faltaSeg >= 7200 ? "n" : ""} ${planTiempoTxt(faltaSeg)}` : " · ✅ ¡tiempo de hoy cumplido!"}</p>
+        <p style="margin:12px 0 4px;font-size:1.05rem">⏱ Hoy llevas <b>${planTiempoTxt(segHoy)}</b> de ${metaMin / 60} h${faltaSeg ? ` · te falta${faltaSeg >= 7200 ? "n" : ""} ${planTiempoTxt(faltaSeg)}` : ` · ✅ ¡cumplido!${segHoy - metaMin * 60 >= 60 ? ` Te has pasado ${planTiempoTxt(segHoy - metaMin * 60)} 💪` : ""}`}</p>
         <div class="pl-barra"><span style="width:${pctTiempo}%;background:#16a34a"></span></div>
         <p class="pl-mini">El tiempo cuenta solo cuando abres una tarea desde aquí y estás con ella (si pasas 5 minutos sin tocar nada, se para).</p>
       </div>

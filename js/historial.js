@@ -133,7 +133,7 @@ const hiGrupo = (sub) => PLAN_GRUPOS_HI.find((g) => g[0] === sub) || ["otros", "
     det.innerHTML = `
       <h3>${hiEsc(fechaTxt)}</h3>
       <p class="pl-mini">${hechas.length} de ${tareas.length} tareas hechas · ${minHechos} min previstos</p>
-      <p style="font-size:1.05rem;margin:4px 0 10px">⏱ Tiempo de estudio: <b>${tiempoDe.get(seleccionada) ? hiTiempo(tiempoDe.get(seleccionada)) : "sin registrar"}</b></p>
+      <p style="font-size:1.05rem;margin:4px 0 10px">⏱ Tiempo de estudio: <b>${tiempoDe.get(seleccionada) ? hiTiempo(tiempoDe.get(seleccionada)) : "sin registrar"}</b>${(() => { const s = tiempoDe.get(seleccionada) || 0; const dia = new Date(seleccionada + "T12:00:00Z").getUTCDay(); const meta = ([0, 6].includes(dia) ? 300 : 180) * 60; return s > meta + 59 ? ` · te pasaste ${hiTiempo(s - meta)} 💪` : s ? ` · faltó ${hiTiempo(meta - s)}` : ""; })()}</p>
       ${
         hechas.length
           ? hechas.map((t) => {
