@@ -356,6 +356,8 @@ h2{font-size:1.25rem; margin:0 0 14px;}
   margin-top:18px; padding:16px 18px; border-radius:14px; background:#ecfdfb;
   border-left:5px solid var(--morado); font-size:.93rem; line-height:1.6;
 }
+/* Respeta los saltos de línea de la explicación: una cuenta por línea. */
+.explicacion-caja > .parrafo-leible{display:block; white-space:pre-line; margin-top:4px;}
 .explicacion-caja.mal{background:var(--rojo-suave); border-left-color:var(--rojo);}
 .explicacion-caja.bien{background:var(--verde-suave); border-left-color:var(--verde);}
 
