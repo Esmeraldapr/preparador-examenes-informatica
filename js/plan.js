@@ -63,7 +63,7 @@ async function planCatalogo(asigId) {
         // (o, si la clase no tiene preguntas propias, el repaso corto de su unidad).
         repasoUrl: c.examen_practica_id
           ? `quiz.html?asignatura=${asigId}&modo=examen&examen_id=${c.examen_practica_id}&n=8&desde=plan`
-          : `repaso.html?asignatura=${asigId}&tema=UD${u}` }));
+          : `quiz.html?asignatura=${asigId}&modo=plan&ud=${u}&n=8&desde=plan` }));
     // Cada vídeo es una tarea suelta, con sus minutos reales (duracion_min) si los tenemos.
     const videosUD = (vi.data || []).filter((v) => v.unidad === "UD" + u).sort((a, b) => a.orden - b.orden);
     const meteVideo = (v) =>
@@ -72,8 +72,8 @@ async function planCatalogo(asigId) {
     videosUD.filter((v) => v.tipo !== "ejercicios").forEach(meteVideo);
     const t = (te.data || []).find((x) => x.unidad_num === u);
     if (t) {
-      items.push({ clave: `tema:${asigId}:UD${u}`, tipo: "nuevo", sub: "tema", asig: nombre, asigId, unidadNum: u, unidadTexto: t.unidad, titulo: `Tema completo UD${u}: ${t.titulo}`, min: PLAN_MIN.tema, url: `tema.html?asignatura=${asigId}&tema=UD${u}&claveplan=${encodeURIComponent("tema:" + asigId + ":UD" + u)}`, repasable: true, repasoUrl: `repaso.html?asignatura=${asigId}&tema=UD${u}` });
-      items.push({ clave: `test:${asigId}:UD${u}`, tipo: "test", sub: "test", asig: nombre, asigId, unidadNum: u, unidadTexto: t.unidad, titulo: `Test de la UD${u}`, min: PLAN_MIN.test, url: `repaso.html?asignatura=${asigId}&tema=UD${u}&claveplan=${encodeURIComponent("test:" + asigId + ":UD" + u)}`, repasable: true, repasoUrl: `quiz.html?asignatura=${asigId}&modo=plan&ud=${u}&n=10&desde=plan` });
+      items.push({ clave: `tema:${asigId}:UD${u}`, tipo: "nuevo", sub: "tema", asig: nombre, asigId, unidadNum: u, unidadTexto: t.unidad, titulo: `Tema completo UD${u}: ${t.titulo}`, min: PLAN_MIN.tema, url: `tema.html?asignatura=${asigId}&tema=UD${u}&claveplan=${encodeURIComponent("tema:" + asigId + ":UD" + u)}`, repasable: true, repasoUrl: `quiz.html?asignatura=${asigId}&modo=plan&ud=${u}&n=8&desde=plan` });
+      items.push({ clave: `test:${asigId}:UD${u}`, tipo: "test", sub: "test", asig: nombre, asigId, unidadNum: u, unidadTexto: t.unidad, titulo: `Test de la UD${u}`, min: PLAN_MIN.test, url: `quiz.html?asignatura=${asigId}&modo=plan&ud=${u}&n=15&desde=plan&claveplan=${encodeURIComponent("test:" + asigId + ":UD" + u)}`, repasable: true, repasoUrl: `quiz.html?asignatura=${asigId}&modo=plan&ud=${u}&n=10&desde=plan` });
     }
     // Vídeos de ejercicios: carril aparte, unos pocos cada día (ver planGenerar).
     videosUD.filter((v) => v.tipo === "ejercicios").forEach((v) => {
