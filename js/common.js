@@ -345,14 +345,19 @@ async function avisarRespuestasNuevas() {
     const ids = data.map((d) => d.id);
     const caja = document.createElement("div");
     caja.className = "aviso-respuestas";
+    caja.style.maxHeight = "85vh";
+    caja.style.overflowY = "auto";
     caja.setAttribute("role", "status");
     caja.innerHTML = `
       <button type="button" class="aviso-resp-cerrar" aria-label="Cerrar">✕</button>
       <div class="aviso-resp-titulo">💬 ${data.length === 1 ? "Tu respuesta está lista" : "Tus respuestas están listas"}</div>
       <ul>${data
-        .map((d) => `<li><a href="${enlaceAsignatura("quiz.html", d.asignatura_id, "modo=examen&examen_id=" + d.examen_id)}" data-id="${d.id}">${esc(d.asignatura)} · ${esc(d.examen)} · pregunta ${d.orden}</a><span>${esc(d.texto).slice(0, 80)}</span></li>`)
+        .map((d) => `<li style="margin-bottom:10px">
+          <div><b>Tu mensaje:</b> ${esc(d.texto).slice(0, 140)}</div>
+          <div class="parrafo-leible" style="white-space:pre-line;max-height:40vh;overflow:auto;margin:6px 0;padding:8px;border-radius:8px;background:rgba(124,58,237,.08)"><b>Respuesta:</b> ${esc(d.respuesta || "")}</div>
+          <a href="${enlaceAsignatura("quiz.html", d.asignatura_id, "modo=examen&examen_id=" + d.examen_id)}" data-id="${d.id}">Ver la pregunta (${esc(d.asignatura)} · ${esc(d.examen)} · pregunta ${d.orden})</a></li>`)
         .join("")}</ul>
-      <div class="aviso-resp-pie">Ábrela y mira el desplegable 💬</div>
+      <div class="aviso-resp-pie">Pulsa en el texto de la respuesta para escucharla 🔊</div>
       <button type="button" class="aviso-resp-vale">✓ Ya lo he visto, no me lo vuelvas a enseñar</button>`;
     document.body.appendChild(caja);
 
@@ -526,7 +531,7 @@ function botonPararVoz(mostrar) {
     b.textContent = "🔊";
     b.title = "Pulsa para parar la voz";
     b.setAttribute("aria-label", "Parar la voz");
-    b.style.cssText = "position:fixed;right:16px;bottom:16px;z-index:9999;width:54px;height:54px;padding:0;" +
+    b.style.cssText = "position:fixed;left:16px;bottom:16px;z-index:10000;width:54px;height:54px;padding:0;" +
       "border:3px solid #fff;border-radius:50%;background:#7c3aed;font-size:24px;line-height:1;" +
       "box-shadow:0 4px 14px rgba(0,0,0,.35);cursor:pointer;";
     b.addEventListener("click", (e) => { e.stopPropagation(); detenerLectura(); });

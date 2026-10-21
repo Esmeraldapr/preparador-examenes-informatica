@@ -443,7 +443,12 @@ function pintarPregunta() {
       <details class="qz-comentario" id="qz-comentario">
         <summary>💬 ¿Tienes una duda o ves algún error en esta pregunta?</summary>
         <label for="qz-com-texto" class="qz-com-ayuda">Escríbela con tus palabras: se guarda junto a esta pregunta para revisarla. Si hay respuesta, la verás aquí debajo. Solo tú ves tus dudas.</label>
+        ${esAdmin() ? `<div class="qz-com-tipo" style="display:flex;gap:14px;flex-wrap:wrap;margin:6px 0">
+          <label><input type="radio" name="qz-com-tipo" value="duda" checked> ❓ Duda: no lo entiendo, explícamelo</label>
+          <label><input type="radio" name="qz-com-tipo" value="mejora"> 🛠️ Mejora: algo que corregir o añadir</label>
+        </div>` : ""}
         <textarea id="qz-com-texto" rows="3" maxlength="2000" placeholder="Por ejemplo: creo que la respuesta correcta es otra, la imagen no se ve, no entiendo la explicación..."></textarea>
+        ${esAdmin() ? `<label style="display:block;margin:6px 0">📷 Añadir una imagen (opcional): <input type="file" id="qz-com-img" accept="image/*"></label>` : ""}
         <div class="qz-com-fila">
           <button type="button" id="qz-com-enviar" class="btn btn-secundario">Enviar duda</button>
           <span id="qz-com-estado" class="qz-com-estado" role="status" aria-live="polite"></span>
@@ -598,6 +603,11 @@ async function elegirOpcion(el, pregunta) {
 }
 
 /** Guarda en Supabase un comentario sobre la pregunta (error, duda...). */
+/** La administradora (Esmeralda) puede marcar «mejora» y subir imágenes. */
+function esAdmin() {
+  return (usuarioActual?.email || "") === "esmeraldaparaiso7@gmail.com";
+}
+
 async function enviarComentario(preguntaId) {
   const caja = document.getElementById("qz-com-texto");
   const estado = document.getElementById("qz-com-estado");
@@ -610,13 +620,32 @@ async function enviarComentario(preguntaId) {
   }
   boton.disabled = true;
   estado.textContent = "Enviando…";
-  const { error } = await sb.from("comentarios_pregunta").insert({ pregunta_id: preguntaId, texto });
+  const fila = { pregunta_id: preguntaId, texto };
+  if (esAdmin()) {
+    fila.tipo = document.querySelector('input[name="qz-com-tipo"]:checked')?.value || "duda";
+    const archivo = document.getElementById("qz-com-img")?.files?.[0];
+    if (archivo) {
+      estado.textContent = "Subiendo la imagen…";
+      const ext = ((archivo.name.split(".").pop() || "png").toLowerCase().replace(/[^a-z0-9]/g, "")) || "png";
+      const ruta = `comentarios/p${preguntaId}-${Date.now()}.${ext}`;
+      const { error: errImg } = await sb.storage.from("graficas").upload(ruta, archivo, { contentType: archivo.type || "image/png" });
+      if (errImg) {
+        boton.disabled = false;
+        estado.textContent = "⚠️ No se pudo subir la imagen. Inténtalo otra vez.";
+        return;
+      }
+      fila.imagen_url = sb.storage.from("graficas").getPublicUrl(ruta).data.publicUrl;
+    }
+  }
+  const { error } = await sb.from("comentarios_pregunta").insert(fila);
   boton.disabled = false;
   if (error) {
     estado.textContent = "⚠️ No se pudo enviar. Inténtalo otra vez.";
     return;
   }
   caja.value = "";
+  const inputImg = document.getElementById("qz-com-img");
+  if (inputImg) inputImg.value = "";
   estado.textContent = "✅ Guardada. Si hay respuesta, aparecerá aquí debajo.";
   cargarMisComentarios(preguntaId);
 }
@@ -627,17 +656,19 @@ async function cargarMisComentarios(preguntaId) {
   if (!cont) return;
   const { data, error } = await sb
     .from("comentarios_pregunta")
-    .select("texto, respuesta, created_at")
+    .select("texto, respuesta, created_at, tipo, imagen_url, cambio_hecho")
     .eq("pregunta_id", preguntaId)
     .order("created_at", { ascending: true });
   if (error || !data || !data.length) { cont.innerHTML = ""; return; }
   const esc = (t) => String(t).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
   cont.innerHTML = data.map((c) => `
     <div class="qz-com-item">
-      <div class="qz-com-tuya"><strong>Tu duda:</strong> ${esc(c.texto)}</div>
+      <div class="qz-com-tuya"><strong>${c.tipo === "mejora" ? "🛠️ Tu mejora:" : "❓ Tu duda:"}</strong> ${esc(c.texto)}</div>
+      ${c.imagen_url ? `<img class="ampliable" src="${esc(c.imagen_url)}" alt="Imagen que enviaste" style="max-width:220px;border-radius:8px;margin:6px 0">` : ""}
       ${c.respuesta
-        ? `<div class="qz-com-resp"><strong>Respuesta:</strong> ${esc(c.respuesta).replace(/\n/g, "<br>")}</div>`
+        ? `<div class="qz-com-resp parrafo-leible" style="white-space:pre-line"><strong>Respuesta:</strong> ${esc(c.respuesta)}</div>`
         : `<div class="qz-com-pend">⏳ Guardada, pendiente de revisar</div>`}
+      ${c.cambio_hecho ? `<div class="qz-com-resp" style="border-left:4px solid #16a34a"><strong>🛠️ Cambio hecho en la pregunta:</strong> ${esc(c.cambio_hecho)}</div>` : ""}
     </div>`).join("");
 }
 
