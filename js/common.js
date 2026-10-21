@@ -467,25 +467,34 @@ function contarPalabras(txt) {
 function envolverPalabras(el) {
   if (!el) return [];
   if (!el.dataset.palabrasEnvueltas) {
+    // Marca la última palabra de cada línea (salto de línea, <br> o fin de un bloque)
+    // para que la voz haga una pausa aunque la línea no acabe en punto.
+    let ultima = null;
+    const marcarFin = () => { if (ultima) ultima.dataset.finLinea = "1"; };
+    const BLOQUES = /^(P|DIV|LI|H[1-6]|TR|TD|TH|FIGCAPTION|BLOCKQUOTE|SECTION|UL|OL|TABLE)$/;
     const recorrer = (nodo) => {
       Array.from(nodo.childNodes).forEach((hijo) => {
         if (hijo.nodeType === Node.TEXT_NODE) {
-          if (!hijo.textContent.trim()) return;
+          if (!hijo.textContent.trim()) { if (/\n/.test(hijo.textContent)) marcarFin(); return; }
           const frag = document.createDocumentFragment();
           hijo.textContent.split(/(\s+)/).forEach((parte) => {
             if (parte === "") return;
             if (/^\s+$/.test(parte)) {
+              if (/\n/.test(parte)) marcarFin();
               frag.appendChild(document.createTextNode(parte));
             } else {
               const span = document.createElement("span");
               span.className = "palabra-tts";
               span.textContent = parte;
               frag.appendChild(span);
+              ultima = span;
             }
           });
           hijo.replaceWith(frag);
         } else if (hijo.nodeType === Node.ELEMENT_NODE && !hijo.classList.contains("palabra-tts")) {
+          if (hijo.tagName === "BR") { marcarFin(); return; }
           recorrer(hijo);
+          if (BLOQUES.test(hijo.tagName)) marcarFin();
         }
       });
     };
@@ -506,8 +515,30 @@ function limpiarResaltadoPalabras() {
 
 /** Detiene cualquier lectura en curso y restaura el icono del botón activo. */
 let lecturaActual = 0;
+
+/** Botón «⏹ Parar» fijo abajo, visible solo mientras la voz está leyendo. */
+function botonPararVoz(mostrar) {
+  let b = document.getElementById("btn-parar-voz");
+  if (!mostrar) { if (b) b.style.display = "none"; return; }
+  if (!b) {
+    b = document.createElement("button");
+    b.id = "btn-parar-voz";
+    b.type = "button";
+    b.textContent = "🔊";
+    b.title = "Pulsa para parar la voz";
+    b.setAttribute("aria-label", "Parar la voz");
+    b.style.cssText = "position:fixed;right:16px;bottom:16px;z-index:9999;width:54px;height:54px;padding:0;" +
+      "border:3px solid #fff;border-radius:50%;background:#7c3aed;font-size:24px;line-height:1;" +
+      "box-shadow:0 4px 14px rgba(0,0,0,.35);cursor:pointer;";
+    b.addEventListener("click", (e) => { e.stopPropagation(); detenerLectura(); });
+    document.body.appendChild(b);
+  }
+  b.style.display = "block";
+}
+
 function detenerLectura() {
   lecturaActual++;
+  botonPararVoz(false);
   if (sintesisVoz && (sintesisVoz.speaking || sintesisVoz.pending)) sintesisVoz.cancel();
   if (botonVozActivo) {
     botonVozActivo.textContent = botonVozActivo.dataset.iconoReposo || "🔊";
@@ -542,11 +573,14 @@ function leerTexto(prefijo, elementos, boton) {
     let actual = null;
     spans.forEach((sp) => {
       const idx = palabrasResaltables.push(sp) - 1;
-      const w = sp.textContent;
+      let w = sp.textContent;
       if (!actual) { actual = { palabras: [], desde: idx }; trozos.push(actual); }
+      // Fin de línea sin punto: se le añade uno (solo para la voz, no se ve) y se corta ahí.
+      const finLinea = sp.dataset.finLinea === "1";
+      if (finLinea && !/[.!?;:,…]["»)]?$/.test(w)) w += ".";
       actual.palabras.push(w);
       const largo = actual.palabras.join(" ").length;
-      if ((/[.!?;:]["»)]?$/.test(w) && largo > 40) || largo > 220) actual = null;
+      if (finLinea || (/[.!?;:]["»)]?$/.test(w) && largo > 40) || largo > 220) actual = null;
     });
   });
   trozos.forEach((t) => { if (t.palabras) t.texto = t.palabras.join(" "); });
@@ -554,6 +588,7 @@ function leerTexto(prefijo, elementos, boton) {
   if (!validos.length) return;
 
   const miLectura = ++lecturaActual;
+  botonPararVoz(true);
   if (boton) {
     if (!boton.dataset.iconoReposo) boton.dataset.iconoReposo = boton.textContent;
     boton.textContent = "⏸️";
@@ -563,6 +598,7 @@ function leerTexto(prefijo, elementos, boton) {
   const terminar = () => {
     if (miLectura !== lecturaActual) return;
     limpiarResaltadoPalabras();
+    botonPararVoz(false);
     if (boton && botonVozActivo === boton) {
       boton.textContent = boton.dataset.iconoReposo;
       boton.dataset.leyendo = "0";
