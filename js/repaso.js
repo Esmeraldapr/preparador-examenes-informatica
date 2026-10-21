@@ -68,7 +68,7 @@ function rpTarjeta(icono, nombre, idx, cuerpo, imagen) {
   const clave = params.get("tema") || "";
   const num = /^UD\d+$/.test(clave) ? parseInt(clave.slice(2), 10) : null;
   if (!asigId || num === null) {
-    window.location.href = "racha.html";
+    window.location.href = "index.html";
     return;
   }
 
@@ -110,7 +110,7 @@ function rpTarjeta(icono, nombre, idx, cuerpo, imagen) {
     <div class="rc-cta">
       <a class="btn btn-primario" href="${urlPreguntas}">Empezar las preguntas →</a>
       ${hayTemaCompleto ? `<a class="btn btn-secundario" href="tema.html?asignatura=${asigId}&tema=${clave}">📖 Tema completo (leer o escuchar)</a>` : ""}
-      ${clavePlan ? `<a class="btn btn-secundario" href="plan.html">← Volver a Mi plan</a>` : `<a class="btn btn-secundario" href="racha.html">← Volver a mi racha</a>`}
+      ${clavePlan ? `<a class="btn btn-secundario" href="plan.html">← Volver a Mi plan</a>` : `<a class="btn btn-secundario" href="${enlaceAsignatura ? enlaceAsignatura("temas.html", asigId) : "index.html"}">← Volver a los temas</a>`}
     </div>`;
 
   html += cta();

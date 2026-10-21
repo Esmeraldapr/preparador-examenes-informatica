@@ -283,7 +283,6 @@ function pintarNavbar(activa, usuario, asignatura) {
       <div class="marca"><span class="emoji">🎓</span> Ingeniería Informática</div>
       <nav>
         <a href="index.html" class="${activa === "index.html" ? "activa" : ""}">🏫 Asignaturas</a>
-        <a href="racha.html" class="${activa === "racha.html" ? "activa" : ""}">🔥 Mi racha</a>
         ${usuario?.email === "esmeraldaparaiso7@gmail.com" ? `<a href="plan.html" class="${activa === "plan.html" ? "activa" : ""}">📅 Mi plan</a>` : ""}
       </nav>
       <div class="usuario">
@@ -313,7 +312,6 @@ function pintarNavbar(activa, usuario, asignatura) {
     <div class="marca"><span class="emoji">🎓</span> ${asignatura.nombre}</div>
     <nav>
       <a href="index.html" title="Cambiar de asignatura">🏫 Asignaturas</a>
-      <a href="racha.html">🔥 Mi racha</a>
       ${usuario?.email === "esmeraldaparaiso7@gmail.com" ? `<a href="plan.html">📅 Mi plan</a>` : ""}
       ${enlaces
         .map(
@@ -492,6 +490,7 @@ function envolverPalabras(el) {
           });
           hijo.replaceWith(frag);
         } else if (hijo.nodeType === Node.ELEMENT_NODE && !hijo.classList.contains("palabra-tts")) {
+          if (hijo.dataset.noLeer === "1") return;
           if (hijo.tagName === "BR") { marcarFin(); return; }
           recorrer(hijo);
           if (BLOQUES.test(hijo.tagName)) marcarFin();

@@ -42,6 +42,48 @@ function noHechasPrimero(arr) {
   return [...arr.filter((p) => !hechasSet.has(p.id)), ...arr.filter((p) => hechasSet.has(p.id))];
 }
 
+let tiposExamen = new Map(); // examen_id -> tipo (oficial, cuestionario, practica...)
+
+/** Carga de qué tipo es el examen de cada pregunta, para la etiqueta de arriba. */
+async function cargarTiposExamen(lista) {
+  const ids = [...new Set(lista.map((p) => p.examen_id).filter(Boolean))].filter((id) => !tiposExamen.has(id));
+  if (!ids.length) return;
+  const { data } = await sb.from("examenes").select("id, tipo").in("id", ids);
+  (data || []).forEach((e) => tiposExamen.set(e.id, e.tipo));
+}
+
+/** Etiqueta con el origen de la pregunta: examen oficial, test de la universidad, práctica... */
+function chipTipoExamen(p) {
+  const t = tiposExamen.get(p.examen_id);
+  const info = {
+    oficial: ["📝 Examen oficial", "#16a34a"],
+    cuestionario: ["📘 Test no evaluable", "#3b82f6"],
+    practica: ["🧪 Práctica", "#7c3aed"],
+    no_oficial: ["🟡 No oficial", "#d97706"],
+    daypo: ["🟡 No oficial", "#d97706"],
+  }[t];
+  if (!info) return "";
+  return `<span class="chip" style="background:${info[1]};color:#fff;border-color:${info[1]}">${info[0]}</span>`;
+}
+
+/**
+ * Cambia el orden en que se VEN las opciones (la pregunta guardada no se toca).
+ * No se mezclan las que dependen del orden («todas las anteriores», «a y b»...).
+ * `_orden` = índices originales en el orden en que se muestran.
+ */
+function barajarOpciones(p, ordenGuardado) {
+  if (!Array.isArray(p.opciones) || p._opcionesOriginales) return;
+  const orig = [...p.opciones];
+  const fija = (Array.isArray(p.opciones_imagenes) && p.opciones_imagenes.length) ||
+    orig.some((o) => /anteriores|ambas|todas ellas|\b[a-d]\)? y [a-d]\b/i.test(String(o)));
+  let orden = orig.map((_, i) => i);
+  if (Array.isArray(ordenGuardado) && ordenGuardado.length === orig.length) orden = ordenGuardado;
+  else if (!fija) orden = mezclar(orden);
+  p._opcionesOriginales = orig;
+  p._orden = orden;
+  p.opciones = orden.map((i) => orig[i]);
+}
+
 function mezclar(arr) {
   const a = [...arr];
   for (let i = a.length - 1; i > 0; i--) {
@@ -73,6 +115,7 @@ function guardarProgreso() {
   try {
     const estado = {
       ids: preguntasSet.map((p) => p.id),
+      ordenes: preguntasSet.map((p) => p._orden || null),
       indice,
       aciertos,
       errores,
@@ -105,6 +148,14 @@ function leerProgresoGuardado() {
   }
 }
 
+// La letra original solo se ve después de contestar (para seguir la explicación, que usa las letras del original).
+(function () {
+  const st = document.createElement("style");
+  st.textContent = ".orig-letra{display:none;margin-left:auto;font-size:.8rem;color:var(--texto-suave,#888);white-space:nowrap}" +
+    ".opcion.deshabilitada .orig-letra{display:inline}";
+  document.head.appendChild(st);
+})();
+
 (async function iniciar() {
   const sesion = await exigirSesion();
   if (!sesion) return;
@@ -136,6 +187,10 @@ function leerProgresoGuardado() {
     const recuperadas = progresoGuardado.ids.map((id) => porId.get(id)).filter(Boolean);
     if (recuperadas.length === progresoGuardado.ids.length) {
       preguntasSet = recuperadas;
+      // Mismo orden de opciones que se vio antes (los tests guardados antes de este cambio, sin mezclar).
+      const ordenes = progresoGuardado.ordenes || [];
+      preguntasSet.forEach((p, i) => barajarOpciones(p, ordenes[i] || p.opciones.map((_, k) => k)));
+      await cargarTiposExamen(preguntasSet);
       indice = progresoGuardado.indice;
       aciertos = progresoGuardado.aciertos;
       errores = progresoGuardado.errores;
@@ -259,6 +314,8 @@ function leerProgresoGuardado() {
 
   document.getElementById("titulo-modo").textContent = tituloModo;
   tituloModoActual = tituloModo;
+  preguntas.forEach((p) => barajarOpciones(p));
+  await cargarTiposExamen(preguntas);
   preguntasSet = preguntas;
 
   if (!preguntasSet.length) {
@@ -362,6 +419,7 @@ function pintarPregunta() {
     <div class="pregunta-caja">
       <div class="info-superior">
         <span class="chip oficial">${vista + 1} / ${preguntasSet.length}</span>
+        ${chipTipoExamen(p)}
         ${p.unidad ? `<span class="chip no-oficial">${p.unidad}</span>` : ""}
         <button class="estrella ${esFav ? "activa" : ""}" id="btn-favorito" title="Marcar como favorita">⭐</button>
         <button type="button" class="btn-altavoz" id="btn-altavoz-pregunta" style="position:static; margin-left:auto" title="Escuchar la pregunta y las opciones" aria-label="Escuchar la pregunta y las opciones">🔊</button>
@@ -375,6 +433,7 @@ function pintarPregunta() {
           <div class="opcion" data-opcion="${i}">
             <span class="letra">${letras[i]}</span>
             <span>${fraccionesApiladas(op, p.asignatura_id)}</span>
+            ${p._orden && p._orden[i] !== i ? `<span class="orig-letra" data-no-leer="1" title="Las letras de la explicación son las del original">(en el original: ${letras[p._orden[i]]})</span>` : ""}
           </div>`
           )
           .join("")}
