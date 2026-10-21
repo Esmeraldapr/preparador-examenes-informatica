@@ -48,6 +48,8 @@ async function planCatalogo(asigId) {
     sb.from("asignaturas").select("nombre").eq("id", asigId).single(),
   ]);
   const { data: ofis } = await sb.from("examenes").select("id, nombre").eq("asignatura_id", asigId).eq("tipo", "oficial").order("id");
+  // Prácticas hechas con los ejercicios de las actividades/entregables (p. ej. «los 6 ejercicios de la actividad»).
+  const { data: acts } = await sb.from("examenes").select("id, nombre").eq("asignatura_id", asigId).eq("tipo", "practica").ilike("nombre", "%actividad%").order("id");
   const nombre = (as.data?.nombre || "").split(" ")[0];
   const unidades = new Set();
   (cl.data || []).forEach((c) => c.unidad_num && unidades.add(c.unidad_num));
@@ -80,6 +82,7 @@ async function planCatalogo(asigId) {
     });
   });
   items.oficiales = ofis || [];
+  items.actividades = acts || [];
   items.unidadActual = Math.max(0, ...[...unidades]);
   return items;
 }
@@ -121,21 +124,38 @@ function planGenerar(hoy, catalogos, hechos) {
     usado += PLAN_MIN.repaso;
   }
 
-  // 🎯 Una tanda diaria de lo que más cae en los exámenes, empezando por lo que falla.
+  // 📝 Preguntas de examen (oficiales y tests de la universidad): todos los días, de cada asignatura.
+  // Repetición espaciada por pregunta: primero las que tocan repasar, luego las nunca vistas.
   const hayInterfaces = planDiaDelAnio(hoy) % 3 === 0;
   const activas = PLAN_ASIGNATURAS.filter((a) => a !== PLAN_INTERFACES || hayInterfaces);
-  const elegida = activas[planDiaDelAnio(hoy) % activas.length];
-  const nombreElegida = (catalogos[elegida] || [])[0]?.asig || "";
-  if (nombreElegida) {
+  PLAN_ASIGNATURAS.forEach((a) => {
+    const nombreA = (catalogos[a] || [])[0]?.asig || "";
+    if (!nombreA) return;
+    const n = a === PLAN_INTERFACES ? 12 : 20;
+    const clave = `exa:${a}:${hoy}`;
     tareas.push({
-      clave: `cae:${elegida}:${hoy}`, tipo: "test", sub: "cae", asig: nombreElegida, asigId: elegida,
-      titulo: `Lo que más cae en los exámenes de ${nombreElegida}`, min: PLAN_MIN.cae,
-      url: `quiz.html?asignatura=${elegida}&modo=cae&n=8&desde=plan&claveplan=${encodeURIComponent("cae:" + elegida + ":" + hoy)}`,
+      clave, tipo: "test", sub: "examen", asig: nombreA, asigId: a,
+      titulo: `${n} preguntas de examen de ${nombreA}: primero las que te tocan repasar, luego las que nunca has visto`,
+      min: Math.round(n * 1.2),
+      url: `quiz.html?asignatura=${a}&modo=pexamen&n=${n}&desde=plan&claveplan=${encodeURIComponent(clave)}`,
     });
-    usado += PLAN_MIN.cae;
-  }
+    usado += Math.round(n * 1.2);
+    // 🧮 Y una o dos cuestiones sueltas de los ejercicios de las actividades (entregables), si hay.
+    const acts = (catalogos[a] || {}).actividades || [];
+    if (acts.length) {
+      const act = acts[planDiaDelAnio(hoy) % acts.length];
+      const claveA = `act:${a}:${hoy}`;
+      tareas.push({
+        clave: claveA, tipo: "test", sub: "examen", asig: nombreA, asigId: a,
+        titulo: `2 cuestiones de los ejercicios de la actividad: ${act.nombre.replace(/^Práctica de /, "").replace(/ \(preguntas creadas, no oficiales\)/, "")}`,
+        min: 6,
+        url: `quiz.html?asignatura=${a}&modo=examen&examen_id=${act.id}&n=2&desde=plan&claveplan=${encodeURIComponent(claveA)}`,
+      });
+      usado += 6;
+    }
+  });
 
-  // 📝 Simulacro de examen oficial completo: los sábados; en las 3 últimas semanas, todos los días.
+  // 🏁 Simulacro de examen oficial completo: los sábados; en las 3 últimas semanas, todos los días.
   if (faltan >= 0 && (planDiaSemana(hoy) === 6 || faltan <= 21)) {
     const asigSim = activas[(planDiaDelAnio(hoy) + 1) % activas.length];
     const ofis = (catalogos[asigSim] || {}).oficiales || [];
@@ -145,8 +165,8 @@ function planGenerar(hoy, catalogos, hechos) {
       const clave = `sim:${asigSim}:${hoy}`;
       tareas.push({
         clave, tipo: "test", sub: "simulacro", asig: nombreSim, asigId: asigSim,
-        titulo: `Simulacro: ${ex.nombre} entero, como el día del examen`, min: PLAN_MIN.simulacro,
-        url: `quiz.html?asignatura=${asigSim}&modo=examen&examen_id=${ex.id}&desde=plan&claveplan=${encodeURIComponent(clave)}`,
+        titulo: `Simulacro: ${ex.nombre}, solo con las unidades ya dadas`, min: PLAN_MIN.simulacro,
+        url: `quiz.html?asignatura=${asigSim}&modo=examen&examen_id=${ex.id}&dadas=1&desde=plan&claveplan=${encodeURIComponent(clave)}`,
       });
       usado += PLAN_MIN.simulacro;
     }
@@ -310,7 +330,8 @@ const PLAN_GRUPOS = [
   ["test", "✍️", "test", "test"],
   ["repaso", "🔁", "repaso", "repasos"],
   ["cae", "🎯", "lo que más cae", "lo que más cae"],
-  ["simulacro", "📝", "simulacro", "simulacros"],
+  ["examen", "📝", "preguntas de examen", "preguntas de examen"],
+  ["simulacro", "🏁", "simulacro", "simulacros"],
 ];
 const planGrupo = (sub) => PLAN_GRUPOS.find((g) => g[0] === sub) || ["otros", "📌", "tarea", "tareas"];
 

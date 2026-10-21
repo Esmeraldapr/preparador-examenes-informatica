@@ -104,6 +104,8 @@ function claveProgreso() {
     extra = `examen_${params.get("examen_id") || ""}${params.get("n") ? "_n" + params.get("n") : ""}`;
   } else if (MODO === "plan") {
     extra = `plan_ud${params.get("ud") || ""}`;
+  } else if (MODO === "pexamen") {
+    extra = `pexamen_${new Date().toISOString().slice(0, 10)}`;
   } else if (MODO === "tema") {
     extra = params.get("grupo") ? `tema_g${params.get("grupo")}` : `tema_${params.get("unidad") || ""}`;
   }
@@ -245,9 +247,23 @@ function leerProgresoGuardado() {
   } else if (modo === "examen") {
     const examenId = params.get("examen_id");
     const { data: examen } = await sb.from("examenes").select("nombre, tipo").eq("id", examenId).single();
-    tituloModo = `📝 ${examen ? examen.nombre : "Cuestionario"}`;
+    tituloModo = `📝 ${examen ? examen.nombre : "Cuestionario"}${params.get("dadas") === "1" ? " · solo unidades ya dadas" : ""}`;
     examenOficialActual = !!examen && (examen.tipo === "oficial" || examen.tipo === "cuestionario");
-    const { data } = await sb.from("preguntas").select("*").eq("examen_id", examenId).order("orden", { ascending: true });
+    let { data } = await sb.from("preguntas").select("*").eq("examen_id", examenId).order("orden", { ascending: true });
+    // &dadas=1 (simulacros de Mi plan): solo preguntas de las unidades que ya se han dado.
+    if (params.get("dadas") === "1" && data) {
+      const [{ data: tc }, { data: cl }] = await Promise.all([
+        sb.from("tema_completo").select("unidad_num").eq("asignatura_id", ASIGNATURA_ID),
+        sb.from("clases").select("unidad_num").eq("asignatura_id", ASIGNATURA_ID),
+      ]);
+      const tope = Math.max(0, ...[...(tc || []), ...(cl || [])].map((x) => x.unidad_num || 0));
+      const udDe = (p) => {
+        const base = /^UD\d/.test(p.unidad || "") ? p.unidad : p.unidad_original || "";
+        const m = /^UD(\d+)/.exec(base);
+        return m ? parseInt(m[1], 10) : 999;
+      };
+      data = data.filter((p) => udDe(p) <= tope);
+    }
     const cuantasEx = parseInt(params.get("n") || "0", 10);
     // Con &n=8 (repasos de Mi plan): solo unas pocas preguntas al azar del examen.
     preguntas = cuantasEx > 0 ? mezclar(data || []).slice(0, cuantasEx) : noHechasPrimero(data || []);
@@ -280,6 +296,14 @@ function leerProgresoGuardado() {
     const cuantas = parseInt(params.get("n") || "15", 10);
     tituloModo = `✍️ Test de la UD${ud}`;
     const { data } = await sb.rpc("plan_preguntas_unidad", { p_asignatura: ASIGNATURA_ID, p_ud: ud, p_n: cuantas });
+    preguntas = data || [];
+  } else if (modo === "pexamen") {
+    // Mi plan: preguntas de examen oficial y de test de la universidad con repetición
+    // espaciada por pregunta (falladas al día siguiente; acertadas a los 3, 7, 14 y 30 días).
+    const cuantas = parseInt(params.get("n") || "20", 10);
+    tituloModo = "📝 Preguntas de examen";
+    examenOficialActual = true;
+    const { data } = await sb.rpc("plan_preguntas_examen", { p_asignatura: ASIGNATURA_ID, p_n: cuantas });
     preguntas = data || [];
   } else if (modo === "favoritos") {
     tituloModo = "⭐ Mis favoritas";
