@@ -1,12 +1,24 @@
 // ============================================================
 // Mi plan — plan diario automático (plan.html)
-// Tareas: 🎓 clase · 🎬 vídeo del profe · 📖 tema · ✍️ test · 🔁 repaso (días 1, 3, 7 y 30)
+// Tareas: 🎓 clase · 🎬 vídeo del profe · 📖 tema · ✍️ test · 🔁 repaso (curva del olvido) · 📝 simulacro
 // ============================================================
 const PLAN_EMAIL = "esmeraldaparaiso7@gmail.com";
 const PLAN_ASIGNATURAS = [1, 6, 24]; // Cálculo, FFE, Interfaces (Interfaces: 1 de cada 3 días)
 const PLAN_INTERFACES = 24;
-const PLAN_REPASOS = [1, 3, 7, 30];
-const PLAN_MIN = { clase: 40, video: 20, tema: 45, test: 15, repaso: 10, cae: 15 };
+const PLAN_REPASOS = [1, 3, 7, 14, 30]; // curva del olvido; después, cada 21 días hasta el examen
+const PLAN_REPASO_LUEGO = 21;
+const PLAN_EXAMEN = "2026-12-12"; // examen de las tres asignaturas
+/** Días en que toca repasar algo terminado el día `dia`: 1, 3, 7, 14, 30 y luego cada 21 hasta el examen. */
+function planDiasRepaso(dia) {
+  const ks = [...PLAN_REPASOS];
+  let k = PLAN_REPASOS[PLAN_REPASOS.length - 1] + PLAN_REPASO_LUEGO;
+  while (planSumarDias(dia, k) <= PLAN_EXAMEN) { ks.push(k); k += PLAN_REPASO_LUEGO; }
+  return ks;
+}
+function planDiasHasta(desde, hasta) {
+  return Math.round((new Date(hasta + "T12:00:00Z") - new Date(desde + "T12:00:00Z")) / 86400000);
+}
+const PLAN_MIN = { clase: 40, video: 20, tema: 45, test: 15, repaso: 10, cae: 15, simulacro: 45 };
 const PLAN_VIDEOS_MAX = 10; // vídeos de ejercicios al día, como mucho
 const PLAN_VIDEOS_MIN = { semana: 45, finde: 75 }; // minutos de vídeos de ejercicios al día
 
@@ -33,6 +45,7 @@ async function planCatalogo(asigId) {
     sb.from("tema_completo").select("unidad_num, unidad, titulo").eq("asignatura_id", asigId),
     sb.from("asignaturas").select("nombre").eq("id", asigId).single(),
   ]);
+  const { data: ofis } = await sb.from("examenes").select("id, nombre").eq("asignatura_id", asigId).eq("tipo", "oficial").order("id");
   const nombre = (as.data?.nombre || "").split(" ")[0];
   const unidades = new Set();
   (cl.data || []).forEach((c) => c.unidad_num && unidades.add(c.unidad_num));
@@ -50,7 +63,7 @@ async function planCatalogo(asigId) {
     // Cada vídeo es una tarea suelta, con sus minutos reales (duracion_min) si los tenemos.
     const videosUD = (vi.data || []).filter((v) => v.unidad === "UD" + u).sort((a, b) => a.orden - b.orden);
     const meteVideo = (v) =>
-      items.push({ clave: `video:${v.id}`, tipo: "nuevo", sub: "video", asig: nombre, asigId, unidadNum: u, titulo: v.titulo, min: v.duracion_min || PLAN_MIN.video, url: v.url + (v.minuto_inicio && /youtu/.test(v.url) ? (v.url.includes("?") ? "&" : "?") + "t=" + v.minuto_inicio : ""), externo: true });
+      items.push({ clave: `video:${v.id}`, tipo: "nuevo", sub: "video", asig: nombre, asigId, unidadNum: u, titulo: v.titulo, min: v.duracion_min || PLAN_MIN.video, sinDuracion: !v.duracion_min, url: v.url + (v.minuto_inicio && /youtu/.test(v.url) ? (v.url.includes("?") ? "&" : "?") + "t=" + v.minuto_inicio : ""), externo: true });
     // Vídeos de explicación: antes del tema. Vídeos de ejercicios: después del tema y del test.
     videosUD.filter((v) => v.tipo !== "ejercicios").forEach(meteVideo);
     const t = (te.data || []).find((x) => x.unidad_num === u);
@@ -64,6 +77,8 @@ async function planCatalogo(asigId) {
       items[items.length - 1].carril = "video";
     });
   });
+  items.oficiales = ofis || [];
+  items.unidadActual = Math.max(0, ...[...unidades]);
   return items;
 }
 
@@ -78,6 +93,9 @@ function planGenerar(hoy, catalogos, hechos) {
   const presupuesto = finde ? 300 : 180;
   const tareas = [];
   let usado = 0;
+  const faltan = planDiasHasta(hoy, PLAN_EXAMEN);
+  // Cuanto más cerca del examen, más tiempo para repasar.
+  const parteRepaso = faltan <= 21 ? 0.6 : 0.4;
 
   // 🔁 Repasos que tocan (el primero sin hacer de cada cosa), como mucho el 40 % del tiempo.
   const repasos = [];
@@ -85,14 +103,18 @@ function planGenerar(hoy, catalogos, hechos) {
     const h = hechos.get(i.clave);
     if (!h) return;
     const dia = planFechaMadrid(new Date(h));
-    const k = PLAN_REPASOS.find((n) => !hechos.has(`rep:${i.clave}:${n}`));
-    if (k === undefined) return;
-    const vence = planSumarDias(dia, k);
-    if (vence <= hoy) repasos.push({ vence, k, i });
+    // Curva del olvido: de los repasos que ya tocan y aún no se han hecho (y que van después
+    // del último hecho), se hace solo el más reciente; los viejos atrasados se saltan.
+    const ks = planDiasRepaso(dia);
+    const ultimoHecho = Math.max(0, ...ks.filter((n) => hechos.has(`rep:${i.clave}:${n}`)));
+    const vencidos = ks.filter((n) => n > ultimoHecho && planSumarDias(dia, n) <= hoy);
+    if (!vencidos.length) return;
+    const k = vencidos[vencidos.length - 1];
+    repasos.push({ vence: planSumarDias(dia, k), k, i });
   });
   repasos.sort((a, b) => a.vence.localeCompare(b.vence));
   for (const r of repasos) {
-    if (usado + PLAN_MIN.repaso > presupuesto * 0.4) break;
+    if (usado + PLAN_MIN.repaso > presupuesto * parteRepaso) break;
     tareas.push({ clave: `rep:${r.i.clave}:${r.k}`, tipo: "repaso", sub: "repaso", asig: r.i.asig, asigId: r.i.asigId, titulo: `Repaso (día ${r.k}): ${r.i.titulo.replace(/^Clase \d+ del profe: /, "")}`, min: PLAN_MIN.repaso, url: planUrlRepaso(r.i.repasoUrl || r.i.url, `rep:${r.i.clave}:${r.k}`) });
     usado += PLAN_MIN.repaso;
   }
@@ -111,6 +133,23 @@ function planGenerar(hoy, catalogos, hechos) {
     usado += PLAN_MIN.cae;
   }
 
+  // 📝 Simulacro de examen oficial completo: los sábados; en las 3 últimas semanas, todos los días.
+  if (faltan >= 0 && (planDiaSemana(hoy) === 6 || faltan <= 21)) {
+    const asigSim = activas[(planDiaDelAnio(hoy) + 1) % activas.length];
+    const ofis = (catalogos[asigSim] || {}).oficiales || [];
+    const nombreSim = (catalogos[asigSim] || [])[0]?.asig || "";
+    if (ofis.length && nombreSim) {
+      const ex = ofis[Math.floor(planDiaDelAnio(hoy) / 7) % ofis.length];
+      const clave = `sim:${asigSim}:${hoy}`;
+      tareas.push({
+        clave, tipo: "test", sub: "simulacro", asig: nombreSim, asigId: asigSim,
+        titulo: `Simulacro: ${ex.nombre} entero, como el día del examen`, min: PLAN_MIN.simulacro,
+        url: `quiz.html?asignatura=${asigSim}&modo=examen&examen_id=${ex.id}&desde=plan&claveplan=${encodeURIComponent(clave)}`,
+      });
+      usado += PLAN_MIN.simulacro;
+    }
+  }
+
   // 🎬 Vídeos de ejercicios: unos pocos cada día (como mucho PLAN_VIDEOS_MAX y
   // PLAN_VIDEOS_MIN minutos), solo de unidades ya empezadas (tema o test hechos),
   // en orden y repartidos entre asignaturas.
@@ -125,15 +164,27 @@ function planGenerar(hoy, catalogos, hechos) {
       const v = cola[0];
       if (!v || nVideo >= PLAN_VIDEOS_MAX || minVideo + v.min > topeVideo) continue;
       cola.shift();
-      tareasVideo.push({ clave: v.clave, tipo: v.tipo, sub: v.sub, asig: v.asig, asigId: v.asigId, unidadNum: v.unidadNum, titulo: v.titulo, min: v.min, url: v.url, externo: true });
+      tareasVideo.push({ clave: v.clave, tipo: v.tipo, sub: v.sub, asig: v.asig, asigId: v.asigId, unidadNum: v.unidadNum, titulo: v.titulo, min: v.min, sinDuracion: v.sinDuracion, url: v.url, externo: true });
       minVideo += v.min; nVideo++; usado += v.min; sigueVideo = true;
     }
   }
 
   // 📖✍️ Lo nuevo, mezclando asignaturas (Interfaces solo 1 de cada 3 días).
+  // Lo de la unidad que se está dando ahora en clase va intercalado con lo atrasado,
+  // para no quedarse atrás con lo nuevo mientras se recupera lo anterior.
+  const intercalar = (lista, actual) => {
+    const nuevo = lista.filter((i) => i.unidadNum === actual);
+    const atras = lista.filter((i) => i.unidadNum !== actual);
+    const res = [];
+    while (nuevo.length || atras.length) {
+      if (nuevo.length) res.push(nuevo.shift());
+      if (atras.length) res.push(atras.shift());
+    }
+    return res;
+  };
   const colas = activas.map((a) => ({
     id: a,
-    pend: (catalogos[a] || []).filter((i) => !hechos.has(i.clave) && i.carril !== "video"),
+    pend: intercalar((catalogos[a] || []).filter((i) => !hechos.has(i.clave) && i.carril !== "video"), (catalogos[a] || {}).unidadActual),
     tope: a === PLAN_INTERFACES ? 60 : Infinity,
     gastado: 0,
   }));
@@ -145,7 +196,7 @@ function planGenerar(hoy, catalogos, hechos) {
       const sig = c.pend[0];
       if (!sig || c.gastado + sig.min > c.tope) continue;
       c.pend.shift();
-      tareas.push({ clave: sig.clave, tipo: sig.tipo, sub: sig.sub, asig: sig.asig, asigId: sig.asigId, unidadNum: sig.unidadNum, unidadTexto: sig.unidadTexto, titulo: sig.titulo, min: sig.min, url: sig.url, externo: !!sig.externo });
+      tareas.push({ clave: sig.clave, tipo: sig.tipo, sub: sig.sub, asig: sig.asig, asigId: sig.asigId, unidadNum: sig.unidadNum, unidadTexto: sig.unidadTexto, titulo: sig.titulo, min: sig.min, sinDuracion: sig.sinDuracion, url: sig.url, externo: !!sig.externo });
       usado += sig.min; c.gastado += sig.min; avanzo = true;
     }
   }
@@ -211,7 +262,7 @@ function planResponder(texto, ctx) {
   }
   if (tiene("repaso", "repasar")) {
     const r = pend.filter((t) => t.tipo === "repaso");
-    if (!r.length) return "Hoy no te toca ningún repaso. Los repasos salen a los 1, 3, 7 y 30 días de acabar algo.";
+    if (!r.length) return "Hoy no te toca ningún repaso. Los repasos salen a los 1, 3, 7, 14 y 30 días de acabar algo, y luego cada 3 semanas hasta el examen.";
     return "Hoy te toca repasar esto:\n" + lista(r);
   }
   if (tiene("test", "pregunta")) {
@@ -257,6 +308,7 @@ const PLAN_GRUPOS = [
   ["test", "✍️", "test", "test"],
   ["repaso", "🔁", "repaso", "repasos"],
   ["cae", "🎯", "lo que más cae", "lo que más cae"],
+  ["simulacro", "📝", "simulacro", "simulacros"],
 ];
 const planGrupo = (sub) => PLAN_GRUPOS.find((g) => g[0] === sub) || ["otros", "📌", "tarea", "tareas"];
 
@@ -432,6 +484,8 @@ function planTiempoTxt(seg) {
         <div class="pl-respuesta" id="pl-resp" hidden></div>
       </div>
 
+      <div class="pl-aviso" style="text-align:center"><b>📅 Faltan ${Math.max(0, planDiasHasta(hoy, PLAN_EXAMEN))} días para el examen</b> (12 de diciembre)</div>
+
       <div class="pl-resumen">
         <h2>${!pendientes.length && tareas.length ? "Hoy está hecho" : `Hoy te quedan ${pendientes.length} tarea${pendientes.length === 1 ? "" : "s"}`}</h2>
         <p class="pl-mini">${minHechos} de ${minTot} minutos · ${hechas.length} de ${tareas.length} tareas</p>
@@ -441,7 +495,7 @@ function planTiempoTxt(seg) {
         <p class="pl-mini">El tiempo cuenta solo cuando abres una tarea desde aquí y estás con ella (si pasas 5 minutos sin tocar nada, se para).</p>
       </div>
 
-      ${pendientes.length ? `<p><a class="btn btn-primario btn-bloque" href="${planEsc(pendientes[0].url)}" data-min="${pendientes[0].min}" ${pendientes[0].externo ? 'data-ext="1" target="_blank" rel="noopener"' : ""}>▶ Empezar ahora · ${planGrupo(pendientes[0].sub)[1]} ${planEsc(pendientes[0].titulo)}</a></p>` : ""}
+      ${pendientes.length ? `<p><a class="btn btn-primario btn-bloque" href="${planEsc(pendientes[0].url)}" data-min="${pendientes[0].sinDuracion ? 120 : pendientes[0].min}" ${pendientes[0].externo ? 'data-ext="1" target="_blank" rel="noopener"' : ""}>▶ Empezar ahora · ${planGrupo(pendientes[0].sub)[1]} ${planEsc(pendientes[0].titulo)}</a></p>` : ""}
 
       ${filtro ? `<p><button class="btn btn-secundario" id="pl-todas">Ver todas las tareas de hoy</button></p>` : ""}
 
@@ -453,15 +507,15 @@ function planTiempoTxt(seg) {
         return `<div class="pl-tarea ${h ? "hecha" : ""}">
           <button class="pl-chk" data-i="${i}" title="Marcar como hecha">${h ? "✓" : ""}</button>
           <div class="pl-cuerpo">
-            <div class="pl-etq">${g[1]} ${g[2]} · ${planEsc(t.asig)} · ${t.min} min</div>
+            <div class="pl-etq">${g[1]} ${g[2]} · ${planEsc(t.asig)} · ${t.sinDuracion ? "duración sin medir (cuenta el tiempo real)" : t.min + " min"}</div>
             <div class="pl-tit">${planEsc(t.titulo)}</div>
             ${planEtiquetaExamen(t, pesoMap)}
-            <a class="btn btn-secundario" href="${planEsc(t.url)}" data-min="${t.min}" ${t.externo ? 'data-ext="1" target="_blank" rel="noopener"' : ""}>Abrir</a>
+            <a class="btn btn-secundario" href="${planEsc(t.url)}" data-min="${t.sinDuracion ? 120 : t.min}" ${t.externo ? 'data-ext="1" target="_blank" rel="noopener"' : ""}>Abrir</a>
           </div></div>`;
       }).join("") || '<div class="vacio">Hoy no hay tareas.</div>'}
       </div>
 
-      <p class="pl-mini">Lo que no termines pasa solo a mañana. Los repasos salen a los 1, 3, 7 y 30 días de acabar algo.</p>
+      <p class="pl-mini">Lo que no termines pasa solo a mañana. Los repasos siguen la curva del olvido: salen a los 1, 3, 7, 14 y 30 días de acabar algo, y después cada 3 semanas hasta el examen. Los sábados hay simulacro de examen, y en las 3 últimas semanas, todos los días.</p>
       <h3 class="pl-h3">Días anteriores</h3>${histo || '<p class="pl-mini">Aún no hay días anteriores.</p>'}
       <p><a class="btn btn-secundario" href="historial.html">📆 Ver historial completo</a></p>
       <p><button class="btn btn-secundario" id="pl-rehacer">Rehacer lo que falta de hoy</button></p>`;
