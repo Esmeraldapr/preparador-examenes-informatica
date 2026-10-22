@@ -47,6 +47,11 @@ async function planCatalogo(asigId) {
     sb.from("tema_completo").select("unidad_num, unidad, titulo").eq("asignatura_id", asigId),
     sb.from("asignaturas").select("nombre").eq("id", asigId).single(),
   ]);
+  // Partes (apartados «## ») de cada tema y cuándo leyó cada una: para repasar por partes.
+  const [{ data: aps }, { data: leidos }] = await Promise.all([
+    sb.from("tema_apartados").select("unidad_num, idx, titulo, chars").eq("asignatura_id", asigId),
+    sb.from("lectura_apartado").select("unidad_num, idx, leido_en").eq("asignatura_id", asigId),
+  ]);
   const { data: ofis } = await sb.from("examenes").select("id, nombre").eq("asignatura_id", asigId).eq("tipo", "oficial").order("id");
   // Prácticas hechas con los ejercicios de las actividades/entregables (p. ej. «los 6 ejercicios de la actividad»).
   const { data: acts } = await sb.from("examenes").select("id, nombre").eq("asignatura_id", asigId).eq("tipo", "practica").ilike("nombre", "%actividad%").order("id");
@@ -71,7 +76,9 @@ async function planCatalogo(asigId) {
     // Vídeos de ejercicios: después del test, en su carril.
     const t = (te.data || []).find((x) => x.unidad_num === u);
     if (t) {
-      items.push({ clave: `tema:${asigId}:UD${u}`, tipo: "nuevo", sub: "tema", asig: nombre, asigId, unidadNum: u, unidadTexto: t.unidad, titulo: `Tema completo UD${u}: ${t.titulo}`, min: PLAN_MIN.tema, url: `tema.html?asignatura=${asigId}&tema=UD${u}&claveplan=${encodeURIComponent("tema:" + asigId + ":UD" + u)}`, repasable: true, repasoUrl: `tema.html?asignatura=${asigId}&tema=UD${u}&modo=repaso` });
+      items.push({ clave: `tema:${asigId}:UD${u}`, tipo: "nuevo", sub: "tema", asig: nombre, asigId, unidadNum: u, unidadTexto: t.unidad, titulo: `Tema completo UD${u}: ${t.titulo}`, temaTitulo: t.titulo,
+        apartados: (aps || []).filter((a) => a.unidad_num === u).sort((a, b) => a.idx - b.idx)
+          .map((a) => ({ ...a, leido: ((leidos || []).find((l) => l.unidad_num === u && l.idx === a.idx) || {}).leido_en || null })), min: PLAN_MIN.tema, url: `tema.html?asignatura=${asigId}&tema=UD${u}&claveplan=${encodeURIComponent("tema:" + asigId + ":UD" + u)}`, repasable: true, repasoUrl: `tema.html?asignatura=${asigId}&tema=UD${u}&modo=repaso` });
       videosUD.filter((v) => v.tipo !== "ejercicios").forEach(meteVideo);
       items.push({ clave: `test:${asigId}:UD${u}`, tipo: "test", sub: "test", asig: nombre, asigId, unidadNum: u, unidadTexto: t.unidad, titulo: `Test de la UD${u}`, min: PLAN_MIN.test, url: `quiz.html?asignatura=${asigId}&modo=plan&ud=${u}&n=15&desde=plan&claveplan=${encodeURIComponent("test:" + asigId + ":UD" + u)}`, repasable: true, repasoUrl: `quiz.html?asignatura=${asigId}&modo=plan&ud=${u}&n=10&desde=plan` });
     }
@@ -125,35 +132,72 @@ function planGenerar(hoy, catalogos, hechos) {
   });
 
   // 🔁 Repasos que tocan (el primero sin hacer de cada cosa), como mucho el 40 % del tiempo.
+  // 🔁 Curva del olvido (1, 3, 7, 14 y 30 días; luego cada 21).
+  //  - Temas: se repasan POR PARTES. Cada apartado cuenta desde el día en que se leyó;
+  //    hoy sale solo la parte que toca (o la unidad entera si toca entera).
+  //  - Clases: el repaso de la clase.
+  //  - Tests de la UD: «✍️ Test de la UDn».
+  // De cada cosa sale solo el repaso vencido más reciente; los viejos atrasados se saltan.
+  const vencidoDe = (dia, hecho) => {
+    const ks = planDiasRepaso(dia);
+    const ultimo = Math.max(0, ...ks.filter(hecho));
+    const venc = ks.filter((n) => n > ultimo && planSumarDias(dia, n) <= hoy);
+    return venc.length ? venc[venc.length - 1] : 0;
+  };
   const repasos = [];
   Object.values(catalogos).flat().filter((i) => i.repasable).forEach((i) => {
     const h = hechos.get(i.clave);
+    if (i.sub === "tema" && (i.apartados || []).length) {
+      const toca = [];
+      i.apartados.forEach((a) => {
+        const base = a.leido || h;
+        if (!base) return;
+        const dia = planFechaMadrid(new Date(base));
+        const k = vencidoDe(dia, (n) => hechos.has(`rep:ap:${i.asigId}:UD${i.unidadNum}:${a.idx}:${n}`) || (!a.leido && hechos.has(`rep:${i.clave}:${n}`)));
+        if (k) toca.push({ a, k, vence: planSumarDias(dia, k) });
+      });
+      if (!toca.length) return;
+      // Como mucho unos 25 minutos de lectura al día por unidad; lo demás sigue pendiente para mañana.
+      const hoyAps = [];
+      let car = 0;
+      for (const x of toca) {
+        if (hoyAps.length && car + x.a.chars > 25 * 900) break;
+        hoyAps.push(x); car += x.a.chars;
+      }
+      const entera = hoyAps.length === i.apartados.length;
+      const nombres = hoyAps.map((x) => `«${x.a.titulo}»`);
+      const parte = entera ? " (entera)" : `: ${nombres.slice(0, 3).join(", ")}${nombres.length > 3 ? ` y ${nombres.length - 3} apartado${nombres.length - 3 > 1 ? "s" : ""} más` : ""}`;
+      const clave = `rep:apg:${i.asigId}:UD${i.unidadNum}:${hoy}`;
+      repasos.push({
+        vence: hoyAps.map((x) => x.vence).sort()[0],
+        tarea: { clave, tipo: "repaso", sub: "repaso", asig: i.asig, asigId: i.asigId, unidadNum: i.unidadNum,
+          titulo: `🔁 Repaso UD${i.unidadNum} ${i.temaTitulo}${parte}`,
+          min: Math.max(5, Math.round(car / 900)),
+          url: `tema.html?asignatura=${i.asigId}&tema=UD${i.unidadNum}&modo=repaso&aps=${hoyAps.map((x) => x.a.idx + ":" + x.k).join(",")}&desde=plan&claveplan=${encodeURIComponent(clave)}` },
+      });
+      return;
+    }
     if (!h) return;
     const dia = planFechaMadrid(new Date(h));
-    // Curva del olvido: de los repasos que ya tocan y aún no se han hecho (y que van después
-    // del último hecho), se hace solo el más reciente; los viejos atrasados se saltan.
-    const ks = planDiasRepaso(dia);
-    const ultimoHecho = Math.max(0, ...ks.filter((n) => hechos.has(`rep:${i.clave}:${n}`)));
-    const vencidos = ks.filter((n) => n > ultimoHecho && planSumarDias(dia, n) <= hoy);
-    if (!vencidos.length) return;
-    const k = vencidos[vencidos.length - 1];
-    repasos.push({ vence: planSumarDias(dia, k), k, i });
+    const k = vencidoDe(dia, (n) => hechos.has(`rep:${i.clave}:${n}`));
+    if (!k) return;
+    const esTest = i.sub === "test";
+    const clave = `rep:${i.clave}:${k}`;
+    repasos.push({
+      vence: planSumarDias(dia, k),
+      tarea: { clave, tipo: "repaso", sub: esTest ? "test" : "repaso", asig: i.asig, asigId: i.asigId, unidadNum: i.unidadNum,
+        titulo: esTest ? `✍️ Test de la UD${i.unidadNum}` : `🔁 Repaso UD${i.unidadNum} · ${i.titulo.replace(/^Clase (\d+) del profe: /, "Clase $1: ")}`,
+        min: esTest ? 12 : 20, url: planUrlRepaso(i.repasoUrl || i.url, clave) },
+    });
   });
   repasos.sort((a, b) => a.vence.localeCompare(b.vence));
   for (const r of repasos) {
     // Como mucho su parte del día; pero si lo nuevo ya ocupa mucho, al menos 2 repasos.
     const nRep = tareas.filter((t) => t.tipo === "repaso").length;
-    if (usado + PLAN_MIN.repaso > presupuesto * parteRepaso + (garantizadas.size ? 60 : 0) && nRep >= 2) break;
-    if (nRep >= 2 && usado + PLAN_MIN.repaso > presupuesto) break;
-    // Dos clases de repaso, con nombres distintos para no liarse:
-    //  🔁 «Repaso» (tema o clase): la unidad en corto, con sus fórmulas y cuentas; se lee o se escucha.
-    //  ✍️ «Test de repaso»: preguntas tipo test.
-    const esTest = r.i.sub === "test";
-    const nombre = r.i.titulo.replace(/^Clase (\d+) del profe: /, "Clase $1: ");
-    tareas.push({ clave: `rep:${r.i.clave}:${r.k}`, tipo: "repaso", sub: esTest ? "test" : "repaso", asig: r.i.asig, asigId: r.i.asigId, unidadNum: r.i.unidadNum,
-      titulo: esTest ? `✍️ Test de repaso (día ${r.k}): ${nombre}` : `🔁 Repaso (día ${r.k}): ${nombre}`,
-      min: esTest ? 12 : 20, url: planUrlRepaso(r.i.repasoUrl || r.i.url, `rep:${r.i.clave}:${r.k}`) });
-    usado += tareas[tareas.length - 1].min;
+    if (usado + r.tarea.min > presupuesto * parteRepaso + (garantizadas.size ? 60 : 0) && nRep >= 2) break;
+    if (nRep >= 2 && usado + r.tarea.min > presupuesto) break;
+    tareas.push(r.tarea);
+    usado += r.tarea.min;
   }
 
   // 📝 Preguntas de examen (oficiales y tests de la universidad): todos los días, de cada asignatura.

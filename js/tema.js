@@ -115,6 +115,8 @@ function resumenRepaso(texto) {
   const num = /^UD\d+$/.test(clave) ? parseInt(clave.slice(2), 10) : null;
   const clavePlan = params.get("claveplan") || "";
   const modoRepaso = params.get("modo") === "repaso";
+  // Repaso por partes (Mi plan, curva del olvido): aps=3:7,5:3 → apartado 3 (repaso del día 7), apartado 5 (día 3).
+  const apsRepaso = (params.get("aps") || "").split(",").map((x) => x.split(":").map(Number)).filter((x) => x[0] > 0);
   if (!asigId || num === null) {
     window.location.href = "index.html";
     return;
@@ -138,12 +140,25 @@ function resumenRepaso(texto) {
   document.title = `Tema completo · UD${num} ${t.titulo}`;
   document.getElementById("tm-titulo").textContent = `📖 UD${num}. ${t.titulo}`;
   document.getElementById("tm-subtitulo").textContent = `${asig.data ? asig.data.nombre : ""} · Tema completo con sus imágenes. Pulsa ▶ para escucharlo seguido, o toca cualquier párrafo para empezar desde ahí.`;
-  if (modoRepaso) {
-    document.getElementById("tm-titulo").textContent = `🔁 Repaso · UD${num}. ${t.titulo}`;
-    document.getElementById("tm-subtitulo").textContent = "El tema más corto para repasar: apartados, fórmulas y cuentas, avisos de examen y la chuleta. Pulsa ▶ o léelo.";
+  // Los apartados del tema (cada «## »), en el mismo orden que la vista tema_apartados de Supabase.
+  const trozos = String(t.contenido || "").split(/\n\s*\n(?=## )/).filter((x) => x.startsWith("## "));
+  let textoPintar = t.contenido;
+  if (modoRepaso && apsRepaso.length) {
+    const quiero = new Set(apsRepaso.map((x) => x[0]));
+    textoPintar = trozos.filter((x, i) => quiero.has(i + 1)).join("\n\n");
+    const entera = quiero.size >= trozos.length;
+    document.title = `Repaso UD${num} ${t.titulo}`;
+    document.getElementById("tm-titulo").textContent = `🔁 Repaso UD${num}. ${t.titulo}${entera ? " (entera)" : ""}`;
+    document.getElementById("tm-subtitulo").textContent = entera
+      ? "Hoy te toca repasar la unidad entera. Pulsa ▶ para escucharla o léela."
+      : `Hoy te toca repasar ${quiero.size === 1 ? "este apartado" : "estos " + quiero.size + " apartados"} de la unidad. Pulsa ▶ para escucharlo o léelo.`;
+  } else if (modoRepaso) {
+    textoPintar = resumenRepaso(t.contenido);
+    document.getElementById("tm-titulo").textContent = `🔁 Repaso UD${num}. ${t.titulo}`;
+    document.getElementById("tm-subtitulo").textContent = "Pulsa ▶ para escucharlo o léelo.";
   }
 
-  const { html, indice } = tmPintar(modoRepaso ? resumenRepaso(t.contenido) : t.contenido);
+  const { html, indice } = tmPintar(textoPintar);
 
   // ---- Enlaces del tema (vídeos, simuladores, fuentes) ----
   const enlaces = Array.isArray(t.enlaces) ? t.enlaces : [];
@@ -207,7 +222,12 @@ function resumenRepaso(texto) {
       b.addEventListener("click", async () => {
         if (!yaMarcado) {
           yaMarcado = true;
-          await sb.from("plan_hecho").upsert({ clave: clavePlan }, { onConflict: "auth_user_id,clave" });
+          const filas = [{ clave: clavePlan }];
+          // Repaso por partes: cada apartado guarda su repaso hecho (para la curva del olvido).
+          apsRepaso.forEach(([i, k]) => k && filas.push({ clave: `rep:ap:${asigId}:UD${num}:${i}:${k}` }));
+          await sb.from("plan_hecho").upsert(filas, { onConflict: "auth_user_id,clave" });
+          // Al leer el tema entero, todos sus apartados cuentan como leídos hoy.
+          if (!modoRepaso) await sb.rpc("lectura_apartado_marcar", { p_asig: asigId, p_unidad: num, p_idx: trozos.map((x, i) => i + 1) }).then(() => {}, () => {});
         }
         window.location.href = "plan.html";
       })
@@ -220,7 +240,11 @@ function resumenRepaso(texto) {
   const btnPlay = document.getElementById("tm-play");
   const estado = document.getElementById("tm-estado");
   const progreso = document.getElementById("tm-progreso");
-  const CLAVE_POS = `tema_pos_${asigId}_${clave}${modoRepaso ? "_rep" : ""}`;
+  const CLAVE_POS = `tema_pos_${asigId}_${clave}${modoRepaso ? "_rep" + (apsRepaso.length ? "_" + apsRepaso.map((x) => x[0]).join("-") : "") : ""}`;
+  // Apartado (1, 2, 3…) de cada párrafo: sirve para apuntar qué partes del tema ya se han leído.
+  let apN = 0;
+  const apDe = bloques.map((b) => (b.tagName === "H2" ? ++apN : apN));
+  const apMarcados = new Set();
   let actual = 0;
   let sonando = false;
   let turno = 0; // invalida los "onend" de lecturas canceladas
@@ -235,6 +259,12 @@ function resumenRepaso(texto) {
   // aunque lo abra en otro ordenador o en el móvil.
   let posTimer = null;
   function guardarPos() {
+    // Leer (o escuchar) un apartado lo apunta como leído hoy: de ahí sale su curva del olvido.
+    const ap = apDe[actual];
+    if (!modoRepaso && ap > 0 && !apMarcados.has(ap)) {
+      apMarcados.add(ap);
+      try { sb.rpc("lectura_apartado_marcar", { p_asig: asigId, p_unidad: num, p_idx: [ap] }).then(() => {}, () => {}); } catch (e) {}
+    }
     try { localStorage.setItem(CLAVE_POS, String(actual)); localStorage.setItem(CLAVE_POS + "_t", String(Date.now())); } catch (e) {}
     clearTimeout(posTimer);
     posTimer = setTimeout(() => {
