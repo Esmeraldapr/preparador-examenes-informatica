@@ -43,7 +43,7 @@ const planEsc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;"
 async function planCatalogo(asigId) {
   const [cl, vi, te, as] = await Promise.all([
     sb.from("clases").select("numero, titulo, unidad_num, examen_practica_id").eq("asignatura_id", asigId),
-    sb.from("recursos").select("id, titulo, url, unidad, minuto_inicio, orden, tipo, duracion_min").eq("asignatura_id", asigId).in("origen", ["profe", "recomendado"]).eq("verificado", true),
+    sb.from("recursos").select("id, titulo, url, unidad, minuto_inicio, orden, tipo, duracion_min, apartado").eq("asignatura_id", asigId).in("origen", ["profe", "recomendado"]).eq("verificado", true),
     sb.from("tema_completo").select("unidad_num, unidad, titulo").eq("asignatura_id", asigId),
     sb.from("asignaturas").select("nombre").eq("id", asigId).single(),
   ]);
@@ -68,14 +68,17 @@ async function planCatalogo(asigId) {
     // Cada vídeo es una tarea suelta, con sus minutos reales (duracion_min) si los tenemos.
     const videosUD = (vi.data || []).filter((v) => v.unidad === "UD" + u).sort((a, b) => a.orden - b.orden);
     const meteVideo = (v) =>
-      items.push({ clave: `video:${v.id}`, tipo: "nuevo", sub: "video", asig: nombre, asigId, unidadNum: u, titulo: v.titulo, min: v.duracion_min || PLAN_MIN.video, sinDuracion: !v.duracion_min, url: v.url + (v.minuto_inicio && /youtu/.test(v.url) ? (v.url.includes("?") ? "&" : "?") + "t=" + v.minuto_inicio : ""), externo: true });
-    // Vídeos de explicación: antes del tema. Vídeos de ejercicios: después del tema y del test.
-    videosUD.filter((v) => v.tipo !== "ejercicios").forEach(meteVideo);
+      items.push({ clave: `video:${v.id}`, tipo: "nuevo", sub: "video", asig: nombre, asigId, unidadNum: u, deTema: v.tipo !== "ejercicios",
+        titulo: v.tipo !== "ejercicios" ? `Vídeo del tema UD${u}${v.apartado ? ` (va con el apartado «${v.apartado}»)` : ""}: ${v.titulo}` : v.titulo, min: v.duracion_min || PLAN_MIN.video, sinDuracion: !v.duracion_min, url: v.url + (v.minuto_inicio && /youtu/.test(v.url) ? (v.url.includes("?") ? "&" : "?") + "t=" + v.minuto_inicio : ""), externo: true });
+    // Vídeos de explicación: justo después del tema (son los vídeos de ese tema).
+    // Vídeos de ejercicios: después del test, en su carril.
     const t = (te.data || []).find((x) => x.unidad_num === u);
     if (t) {
       items.push({ clave: `tema:${asigId}:UD${u}`, tipo: "nuevo", sub: "tema", asig: nombre, asigId, unidadNum: u, unidadTexto: t.unidad, titulo: `Tema completo UD${u}: ${t.titulo}`, min: PLAN_MIN.tema, url: `tema.html?asignatura=${asigId}&tema=UD${u}&claveplan=${encodeURIComponent("tema:" + asigId + ":UD" + u)}`, repasable: true, repasoUrl: `quiz.html?asignatura=${asigId}&modo=plan&ud=${u}&n=8&desde=plan` });
+      videosUD.filter((v) => v.tipo !== "ejercicios").forEach(meteVideo);
       items.push({ clave: `test:${asigId}:UD${u}`, tipo: "test", sub: "test", asig: nombre, asigId, unidadNum: u, unidadTexto: t.unidad, titulo: `Test de la UD${u}`, min: PLAN_MIN.test, url: `quiz.html?asignatura=${asigId}&modo=plan&ud=${u}&n=15&desde=plan&claveplan=${encodeURIComponent("test:" + asigId + ":UD" + u)}`, repasable: true, repasoUrl: `quiz.html?asignatura=${asigId}&modo=plan&ud=${u}&n=10&desde=plan` });
     }
+    if (!t) videosUD.filter((v) => v.tipo !== "ejercicios").forEach(meteVideo);
     // Vídeos de ejercicios: carril aparte, unos pocos cada día (ver planGenerar).
     videosUD.filter((v) => v.tipo === "ejercicios").forEach((v) => {
       meteVideo(v);
@@ -114,6 +117,14 @@ function planGenerar(hoy, catalogos, hechos) {
     garantizadas.add(sig.clave);
     tareas.push({ clave: sig.clave, tipo: sig.tipo, sub: sig.sub, asig: sig.asig, asigId: sig.asigId, unidadNum: sig.unidadNum, unidadTexto: sig.unidadTexto, titulo: `🆕 UD${sig.unidadNum} · ${sig.titulo}`, min: sig.min, url: sig.url, externo: !!sig.externo });
     usado += sig.min;
+    // Con el tema van sus vídeos, como tareas sueltas justo debajo.
+    if (sig.sub === "tema") {
+      cat.filter((v) => v.deTema && v.unidadNum === sig.unidadNum && !hechos.has(v.clave)).forEach((v) => {
+        garantizadas.add(v.clave);
+        tareas.push({ clave: v.clave, tipo: v.tipo, sub: v.sub, asig: v.asig, asigId: v.asigId, unidadNum: v.unidadNum, titulo: `🆕 ${v.titulo}`, min: v.min, sinDuracion: v.sinDuracion, url: v.url, externo: true });
+        usado += v.min;
+      });
+    }
   });
 
   // 🔁 Repasos que tocan (el primero sin hacer de cada cosa), como mucho el 40 % del tiempo.
