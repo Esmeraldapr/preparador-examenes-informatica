@@ -101,11 +101,16 @@ function planUrlRepaso(base, clave) {
   return `${limpia}&desde=plan&claveplan=${encodeURIComponent(clave)}`;
 }
 
-function planGenerar(hoy, catalogos, hechos) {
+function planGenerar(hoy, catalogos, hechos, arrastre = []) {
   const finde = [0, 6].includes(planDiaSemana(hoy));
   const presupuesto = finde ? 300 : 180;
   const tareas = [];
   let usado = 0;
+  // ⏪ Lo que quedó sin hacer el último día va primero: se acumula, no se pierde.
+  const baseDe = (c) => c.startsWith("rep:apg:") ? "apg:" + c.split(":").slice(2, 4).join(":") : c.replace(/^rep:/, "").replace(/:\d+$/, "");
+  const enArrastre = new Set(arrastre.map((t) => t.clave));
+  const basesArrastre = new Set(arrastre.map((t) => baseDe(t.clave)));
+  arrastre.forEach((t) => { tareas.push(t); usado += t.min || 0; });
   const faltan = planDiasHasta(hoy, PLAN_EXAMEN);
   // Cuanto más cerca del examen, más tiempo para repasar.
   const parteRepaso = faltan <= 21 ? 0.6 : 0.4;
@@ -116,14 +121,14 @@ function planGenerar(hoy, catalogos, hechos) {
   const garantizadas = new Set();
   PLAN_ASIGNATURAS.filter((a) => a !== PLAN_INTERFACES || hayInterfaces0).forEach((a) => {
     const cat = catalogos[a] || [];
-    const sig = cat.find((i) => i.unidadNum === cat.unidadActual && i.carril !== "video" && i.sub !== "video" && !hechos.has(i.clave));
+    const sig = cat.find((i) => i.unidadNum === cat.unidadActual && i.carril !== "video" && i.sub !== "video" && !hechos.has(i.clave) && !enArrastre.has(i.clave));
     if (!sig) return;
     garantizadas.add(sig.clave);
     tareas.push({ clave: sig.clave, tipo: sig.tipo, sub: sig.sub, asig: sig.asig, asigId: sig.asigId, unidadNum: sig.unidadNum, unidadTexto: sig.unidadTexto, titulo: `🆕 UD${sig.unidadNum} · ${sig.titulo}`, min: sig.min, url: sig.url, externo: !!sig.externo });
     usado += sig.min;
     // Con el tema van sus vídeos, como tareas sueltas justo debajo.
     if (sig.sub === "tema") {
-      cat.filter((v) => v.deTema && v.unidadNum === sig.unidadNum && !hechos.has(v.clave)).forEach((v) => {
+      cat.filter((v) => v.deTema && v.unidadNum === sig.unidadNum && !hechos.has(v.clave) && !enArrastre.has(v.clave)).forEach((v) => {
         garantizadas.add(v.clave);
         tareas.push({ clave: v.clave, tipo: v.tipo, sub: v.sub, asig: v.asig, asigId: v.asigId, unidadNum: v.unidadNum, titulo: `🆕 ${v.titulo}`, min: v.min, sinDuracion: v.sinDuracion, url: v.url, externo: true });
         usado += v.min;
@@ -147,6 +152,8 @@ function planGenerar(hoy, catalogos, hechos) {
   const repasos = [];
   Object.values(catalogos).flat().filter((i) => i.repasable).forEach((i) => {
     const h = hechos.get(i.clave);
+    // Si su repaso viene arrastrado de otro día, no se le pone otro encima.
+    if (basesArrastre.has(i.sub === "tema" ? `apg:${i.asigId}:UD${i.unidadNum}` : i.clave)) return;
     if (i.sub === "tema" && (i.apartados || []).length) {
       const toca = [];
       i.apartados.forEach((a) => {
@@ -282,7 +289,7 @@ function planGenerar(hoy, catalogos, hechos) {
   };
   const colas = activas.map((a) => ({
     id: a,
-    pend: intercalar((catalogos[a] || []).filter((i) => !hechos.has(i.clave) && !garantizadas.has(i.clave) && i.carril !== "video"), (catalogos[a] || {}).unidadActual),
+    pend: intercalar((catalogos[a] || []).filter((i) => !hechos.has(i.clave) && !garantizadas.has(i.clave) && !enArrastre.has(i.clave) && i.carril !== "video"), (catalogos[a] || {}).unidadActual),
     tope: a === PLAN_INTERFACES ? 60 : Infinity,
     gastado: 0,
   }));
@@ -298,7 +305,8 @@ function planGenerar(hoy, catalogos, hechos) {
       usado += sig.min; c.gastado += sig.min; avanzo = true;
     }
   }
-  return tareas.concat(tareasVideo);
+  const vistas = new Set();
+  return tareas.concat(tareasVideo).filter((t) => !vistas.has(t.clave) && vistas.add(t.clave));
 }
 
 
@@ -502,7 +510,13 @@ function planTiempoTxt(seg) {
       // Lo de hoy que ya está hecho se conserva; se vuelve a generar solo lo pendiente.
       const previas = regenerar && delHoy ? delHoy.tareas.filter((t) => hechos.has(t.clave)) : [];
       const hechosSinHoy = new Map([...hechos].filter(([k]) => !previas.some((p) => p.clave === k)));
-      const nuevas = planGenerar(hoy, catalogos, hechosSinHoy).filter((t) => !previas.some((p) => p.clave === t.clave));
+      // Lo que quedó sin hacer el último día con plan se suma a hoy (menos las preguntas de examen
+      // del día, el simulacro y «lo que más cae», que ya vuelven solas con su propio repaso).
+      const anterior = (dia || []).find((d) => d.fecha < hoy);
+      const arrastre = anterior
+        ? anterior.tareas.filter((t) => !hechos.has(t.clave) && !/^(exa|act|sim|cae):/.test(t.clave)).map((t) => ({ ...t, arrastrada: true }))
+        : [];
+      const nuevas = planGenerar(hoy, catalogos, hechosSinHoy, arrastre).filter((t) => !previas.some((p) => p.clave === t.clave));
       const tareas = [...previas, ...nuevas];
       await sb.from("plan_dia").upsert({ fecha: hoy, tareas }, { onConflict: "auth_user_id,fecha" });
       delHoy = { fecha: hoy, tareas };
@@ -615,7 +629,7 @@ function planTiempoTxt(seg) {
         return `<div class="pl-tarea ${h ? "hecha" : ""}">
           <button class="pl-chk" data-i="${i}" title="Marcar como hecha">${h ? "✓" : ""}</button>
           <div class="pl-cuerpo">
-            <div class="pl-etq">${g[1]} ${g[2]} · ${planEsc(t.asig)} · ${t.sinDuracion ? "duración sin medir (cuenta el tiempo real)" : t.min + " min"}</div>
+            <div class="pl-etq">${g[1]} ${g[2]} · ${planEsc(t.asig)} · ${t.sinDuracion ? "duración sin medir (cuenta el tiempo real)" : t.min + " min"}${t.arrastrada ? " · ⏪ pendiente de otro día" : ""}</div>
             <div class="pl-tit">${planEsc(t.titulo)}</div>
             ${planEtiquetaExamen(t, pesoMap)}
             <a class="btn btn-secundario" href="${planEsc(t.url)}" data-min="${t.sinDuracion ? 120 : t.min}" ${t.externo ? 'data-ext="1" target="_blank" rel="noopener"' : ""}>Abrir</a>
