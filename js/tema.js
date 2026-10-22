@@ -83,6 +83,23 @@ function tmPintar(texto) {
   return { html, indice };
 }
 
+
+/** Repaso para escuchar (Mi plan): solo lo importante, sin cuentas.
+ *  Se queda con los títulos, el primer párrafo de cada apartado, los cuadros
+ *  (En el examen, Ojo, Recuerda, Lo que pone la diapositiva…) y la chuleta entera. */
+function resumenRepaso(texto) {
+  const bl = String(texto || "").split(/\n\s*\n/).map((b) => b.trim()).filter(Boolean);
+  const out = [];
+  let enChuleta = false, primerP = false;
+  for (const b of bl) {
+    if (b.startsWith("## ")) { enChuleta = /chuleta|resumen|qu[eé] cae/i.test(b); primerP = true; out.push(b); continue; }
+    if (enChuleta) { out.push(b); continue; }
+    if (b.startsWith("> ")) { out.push(b); continue; }
+    if (primerP && !/^(###|!\[|\$ |- )/.test(b)) { out.push(b); primerP = false; }
+  }
+  return out.filter((b, i) => !(b.startsWith("## ") && (i === out.length - 1 || out[i + 1].startsWith("## ")))).join("\n\n");
+}
+
 (async function iniciar() {
   const sesion = await exigirSesion();
   if (!sesion) return;
@@ -94,6 +111,7 @@ function tmPintar(texto) {
   const clave = params.get("tema") || "";
   const num = /^UD\d+$/.test(clave) ? parseInt(clave.slice(2), 10) : null;
   const clavePlan = params.get("claveplan") || "";
+  const modoRepaso = params.get("modo") === "repaso";
   if (!asigId || num === null) {
     window.location.href = "index.html";
     return;
@@ -117,8 +135,12 @@ function tmPintar(texto) {
   document.title = `Tema completo · UD${num} ${t.titulo}`;
   document.getElementById("tm-titulo").textContent = `📖 UD${num}. ${t.titulo}`;
   document.getElementById("tm-subtitulo").textContent = `${asig.data ? asig.data.nombre : ""} · Tema completo con sus imágenes. Pulsa ▶ para escucharlo seguido, o toca cualquier párrafo para empezar desde ahí.`;
+  if (modoRepaso) {
+    document.getElementById("tm-titulo").textContent = `🔁 Repaso para escuchar · UD${num}. ${t.titulo}`;
+    document.getElementById("tm-subtitulo").textContent = "Solo lo importante del tema, sin cuentas: los apartados, los avisos de examen y la chuleta. Pulsa ▶ y escúchalo.";
+  }
 
-  const { html, indice } = tmPintar(t.contenido);
+  const { html, indice } = tmPintar(modoRepaso ? resumenRepaso(t.contenido) : t.contenido);
 
   // ---- Enlaces del tema (vídeos, simuladores, fuentes) ----
   const enlaces = Array.isArray(t.enlaces) ? t.enlaces : [];
@@ -128,7 +150,7 @@ function tmPintar(texto) {
     if (!g) grupos.push((g = { nombre: e.grupo || "Enlaces", lista: [] }));
     g.lista.push(e);
   });
-  const htmlEnlaces = enlaces.length
+  const htmlEnlaces = enlaces.length && !modoRepaso
     ? `<details class="panel rc-desplegable" id="tm-enlaces" open>
         <summary>🔗 Enlaces y vídeos del tema (${enlaces.length})</summary>
         ${grupos
@@ -150,7 +172,7 @@ function tmPintar(texto) {
 
   const botones = `
     <div class="rc-cta">
-      ${clavePlan ? `<button type="button" class="btn btn-primario tm-plan-btn">✅ Ya lo leí · Volver a Mi plan</button>` : ""}
+      ${clavePlan ? `<button type="button" class="btn btn-primario tm-plan-btn">${modoRepaso ? "✅ Ya lo repasé" : "✅ Ya lo leí"} · Volver a Mi plan</button>` : ""}
       ${t.examen_practica_id ? `<a class="btn btn-secundario" href="${enlaceAsignatura("quiz.html", asigId, "modo=examen&examen_id=" + t.examen_practica_id)}">📝 Hacer el test de práctica del tema</a>` : ""}
       ${t.unidad ? `<a class="btn btn-secundario" href="${enlaceAsignatura("quiz.html", asigId, "modo=tema&unidad=" + encodeURIComponent(t.unidad))}">🎯 Todas las preguntas de este tema</a>` : ""}
       ${clase.data ? `<a class="btn btn-secundario" href="${enlaceAsignatura("clase.html", asigId, "clase=" + clase.data.numero)}">🎓 La clase ${clase.data.numero} del profesor</a>` : ""}
@@ -195,7 +217,7 @@ function tmPintar(texto) {
   const btnPlay = document.getElementById("tm-play");
   const estado = document.getElementById("tm-estado");
   const progreso = document.getElementById("tm-progreso");
-  const CLAVE_POS = `tema_pos_${asigId}_${clave}`;
+  const CLAVE_POS = `tema_pos_${asigId}_${clave}${modoRepaso ? "_rep" : ""}`;
   let actual = 0;
   let sonando = false;
   let turno = 0; // invalida los "onend" de lecturas canceladas

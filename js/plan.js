@@ -60,11 +60,8 @@ async function planCatalogo(asigId) {
   [...unidades].sort((a, b) => a - b).forEach((u) => {
     (cl.data || []).filter((c) => c.unidad_num === u).forEach((c) =>
       items.push({ clave: `clase:${asigId}:${c.numero}`, tipo: "nuevo", sub: "clase", asig: nombre, asigId, unidadNum: u, titulo: `Clase ${c.numero} del profe: ${c.titulo}`, min: PLAN_MIN.clase, url: `clase.html?asignatura=${asigId}&clase=${c.numero}&claveplan=${encodeURIComponent("clase:" + asigId + ":" + c.numero)}`, repasable: true,
-        // Repaso de una clase: NO la clase entera, sino unas pocas preguntas de esa clase
-        // (o, si la clase no tiene preguntas propias, el repaso corto de su unidad).
-        repasoUrl: c.examen_practica_id
-          ? `quiz.html?asignatura=${asigId}&modo=examen&examen_id=${c.examen_practica_id}&n=8&desde=plan`
-          : `quiz.html?asignatura=${asigId}&modo=plan&ud=${u}&n=8&desde=plan` }));
+        // Repaso de una clase: lo importante de la clase para ESCUCHAR (sin cuentas, vale para el metro).
+        repasoUrl: `clase.html?asignatura=${asigId}&clase=${c.numero}&modo=repaso` }));
     // Cada vídeo es una tarea suelta, con sus minutos reales (duracion_min) si los tenemos.
     const videosUD = (vi.data || []).filter((v) => v.unidad === "UD" + u).sort((a, b) => a.orden - b.orden);
     const meteVideo = (v) =>
@@ -74,7 +71,7 @@ async function planCatalogo(asigId) {
     // Vídeos de ejercicios: después del test, en su carril.
     const t = (te.data || []).find((x) => x.unidad_num === u);
     if (t) {
-      items.push({ clave: `tema:${asigId}:UD${u}`, tipo: "nuevo", sub: "tema", asig: nombre, asigId, unidadNum: u, unidadTexto: t.unidad, titulo: `Tema completo UD${u}: ${t.titulo}`, min: PLAN_MIN.tema, url: `tema.html?asignatura=${asigId}&tema=UD${u}&claveplan=${encodeURIComponent("tema:" + asigId + ":UD" + u)}`, repasable: true, repasoUrl: `quiz.html?asignatura=${asigId}&modo=plan&ud=${u}&n=8&desde=plan` });
+      items.push({ clave: `tema:${asigId}:UD${u}`, tipo: "nuevo", sub: "tema", asig: nombre, asigId, unidadNum: u, unidadTexto: t.unidad, titulo: `Tema completo UD${u}: ${t.titulo}`, min: PLAN_MIN.tema, url: `tema.html?asignatura=${asigId}&tema=UD${u}&claveplan=${encodeURIComponent("tema:" + asigId + ":UD" + u)}`, repasable: true, repasoUrl: `tema.html?asignatura=${asigId}&tema=UD${u}&modo=repaso` });
       videosUD.filter((v) => v.tipo !== "ejercicios").forEach(meteVideo);
       items.push({ clave: `test:${asigId}:UD${u}`, tipo: "test", sub: "test", asig: nombre, asigId, unidadNum: u, unidadTexto: t.unidad, titulo: `Test de la UD${u}`, min: PLAN_MIN.test, url: `quiz.html?asignatura=${asigId}&modo=plan&ud=${u}&n=15&desde=plan&claveplan=${encodeURIComponent("test:" + asigId + ":UD" + u)}`, repasable: true, repasoUrl: `quiz.html?asignatura=${asigId}&modo=plan&ud=${u}&n=10&desde=plan` });
     }
@@ -145,11 +142,18 @@ function planGenerar(hoy, catalogos, hechos) {
   repasos.sort((a, b) => a.vence.localeCompare(b.vence));
   for (const r of repasos) {
     // Como mucho su parte del día; pero si lo nuevo ya ocupa mucho, al menos 2 repasos.
-    const nRep = tareas.filter((t) => t.sub === "repaso").length;
+    const nRep = tareas.filter((t) => t.tipo === "repaso").length;
     if (usado + PLAN_MIN.repaso > presupuesto * parteRepaso + (garantizadas.size ? 60 : 0) && nRep >= 2) break;
     if (nRep >= 2 && usado + PLAN_MIN.repaso > presupuesto) break;
-    tareas.push({ clave: `rep:${r.i.clave}:${r.k}`, tipo: "repaso", sub: "repaso", asig: r.i.asig, asigId: r.i.asigId, titulo: `Repaso (día ${r.k}): ${r.i.titulo.replace(/^Clase \d+ del profe: /, "")}`, min: PLAN_MIN.repaso, url: planUrlRepaso(r.i.repasoUrl || r.i.url, `rep:${r.i.clave}:${r.k}`) });
-    usado += PLAN_MIN.repaso;
+    // Dos clases de repaso, con nombres distintos para no liarse:
+    //  🎧 «Repaso para escuchar» (tema o clase): solo lo importante, sin cuentas; vale para el metro.
+    //  ✍️ «Test de repaso»: preguntas con cuentas; mejor en casa.
+    const esTest = r.i.sub === "test";
+    const nombre = r.i.titulo.replace(/^Clase (\d+) del profe: /, "Clase $1: ");
+    tareas.push({ clave: `rep:${r.i.clave}:${r.k}`, tipo: "repaso", sub: esTest ? "test" : "repaso", asig: r.i.asig, asigId: r.i.asigId, unidadNum: r.i.unidadNum,
+      titulo: esTest ? `✍️ Test de repaso (día ${r.k}, mejor en casa): ${nombre}` : `🎧 Repaso para escuchar (día ${r.k}, sin cuentas): ${nombre}`,
+      min: esTest ? 12 : 15, url: planUrlRepaso(r.i.repasoUrl || r.i.url, `rep:${r.i.clave}:${r.k}`) });
+    usado += tareas[tareas.length - 1].min;
   }
 
   // 📝 Preguntas de examen (oficiales y tests de la universidad): todos los días, de cada asignatura.

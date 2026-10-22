@@ -87,6 +87,23 @@ function clPintar(texto) {
   return { html, indice };
 }
 
+
+/** Repaso para escuchar (Mi plan): solo lo importante, sin cuentas.
+ *  Se queda con los títulos, el primer párrafo de cada apartado, los cuadros
+ *  (En el examen, Ojo, Recuerda, Lo que pone la diapositiva…) y la chuleta entera. */
+function resumenRepaso(texto) {
+  const bl = String(texto || "").split(/\n\s*\n/).map((b) => b.trim()).filter(Boolean);
+  const out = [];
+  let enChuleta = false, primerP = false;
+  for (const b of bl) {
+    if (b.startsWith("## ")) { enChuleta = /chuleta|resumen|qu[eé] cae/i.test(b); primerP = true; out.push(b); continue; }
+    if (enChuleta) { out.push(b); continue; }
+    if (b.startsWith("> ")) { out.push(b); continue; }
+    if (primerP && !/^(###|!\[|\$ |- )/.test(b)) { out.push(b); primerP = false; }
+  }
+  return out.filter((b, i) => !(b.startsWith("## ") && (i === out.length - 1 || out[i + 1].startsWith("## ")))).join("\n\n");
+}
+
 (async function iniciar() {
   const sesion = await exigirSesion();
   if (!sesion) return;
@@ -98,6 +115,7 @@ function clPintar(texto) {
   const numero = parseInt(params.get("clase"), 10);
   const clave = "clase" + numero;
   const clavePlan = params.get("claveplan") || "";
+  const modoRepaso = params.get("modo") === "repaso";
   if (!asigId || !numero) {
     window.location.href = "index.html";
     return;
@@ -117,8 +135,9 @@ function clPintar(texto) {
   }
   const c = clase.data;
   document.title = `Clase ${c.numero} · ${c.titulo}`;
-  document.getElementById("cl-titulo").textContent = `🎓 Clase ${c.numero}. ${c.titulo}`;
+  document.getElementById("cl-titulo").textContent = `${modoRepaso ? "🔁 Repaso para escuchar · " : "🎓 "}Clase ${c.numero}. ${c.titulo}`;
   document.getElementById("cl-subtitulo").textContent = `${asig.data ? asig.data.nombre : ""} · Lo que explicó el profesor, con sus fichas. Pulsa ▶ para escucharla seguida, o toca cualquier párrafo para empezar desde ahí.`;
+  if (modoRepaso) document.getElementById("cl-subtitulo").textContent = "Solo lo importante de la clase, sin cuentas: los apartados y los cuadros. Pulsa ▶ y escúchalo.";
 
   const { data: fichas } = await sb
     .from("clase_fichas")
@@ -126,7 +145,7 @@ function clPintar(texto) {
     .eq("clase_id", c.id)
     .order("orden");
 
-  const { html, indice } = clPintar(c.contenido);
+  const { html, indice } = clPintar(modoRepaso ? resumenRepaso(c.contenido) : c.contenido);
 
   // ---- Datos de cabecera (unidad, día, profesor) ----
   const fecha = c.fecha
@@ -193,7 +212,7 @@ function clPintar(texto) {
 
   const botones = `
     <div class="rc-cta">
-      ${clavePlan ? `<button type="button" class="btn btn-primario cl-plan-btn">✅ Ya la vi · Volver a Mi plan</button>` : ""}
+      ${clavePlan ? `<button type="button" class="btn btn-primario cl-plan-btn">${modoRepaso ? "✅ Ya la repasé" : "✅ Ya la vi"} · Volver a Mi plan</button>` : ""}
       ${c.examen_practica_id ? `<a class="btn btn-secundario" href="${enlaceAsignatura("quiz.html", asigId, "modo=examen&examen_id=" + c.examen_practica_id)}">📝 Practicar lo de esta clase</a>` : ""}
       ${c.unidad_num ? `<a class="btn btn-secundario" href="${enlaceAsignatura("tema.html", asigId, "tema=UD" + c.unidad_num)}">📖 El tema completo de la UD${c.unidad_num}</a>` : ""}
       <a class="btn btn-secundario" href="${enlaceAsignatura("clases.html", asigId)}">← Volver a las clases</a>
@@ -215,8 +234,8 @@ function clPintar(texto) {
     </div>
     ${botones}
     <div class="panel tm-tema" id="tm-tema">${html}</div>
-    ${htmlFichas}
-    ${htmlEnlaces}
+    ${modoRepaso ? "" : htmlFichas}
+    ${modoRepaso ? "" : htmlEnlaces}
     ${botones}`;
 
   // ---------------- Botón "Volver a Mi plan" (solo si viene de Mi plan) ----------------
@@ -239,7 +258,7 @@ function clPintar(texto) {
   const btnPlay = document.getElementById("tm-play");
   const estado = document.getElementById("tm-estado");
   const progreso = document.getElementById("tm-progreso");
-  const CLAVE_POS = `clase_pos_${asigId}_${clave}`;
+  const CLAVE_POS = `clase_pos_${asigId}_${clave}${modoRepaso ? "_rep" : ""}`;
   let actual = 0;
   let sonando = false;
   let turno = 0; // invalida los "onend" de lecturas canceladas
