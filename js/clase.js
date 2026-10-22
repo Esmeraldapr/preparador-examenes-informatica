@@ -250,6 +250,17 @@ function clPintar(texto) {
     if (guardado > 0 && guardado < bloques.length) actual = guardado;
   } catch (e) { /* sin almacenamiento: se empieza desde el principio */ }
 
+  // La posición se guarda también en Supabase: así sigue donde lo dejó
+  // aunque lo abra en otro ordenador o en el móvil.
+  let posTimer = null;
+  function guardarPos() {
+    try { localStorage.setItem(CLAVE_POS, String(actual)); localStorage.setItem(CLAVE_POS + "_t", String(Date.now())); } catch (e) {}
+    clearTimeout(posTimer);
+    posTimer = setTimeout(() => {
+      try { sb.rpc("lectura_guardar", { p_pagina: CLAVE_POS, p_pos: actual, p_total: bloques.length }).then(() => {}, () => {}); } catch (e) {}
+    }, 1500);
+  }
+
   function pintarEstado() {
     progreso.style.width = `${bloques.length ? Math.round(((actual + (sonando ? 1 : 0)) / bloques.length) * 100) : 0}%`;
     btnPlay.textContent = sonando ? "⏸ Pausar" : actual > 0 ? "▶ Seguir" : "▶ Escuchar";
@@ -292,7 +303,7 @@ function clPintar(texto) {
     if (actual >= bloques.length) {
       actual = 0;
       parar();
-      try { localStorage.removeItem(CLAVE_POS); } catch (e) {}
+      guardarPos();
       estado.textContent = "✅ Has terminado el tema. Ahora puedes hacer el test de práctica.";
       return;
     }
@@ -302,7 +313,7 @@ function clPintar(texto) {
     sonando = true;
     marcar(actual, true);
     pintarEstado();
-    try { localStorage.setItem(CLAVE_POS, String(actual)); } catch (e) {}
+    guardarPos();
     if (!texto) {
       actual++;
       leerActual();
@@ -337,12 +348,12 @@ function clPintar(texto) {
   document.getElementById("tm-atras").addEventListener("click", () => {
     const i = Math.max(0, actual - 1);
     if (sonando) empezarEn(i);
-    else { actual = i; marcar(actual, true); pintarEstado(); }
+    else { actual = i; marcar(actual, true); pintarEstado(); guardarPos(); }
   });
   document.getElementById("tm-adelante").addEventListener("click", () => {
     const i = Math.min(bloques.length - 1, actual + 1);
     if (sonando) empezarEn(i);
-    else { actual = i; marcar(actual, true); pintarEstado(); }
+    else { actual = i; marcar(actual, true); pintarEstado(); guardarPos(); }
   });
   document.getElementById("tm-tema").addEventListener("click", (e) => {
     const el = e.target.closest(".tm-leible");
@@ -371,6 +382,33 @@ function clPintar(texto) {
   });
   window.addEventListener("pagehide", () => { if (voz) voz.cancel(); });
 
-  if (actual > 0) marcar(actual, false);
+  // Lo guardado en Supabase gana si es más reciente que lo de este navegador.
+  try {
+    const { data: rem } = await sb.from("lectura_pos").select("pos, actualizado_en").eq("pagina", CLAVE_POS).maybeSingle();
+    let tLocal = 0;
+    try { tLocal = parseInt(localStorage.getItem(CLAVE_POS + "_t"), 10) || 0; } catch (e) {}
+    if (rem && rem.pos >= 0 && rem.pos < bloques.length && new Date(rem.actualizado_en).getTime() > tLocal) actual = rem.pos;
+  } catch (e) { /* sin conexión: vale lo de este navegador */ }
+  if (actual > 0) {
+    marcar(actual, false);
+    setTimeout(() => bloques[actual] && bloques[actual].scrollIntoView({ block: "center" }), 400);
+  }
   pintarEstado();
+  // Si lee sin el audio, también se guarda por dónde va (el primer párrafo que se ve arriba).
+  let scrollT = null;
+  window.addEventListener("scroll", () => {
+    if (sonando) return;
+    clearTimeout(scrollT);
+    scrollT = setTimeout(() => {
+      const i = bloques.findIndex((b) => b.getBoundingClientRect().bottom > 140);
+      if (i > actual) { actual = i; pintarEstado(); guardarPos(); }
+    }, 1000);
+  }, { passive: true });
+  // Al cerrar o cambiar de pestaña, se guarda al momento.
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "hidden") {
+      clearTimeout(posTimer);
+      try { sb.rpc("lectura_guardar", { p_pagina: CLAVE_POS, p_pos: actual, p_total: bloques.length }).then(() => {}, () => {}); } catch (e) {}
+    }
+  });
 })();

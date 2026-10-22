@@ -54,7 +54,8 @@ async function planCatalogo(asigId) {
   const unidades = new Set();
   (cl.data || []).forEach((c) => c.unidad_num && unidades.add(c.unidad_num));
   (te.data || []).forEach((t) => unidades.add(t.unidad_num));
-  (vi.data || []).forEach((v) => /^UD\d+$/.test(v.unidad || "") && unidades.add(parseInt(v.unidad.slice(2), 10)));
+  // Solo las unidades ya dadas (con clase o tema completo). Los vídeos de unidades
+  // que aún no han llegado (p. ej. UD4 de Cálculo) no entran en el plan.
   const items = [];
   [...unidades].sort((a, b) => a - b).forEach((u) => {
     (cl.data || []).filter((c) => c.unidad_num === u).forEach((c) =>
@@ -102,6 +103,19 @@ function planGenerar(hoy, catalogos, hechos) {
   // Cuanto más cerca del examen, más tiempo para repasar.
   const parteRepaso = faltan <= 21 ? 0.6 : 0.4;
 
+  // 🆕 Lo primero: lo nuevo de la unidad que se acaba de dar (clase, tema y test de la UD
+  // más reciente). Una cosa por asignatura cada día va SIEMPRE, antes que repasos y preguntas.
+  const hayInterfaces0 = planDiaDelAnio(hoy) % 3 === 0;
+  const garantizadas = new Set();
+  PLAN_ASIGNATURAS.filter((a) => a !== PLAN_INTERFACES || hayInterfaces0).forEach((a) => {
+    const cat = catalogos[a] || [];
+    const sig = cat.find((i) => i.unidadNum === cat.unidadActual && i.carril !== "video" && i.sub !== "video" && !hechos.has(i.clave));
+    if (!sig) return;
+    garantizadas.add(sig.clave);
+    tareas.push({ clave: sig.clave, tipo: sig.tipo, sub: sig.sub, asig: sig.asig, asigId: sig.asigId, unidadNum: sig.unidadNum, unidadTexto: sig.unidadTexto, titulo: `🆕 UD${sig.unidadNum} · ${sig.titulo}`, min: sig.min, url: sig.url, externo: !!sig.externo });
+    usado += sig.min;
+  });
+
   // 🔁 Repasos que tocan (el primero sin hacer de cada cosa), como mucho el 40 % del tiempo.
   const repasos = [];
   Object.values(catalogos).flat().filter((i) => i.repasable).forEach((i) => {
@@ -119,7 +133,10 @@ function planGenerar(hoy, catalogos, hechos) {
   });
   repasos.sort((a, b) => a.vence.localeCompare(b.vence));
   for (const r of repasos) {
-    if (usado + PLAN_MIN.repaso > presupuesto * parteRepaso) break;
+    // Como mucho su parte del día; pero si lo nuevo ya ocupa mucho, al menos 2 repasos.
+    const nRep = tareas.filter((t) => t.sub === "repaso").length;
+    if (usado + PLAN_MIN.repaso > presupuesto * parteRepaso + (garantizadas.size ? 60 : 0) && nRep >= 2) break;
+    if (nRep >= 2 && usado + PLAN_MIN.repaso > presupuesto) break;
     tareas.push({ clave: `rep:${r.i.clave}:${r.k}`, tipo: "repaso", sub: "repaso", asig: r.i.asig, asigId: r.i.asigId, titulo: `Repaso (día ${r.k}): ${r.i.titulo.replace(/^Clase \d+ del profe: /, "")}`, min: PLAN_MIN.repaso, url: planUrlRepaso(r.i.repasoUrl || r.i.url, `rep:${r.i.clave}:${r.k}`) });
     usado += PLAN_MIN.repaso;
   }
@@ -206,7 +223,7 @@ function planGenerar(hoy, catalogos, hechos) {
   };
   const colas = activas.map((a) => ({
     id: a,
-    pend: intercalar((catalogos[a] || []).filter((i) => !hechos.has(i.clave) && i.carril !== "video"), (catalogos[a] || {}).unidadActual),
+    pend: intercalar((catalogos[a] || []).filter((i) => !hechos.has(i.clave) && !garantizadas.has(i.clave) && i.carril !== "video"), (catalogos[a] || {}).unidadActual),
     tope: a === PLAN_INTERFACES ? 60 : Infinity,
     gastado: 0,
   }));
