@@ -88,9 +88,10 @@ function clPintar(texto) {
 }
 
 
-/** Repaso para escuchar (Mi plan): solo lo importante, sin cuentas.
+/** Repaso (Mi plan): la unidad en corto, con sus fórmulas y cuentas.
  *  Se queda con los títulos, el primer párrafo de cada apartado, los cuadros
- *  (En el examen, Ojo, Recuerda, Lo que pone la diapositiva…) y la chuleta entera. */
+ *  (En el examen, Ojo, Recuerda, Lo que pone la diapositiva…), las fórmulas y cuentas,
+ *  las listas, los dibujos y la chuleta entera. Solo se quitan los párrafos largos de explicación. */
 function resumenRepaso(texto) {
   const bl = String(texto || "").split(/\n\s*\n/).map((b) => b.trim()).filter(Boolean);
   const out = [];
@@ -99,7 +100,9 @@ function resumenRepaso(texto) {
     if (b.startsWith("## ")) { enChuleta = /chuleta|resumen|qu[eé] cae/i.test(b); primerP = true; out.push(b); continue; }
     if (enChuleta) { out.push(b); continue; }
     if (b.startsWith("> ")) { out.push(b); continue; }
-    if (primerP && !/^(###|!\[|\$ |- )/.test(b)) { out.push(b); primerP = false; }
+    // Las cuentas, fórmulas, listas, dibujos y subtítulos del tema se quedan: son la unidad.
+    if (/^(###|!\[|\$ |- )/.test(b)) { out.push(b); continue; }
+    if (primerP) { out.push(b); primerP = false; }
   }
   return out.filter((b, i) => !(b.startsWith("## ") && (i === out.length - 1 || out[i + 1].startsWith("## ")))).join("\n\n");
 }
@@ -135,9 +138,9 @@ function resumenRepaso(texto) {
   }
   const c = clase.data;
   document.title = `Clase ${c.numero} · ${c.titulo}`;
-  document.getElementById("cl-titulo").textContent = `${modoRepaso ? "🔁 Repaso para escuchar · " : "🎓 "}Clase ${c.numero}. ${c.titulo}`;
+  document.getElementById("cl-titulo").textContent = `${modoRepaso ? "🔁 Repaso · " : "🎓 "}Clase ${c.numero}. ${c.titulo}`;
   document.getElementById("cl-subtitulo").textContent = `${asig.data ? asig.data.nombre : ""} · Lo que explicó el profesor, con sus fichas. Pulsa ▶ para escucharla seguida, o toca cualquier párrafo para empezar desde ahí.`;
-  if (modoRepaso) document.getElementById("cl-subtitulo").textContent = "Solo lo importante de la clase, sin cuentas: los apartados y los cuadros. Pulsa ▶ y escúchalo.";
+  if (modoRepaso) document.getElementById("cl-subtitulo").textContent = "La clase más corta para repasar: apartados, fórmulas y cuentas, y lo que pone en las diapositivas y la pizarra. Pulsa ▶ o léelo.";
 
   const { data: fichas } = await sb
     .from("clase_fichas")

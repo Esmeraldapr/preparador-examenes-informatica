@@ -146,13 +146,13 @@ function planGenerar(hoy, catalogos, hechos) {
     if (usado + PLAN_MIN.repaso > presupuesto * parteRepaso + (garantizadas.size ? 60 : 0) && nRep >= 2) break;
     if (nRep >= 2 && usado + PLAN_MIN.repaso > presupuesto) break;
     // Dos clases de repaso, con nombres distintos para no liarse:
-    //  🎧 «Repaso para escuchar» (tema o clase): solo lo importante, sin cuentas; vale para el metro.
-    //  ✍️ «Test de repaso»: preguntas con cuentas; mejor en casa.
+    //  🔁 «Repaso» (tema o clase): la unidad en corto, con sus fórmulas y cuentas; se lee o se escucha.
+    //  ✍️ «Test de repaso»: preguntas tipo test.
     const esTest = r.i.sub === "test";
     const nombre = r.i.titulo.replace(/^Clase (\d+) del profe: /, "Clase $1: ");
     tareas.push({ clave: `rep:${r.i.clave}:${r.k}`, tipo: "repaso", sub: esTest ? "test" : "repaso", asig: r.i.asig, asigId: r.i.asigId, unidadNum: r.i.unidadNum,
-      titulo: esTest ? `✍️ Test de repaso (día ${r.k}, mejor en casa): ${nombre}` : `🎧 Repaso para escuchar (día ${r.k}, sin cuentas): ${nombre}`,
-      min: esTest ? 12 : 15, url: planUrlRepaso(r.i.repasoUrl || r.i.url, `rep:${r.i.clave}:${r.k}`) });
+      titulo: esTest ? `✍️ Test de repaso (día ${r.k}): ${nombre}` : `🔁 Repaso (día ${r.k}): ${nombre}`,
+      min: esTest ? 12 : 20, url: planUrlRepaso(r.i.repasoUrl || r.i.url, `rep:${r.i.clave}:${r.k}`) });
     usado += tareas[tareas.length - 1].min;
   }
 
