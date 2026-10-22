@@ -171,7 +171,7 @@ function planGenerar(hoy, catalogos, hechos) {
       repasos.push({
         vence: hoyAps.map((x) => x.vence).sort()[0],
         tarea: { clave, tipo: "repaso", sub: "repaso", asig: i.asig, asigId: i.asigId, unidadNum: i.unidadNum,
-          titulo: `🔁 Repaso UD${i.unidadNum} ${i.temaTitulo}${parte}`,
+          titulo: `Repaso UD${i.unidadNum} ${i.temaTitulo}${parte}`,
           min: Math.max(5, Math.round(car / 900)),
           url: `tema.html?asignatura=${i.asigId}&tema=UD${i.unidadNum}&modo=repaso&aps=${hoyAps.map((x) => x.a.idx + ":" + x.k).join(",")}&desde=plan&claveplan=${encodeURIComponent(clave)}` },
       });
@@ -186,7 +186,7 @@ function planGenerar(hoy, catalogos, hechos) {
     repasos.push({
       vence: planSumarDias(dia, k),
       tarea: { clave, tipo: "repaso", sub: esTest ? "test" : "repaso", asig: i.asig, asigId: i.asigId, unidadNum: i.unidadNum,
-        titulo: esTest ? `✍️ Test de la UD${i.unidadNum}` : `🔁 Repaso UD${i.unidadNum} · ${i.titulo.replace(/^Clase (\d+) del profe: /, "Clase $1: ")}`,
+        titulo: esTest ? `Test de la UD${i.unidadNum}` : `Repaso UD${i.unidadNum} · ${i.titulo.replace(/^Clase (\d+) del profe: /, "Clase $1: ")}`,
         min: esTest ? 12 : 20, url: planUrlRepaso(i.repasoUrl || i.url, clave) },
     });
   });
