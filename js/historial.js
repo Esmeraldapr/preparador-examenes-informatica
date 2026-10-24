@@ -19,6 +19,9 @@ const PLAN_GRUPOS_HI = [
   ["test", "✍️", "test"],
   ["repaso", "🔁", "repaso"],
   ["cae", "🎯", "lo que más cae"],
+  ["examen", "📝", "preguntas de examen"],
+  ["simulacro", "🏁", "simulacro"],
+  ["trabajo", "💼", "trabajo"],
 ];
 const hiGrupo = (sub) => PLAN_GRUPOS_HI.find((g) => g[0] === sub) || ["otros", "📌", "tarea"];
 
@@ -41,6 +44,9 @@ const hiGrupo = (sub) => PLAN_GRUPOS_HI.find((g) => g[0] === sub) || ["otros", "
     sb.from("plan_hecho").select("clave, hecho_en"),
     sb.from("plan_tiempo").select("fecha, segundos"),
   ]);
+  // ⏸ Días en pausa (trabajos): solo cuenta lo que se hizo; lo demás pasó al siguiente día sin pausa.
+  const { data: pausas } = await sb.from("plan_pausa").select("desde, hasta");
+  const enPausa = (f) => (pausas || []).some((p) => f >= p.desde && f <= p.hasta);
   const tiempoDe = new Map((tiempos || []).map((x) => [x.fecha, x.segundos]));
   /** 4500 s -> «1 h 15 min»; corto: «1h15». */
   const hiTiempo = (seg, corto) => {
@@ -49,7 +55,7 @@ const hiGrupo = (sub) => PLAN_GRUPOS_HI.find((g) => g[0] === sub) || ["otros", "
     return h ? `${h} h ${m % 60} min` : `${m} min`;
   };
   const hechos = new Map((hh || []).map((x) => [x.clave, x.hecho_en]));
-  const porFecha = new Map((dias || []).map((d) => [d.fecha, d.tareas]));
+  const porFecha = new Map((dias || []).map((d) => [d.fecha, enPausa(d.fecha) ? d.tareas.filter((t) => t.sub === "trabajo" || hechos.has(t.clave)) : d.tareas]));
 
   const hoyPartes = hoy.split("-").map(Number);
   let visto = { anio: hoyPartes[0], mes: hoyPartes[1] - 1 }; // mes 0-indexado
@@ -70,7 +76,9 @@ const hiGrupo = (sub) => PLAN_GRUPOS_HI.find((g) => g[0] === sub) || ["otros", "
       const esHoy = fecha === hoy;
       const esSel = fecha === seleccionada;
       let punto = "";
-      if (tareas && tareas.length) {
+      if (tareas && enPausa(fecha)) {
+        punto = `<span style="display:block;font-size:.75rem">⏸</span>`;
+      } else if (tareas && tareas.length) {
         const n = tareas.filter((t) => hechos.has(t.clave)).length;
         const cls = n === tareas.length ? "hi-todo" : n === 0 ? "hi-nada" : "hi-parcial";
         punto = `<span class="hi-punto ${cls}"></span>`;
@@ -132,8 +140,8 @@ const hiGrupo = (sub) => PLAN_GRUPOS_HI.find((g) => g[0] === sub) || ["otros", "
     const minHechos = hechas.reduce((s, t) => s + (t.min || 0), 0);
     det.innerHTML = `
       <h3>${hiEsc(fechaTxt)}</h3>
-      <p class="pl-mini">${hechas.length} de ${tareas.length} tareas hechas · ${minHechos} min previstos</p>
-      <p style="font-size:1.05rem;margin:4px 0 10px">⏱ Tiempo de estudio: <b>${tiempoDe.get(seleccionada) ? hiTiempo(tiempoDe.get(seleccionada)) : "sin registrar"}</b>${(() => { const s = tiempoDe.get(seleccionada) || 0; const dia = new Date(seleccionada + "T12:00:00Z").getUTCDay(); const meta = ([0, 6].includes(dia) ? 300 : 180) * 60; return s > meta + 59 ? ` · te pasaste ${hiTiempo(s - meta)} 💪` : s ? ` · faltó ${hiTiempo(meta - s)}` : ""; })()}</p>
+      ${enPausa(seleccionada) ? `<p class="pl-mini">⏸ Plan en pausa por trabajos. Lo que tocaba este día pasó al siguiente día sin pausa.</p>` : `<p class="pl-mini">${hechas.length} de ${tareas.length} tareas hechas · ${minHechos} min previstos</p>`}
+      <p style="font-size:1.05rem;margin:4px 0 10px">⏱ Tiempo de estudio: <b>${tiempoDe.get(seleccionada) ? hiTiempo(tiempoDe.get(seleccionada)) : "sin registrar"}</b>${enPausa(seleccionada) ? "" : (() => { const s = tiempoDe.get(seleccionada) || 0; const dia = new Date(seleccionada + "T12:00:00Z").getUTCDay(); const meta = ([0, 6].includes(dia) ? 300 : 180) * 60; return s > meta + 59 ? ` · te pasaste ${hiTiempo(s - meta)} 💪` : s ? ` · faltó ${hiTiempo(meta - s)}` : ""; })()}</p>
       ${
         hechas.length
           ? hechas.map((t) => {

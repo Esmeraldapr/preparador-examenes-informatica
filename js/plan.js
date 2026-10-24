@@ -32,6 +32,19 @@ function planSumarDias(f, n) {
   d.setUTCDate(d.getUTCDate() + n);
   return d.toISOString().slice(0, 10);
 }
+// ⏸ Pausas del plan (fines de semana de trabajos, etc.). Se cargan de la tabla plan_pausa.
+// Durante una pausa no sale ninguna tarea nueva; lo que tocaba sale el primer día sin pausa,
+// y la curva del olvido se congela (los días en pausa no cuentan), así no se pierde ningún repaso.
+let PLAN_PAUSAS = [];
+function planEnPausa(f) { return PLAN_PAUSAS.find((p) => f >= p.desde && f <= p.hasta) || null; }
+/** Suma n días SIN contar los días en pausa. */
+function planSumarDiasActivos(f, n) {
+  let d = f, k = 0, vueltas = 0;
+  while (k < n && vueltas++ < 2000) { d = planSumarDias(d, 1); if (!planEnPausa(d)) k++; }
+  return d;
+}
+/** Primer día sin pausa a partir de f (incluido). */
+function planSiguienteActivo(f) { let d = f, v = 0; while (planEnPausa(d) && v++ < 400) d = planSumarDias(d, 1); return d; }
 function planDiaSemana(f) { return new Date(f + "T12:00:00Z").getUTCDay(); } // 0 = domingo
 function planDiaDelAnio(f) {
   const d = new Date(f + "T12:00:00Z");
@@ -146,7 +159,7 @@ function planGenerar(hoy, catalogos, hechos, arrastre = []) {
   const vencidoDe = (dia, hecho) => {
     const ks = planDiasRepaso(dia);
     const ultimo = Math.max(0, ...ks.filter(hecho));
-    const venc = ks.filter((n) => n > ultimo && planSumarDias(dia, n) <= hoy);
+    const venc = ks.filter((n) => n > ultimo && planSumarDiasActivos(dia, n) <= hoy);
     return venc.length ? venc[venc.length - 1] : 0;
   };
   const repasos = [];
@@ -161,7 +174,7 @@ function planGenerar(hoy, catalogos, hechos, arrastre = []) {
         if (!base) return;
         const dia = planFechaMadrid(new Date(base));
         const k = vencidoDe(dia, (n) => hechos.has(`rep:ap:${i.asigId}:UD${i.unidadNum}:${a.idx}:${n}`) || (!a.leido && hechos.has(`rep:${i.clave}:${n}`)));
-        if (k) toca.push({ a, k, vence: planSumarDias(dia, k) });
+        if (k) toca.push({ a, k, vence: planSumarDiasActivos(dia, k) });
       });
       if (!toca.length) return;
       // Como mucho unos 25 minutos de lectura al día por unidad; lo demás sigue pendiente para mañana.
@@ -191,7 +204,7 @@ function planGenerar(hoy, catalogos, hechos, arrastre = []) {
     const esTest = i.sub === "test";
     const clave = `rep:${i.clave}:${k}`;
     repasos.push({
-      vence: planSumarDias(dia, k),
+      vence: planSumarDiasActivos(dia, k),
       tarea: { clave, tipo: "repaso", sub: esTest ? "test" : "repaso", asig: i.asig, asigId: i.asigId, unidadNum: i.unidadNum,
         titulo: esTest ? `Test de la UD${i.unidadNum}` : `Repaso UD${i.unidadNum} · ${i.titulo.replace(/^Clase (\d+) del profe: /, "Clase $1: ")}`,
         min: esTest ? 12 : 20, url: planUrlRepaso(i.repasoUrl || i.url, clave) },
@@ -416,6 +429,7 @@ const PLAN_GRUPOS = [
   ["cae", "🎯", "lo que más cae", "lo que más cae"],
   ["examen", "📝", "preguntas de examen", "preguntas de examen"],
   ["simulacro", "🏁", "simulacro", "simulacros"],
+  ["trabajo", "💼", "trabajo", "trabajos"],
 ];
 const planGrupo = (sub) => PLAN_GRUPOS.find((g) => g[0] === sub) || ["otros", "📌", "tarea", "tareas"];
 
@@ -495,8 +509,10 @@ function planTiempoTxt(seg) {
   async function cargar(regenerar) {
     const [{ data: hh }, { data: dia }] = await Promise.all([
       sb.from("plan_hecho").select("clave, hecho_en"),
-      sb.from("plan_dia").select("fecha, tareas").order("fecha", { ascending: false }).limit(8),
+      sb.from("plan_dia").select("fecha, tareas").order("fecha", { ascending: false }).limit(30),
     ]);
+    const { data: pausas } = await sb.from("plan_pausa").select("desde, hasta, motivo");
+    PLAN_PAUSAS = pausas || [];
     const hechos = new Map((hh || []).map((x) => [x.clave, x.hecho_en]));
     const [{ data: avisos }, { data: pesos }] = await Promise.all([
       sb.from("avisos_profe").select("asignatura_id, unidad_num, tipo, texto, fuente").in("asignatura_id", PLAN_ASIGNATURAS),
@@ -504,6 +520,13 @@ function planTiempoTxt(seg) {
     ]);
     const pesoMap = new Map((pesos || []).map((x) => [x.asignatura_id + "|" + x.unidad, x.veces]));
     let delHoy = (dia || []).find((d) => d.fecha === hoy);
+    // ⏸ Día en pausa: solo se ven los trabajos apuntados. No se genera nada nuevo; lo que
+    // tocaba hoy (si ya estaba generado) se queda guardado y pasa al primer día sin pausa.
+    const pausa = planEnPausa(hoy);
+    if (pausa) {
+      pintar((delHoy?.tareas || []).filter((t) => t.sub === "trabajo"), hechos, dia || [], null, avisos || [], pesoMap, pausa);
+      return;
+    }
     if (!delHoy || regenerar) {
       const catalogos = {};
       await Promise.all(PLAN_ASIGNATURAS.map(async (a) => (catalogos[a] = await planCatalogo(a))));
@@ -512,9 +535,10 @@ function planTiempoTxt(seg) {
       const hechosSinHoy = new Map([...hechos].filter(([k]) => !previas.some((p) => p.clave === k)));
       // Lo que quedó sin hacer el último día con plan se suma a hoy (menos las preguntas de examen
       // del día, el simulacro y «lo que más cae», que ya vuelven solas con su propio repaso).
-      const anterior = (dia || []).find((d) => d.fecha < hoy);
+      // (Se salta los días en que solo se apuntaron trabajos durante una pausa.)
+      const anterior = (dia || []).find((d) => d.fecha < hoy && d.tareas.some((t) => t.sub !== "trabajo"));
       const arrastre = anterior
-        ? anterior.tareas.filter((t) => !hechos.has(t.clave) && !/^(exa|act|sim|cae):/.test(t.clave)).map((t) => ({ ...t, arrastrada: true }))
+        ? anterior.tareas.filter((t) => !hechos.has(t.clave) && !/^(exa|act|sim|cae|trab):/.test(t.clave)).map((t) => ({ ...t, arrastrada: true }))
         : [];
       const nuevas = planGenerar(hoy, catalogos, hechosSinHoy, arrastre).filter((t) => !previas.some((p) => p.clave === t.clave));
       const tareas = [...previas, ...nuevas];
@@ -531,7 +555,7 @@ function planTiempoTxt(seg) {
     cargar(false);
   }
 
-  async function pintar(tareas, hechos, dias, filtro, avisos, pesoMap) {
+  async function pintar(tareas, hechos, dias, filtro, avisos, pesoMap, pausa = null) {
     const hechas = tareas.filter((t) => hechos.has(t.clave));
     const minTot = tareas.reduce((s, t) => s + t.min, 0);
     const minHechos = hechas.reduce((s, t) => s + t.min, 0);
@@ -550,6 +574,10 @@ function planTiempoTxt(seg) {
       const s = tiempoDe.get(d.fecha);
       const meta = ([0, 6].includes(planDiaSemana(d.fecha)) ? 300 : 180) * 60;
       const extra = s && s > meta + 59 ? ` (+${planTiempoTxt(s - meta)})` : "";
+      if (planEnPausa(d.fecha)) {
+        const tr = d.tareas.filter((t) => t.sub === "trabajo" || hechos.has(t.clave));
+        return `<div class="pl-fecha">${planEsc(d.fecha)} · ⏸ pausa por trabajos${tr.length ? ` · ${tr.length} hecho${tr.length === 1 ? "" : "s"}` : ""}${s ? ` · ⏱ ${planTiempoTxt(s)}` : ""}</div>`;
+      }
       return `<div class="pl-fecha">${planEsc(d.fecha)} · ${h} de ${d.tareas.length} hechas${s ? ` · ⏱ ${planTiempoTxt(s)}${extra}` : ""}</div>`;
     }).join("");
     const pendientes = tareas.filter((t) => !hechos.has(t.clave));
@@ -568,6 +596,15 @@ function planTiempoTxt(seg) {
 
     cont.innerHTML = `
       <div class="pl-contadores">${contadores}</div>
+
+      ${pausa ? (() => {
+        const fTxt = (f) => new Date(f + "T12:00:00Z").toLocaleDateString("es-ES", { weekday: "long", day: "numeric", month: "long" });
+        const vuelta = planSiguienteActivo(planSumarDias(pausa.hasta, 1));
+        return `<div class="pl-aviso" style="text-align:center;font-size:1.05rem"><b>⏸ Plan en pausa hasta el ${planEsc(fTxt(pausa.hasta))}</b>
+          <br>Los trabajos van primero.
+          <br>Lo que tocaba estos días sale el <b>${planEsc(fTxt(vuelta))}</b>.
+          <br>Los repasos se congelan: no se pierde ninguno.</div>`;
+      })() : ""}
 
       ${(() => {
         // Lo que ya tiene hecho y solo falta enviar no se enseña hasta 2 días antes:
@@ -609,11 +646,11 @@ function planTiempoTxt(seg) {
       </div>
 
       <div class="pl-resumen">
-        <h2>${!pendientes.length && tareas.length ? "Hoy está hecho" : `Hoy te quedan ${pendientes.length} tarea${pendientes.length === 1 ? "" : "s"}`}</h2>
+        <h2>${pausa ? "Hoy solo trabajos 💼" : !pendientes.length && tareas.length ? "Hoy está hecho" : `Hoy te quedan ${pendientes.length} tarea${pendientes.length === 1 ? "" : "s"}`}</h2>
         <p class="pl-mini">${minHechos} de ${minTot} minutos · ${hechas.length} de ${tareas.length} tareas</p>
         <div class="pl-barra"><span style="width:${pct}%"></span></div>
-        <p style="margin:12px 0 4px;font-size:1.05rem">⏱ Hoy llevas <b>${planTiempoTxt(segHoy)}</b> de ${metaMin / 60} h${faltaSeg ? ` · te falta${faltaSeg >= 7200 ? "n" : ""} ${planTiempoTxt(faltaSeg)}` : ` · ✅ ¡cumplido!${segHoy - metaMin * 60 >= 60 ? ` Te has pasado ${planTiempoTxt(segHoy - metaMin * 60)} 💪` : ""}`}</p>
-        <div class="pl-barra"><span style="width:${pctTiempo}%;background:#16a34a"></span></div>
+        ${pausa ? `<p style="margin:12px 0 4px;font-size:1.05rem">⏱ Hoy llevas <b>${planTiempoTxt(segHoy)}</b> con los trabajos.</p>` : `<p style="margin:12px 0 4px;font-size:1.05rem">⏱ Hoy llevas <b>${planTiempoTxt(segHoy)}</b> de ${metaMin / 60} h${faltaSeg ? ` · te falta${faltaSeg >= 7200 ? "n" : ""} ${planTiempoTxt(faltaSeg)}` : ` · ✅ ¡cumplido!${segHoy - metaMin * 60 >= 60 ? ` Te has pasado ${planTiempoTxt(segHoy - metaMin * 60)} 💪` : ""}`}</p>
+        <div class="pl-barra"><span style="width:${pctTiempo}%;background:#16a34a"></span></div>`}
         <p class="pl-mini">El tiempo cuenta solo cuando abres una tarea desde aquí y estás con ella (si pasas 5 minutos sin tocar nada, se para).</p>
       </div>
 
@@ -634,13 +671,13 @@ function planTiempoTxt(seg) {
             ${planEtiquetaExamen(t, pesoMap)}
             <a class="btn btn-secundario" href="${planEsc(t.url)}" data-min="${t.sinDuracion ? 120 : t.min}" ${t.externo ? 'data-ext="1" target="_blank" rel="noopener"' : ""}>Abrir</a>
           </div></div>`;
-      }).join("") || '<div class="vacio">Hoy no hay tareas.</div>'}
+      }).join("") || (pausa ? '<div class="vacio">Hoy no hay tareas del plan. Lo que hagas de los trabajos, díselo a Claude y lo apunta aquí.</div>' : '<div class="vacio">Hoy no hay tareas.</div>')}
       </div>
 
       <p class="pl-mini">Lo que no termines pasa solo a mañana. Los repasos siguen la curva del olvido: salen a los 1, 3, 7, 14 y 30 días de acabar algo, y después cada 3 semanas hasta el examen. Los sábados hay simulacro de examen, y en las 3 últimas semanas, todos los días.</p>
       <h3 class="pl-h3">Días anteriores</h3>${histo || '<p class="pl-mini">Aún no hay días anteriores.</p>'}
       <p><a class="btn btn-secundario" href="historial.html">📆 Ver historial completo</a></p>
-      <p><button class="btn btn-secundario" id="pl-rehacer">Rehacer lo que falta de hoy</button></p>`;
+      ${pausa ? "" : `<p><button class="btn btn-secundario" id="pl-rehacer">Rehacer lo que falta de hoy</button></p>`}`;
 
     cont.querySelectorAll("[data-grupo]").forEach((b) =>
       b.addEventListener("click", async () => {
@@ -654,7 +691,7 @@ function planTiempoTxt(seg) {
       const t = tareas[+b.dataset.i];
       marcar(t.clave, !hechos.has(t.clave));
     }));
-    document.getElementById("pl-rehacer").addEventListener("click", () => cargar(true));
+    document.getElementById("pl-rehacer")?.addEventListener("click", () => cargar(true));
 
     // Abrir una tarea pone en marcha el cronómetro de hoy.
     cont.querySelectorAll("a[data-min]").forEach((a) =>
