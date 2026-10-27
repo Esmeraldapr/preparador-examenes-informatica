@@ -252,6 +252,9 @@ function pintarAccesos(n) {
     tarjetas.splice(1, 0, `<a class="tarjeta" href="guia-funciones.html">
       <div class="cabecera g3"><span class="icono">📐</span><h3>Guía de funciones paso a paso</h3></div>
       <div class="cuerpo"><div class="meta">Dominio, cortes, asíntotas y rango. Se puede escuchar</div></div>
+    </a>`, `<a class="tarjeta" href="chuleta-funciones.html">
+      <div class="cabecera g2"><span class="icono">🧮</span><h3>Chuleta: dominio y recorrido</h3></div>
+      <div class="cuerpo"><div class="meta">sen, cos, tg, arcsen, arccos, arctg, ln, eˣ y 1/x en una sola pantalla</div></div>
     </a>`);
   }
   if (n.videosProfe + n.videosCompis > 0) {
