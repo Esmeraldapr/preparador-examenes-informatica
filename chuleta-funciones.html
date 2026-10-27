@@ -2,43 +2,41 @@
 <html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Simulador de dominio y recorrido · Cálculo</title><link rel="icon" href="img/favicon-64.png">
 <style>
-:root{--m:#7c3aed;--rj:#ef4444;--az:#3b82f6;--vd:#16a34a;--tx:#1f2937;--su:#6b7280;--bg:#f6f4fb;--card:#fff;--ln:#e5e1f3}
+:root{--mn:#36ECDE;--vd:#22e39a;--rs:#ec4899;--rj:#ff4d6d;--az:#3b82f6;--am:#fbbf24;--tx:#e6f1ff;--su:#8fb3d9;--bg:#00203F;--pan:#071a33;--card:#0b3a6b;--ln:#16365c}
 *{box-sizing:border-box;margin:0}
 html,body{height:100%}
-body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--tx);display:flex;flex-direction:column;height:100dvh;overflow:hidden;padding:8px clamp(8px,2vw,16px)}
+body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:radial-gradient(circle at 20% 0%,#05305e,#00203F 60%);color:var(--tx);display:flex;flex-direction:column;height:100dvh;overflow:hidden;padding:8px clamp(8px,2vw,16px)}
 header{display:flex;align-items:center;gap:8px;margin-bottom:6px}
-h1{font-size:clamp(14px,2.2vw,19px);flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.btn{border:1px solid #d9d2f3;background:#fff;color:var(--m);border-radius:999px;padding:5px 11px;font-size:13px;font-weight:600;cursor:pointer;text-decoration:none;white-space:nowrap;font-family:inherit}
-.btn.on{background:var(--m);color:#fff;border-color:var(--m)}
+h1{font-size:clamp(14px,2.2vw,19px);flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#fff}
+.btn{border:1px solid var(--mn);background:transparent;color:var(--mn);border-radius:999px;padding:5px 11px;font-size:13px;font-weight:600;cursor:pointer;text-decoration:none;white-space:nowrap;font-family:inherit}
+.btn:hover,.btn.on{background:var(--mn);color:#00203F;box-shadow:0 0 12px rgba(54,236,222,.55)}
 .todo{flex:1;min-height:0;display:grid;grid-template-columns:1.35fr 1fr;gap:clamp(6px,1.2vw,14px)}
-/* simulador */
-.sim{background:var(--card);border:2px solid var(--m);border-radius:14px;padding:8px 10px;display:flex;flex-direction:column;min-height:0}
+.sim{background:var(--pan);border:1.5px solid var(--mn);box-shadow:0 0 18px rgba(54,236,222,.25);border-radius:14px;padding:8px 10px;display:flex;flex-direction:column;min-height:0}
 .simtop{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
-.fn{font-size:clamp(17px,2.6vw,24px);font-weight:800;color:var(--m)}
+.fn{font-size:clamp(17px,2.6vw,24px);font-weight:800;color:var(--mn);text-shadow:0 0 10px rgba(54,236,222,.6)}
 .dr{font-size:clamp(12px,1.7vw,15px);font-weight:700}
-.dr .d{color:var(--vd)} .dr .r{color:var(--rj)}
+.dr .d{color:var(--vd)} .dr .r{color:var(--rs)}
 #lienzo{flex:1;min-height:0;width:100%}
 .lect{display:flex;gap:12px;align-items:center;flex-wrap:wrap;font-size:clamp(13px,1.9vw,17px);min-height:1.6em}
 .lect .x{color:var(--vd);font-weight:700}
-.lect .y{color:var(--rj);font-weight:700}
+.lect .y{color:var(--rs);font-weight:700}
 .lect .no{color:var(--rj);font-weight:700}
 .ctrl{display:flex;align-items:center;gap:8px;margin-top:4px}
-input[type=range]{flex:1;accent-color:var(--m);height:28px}
-.pista{font-size:12px;color:var(--su);margin-top:2px}
-/* tarjetas */
+input[type=range]{flex:1;accent-color:var(--mn);height:28px}
+.pista{font-size:12px;color:var(--am);margin-top:2px}
 .cards{display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);gap:clamp(5px,1vw,9px);min-height:0}
-.c{font:inherit;color:inherit;text-align:left;background:var(--card);border:2px solid var(--ln);border-radius:11px;padding:5px 7px;min-width:0;min-height:0;cursor:pointer;display:flex;flex-direction:column;justify-content:center;gap:1px;overflow:hidden}
-.c.sel{border-color:var(--m);background:#f3eefe;box-shadow:0 0 0 2px #e4dafc}
-.c .n{font-weight:800;font-size:clamp(13px,1.9vw,16px)}
+.c{font:inherit;color:inherit;text-align:left;background:var(--card);border:1.5px solid var(--ln);border-radius:11px;padding:5px 7px;min-width:0;min-height:0;cursor:pointer;display:flex;flex-direction:column;justify-content:center;gap:1px;overflow:hidden}
+.c:hover{border-color:#2b6cb0}
+.c.sel{border-color:var(--mn);background:#0d4a80;box-shadow:0 0 14px rgba(54,236,222,.45)}
+.c .n{font-weight:800;font-size:clamp(13px,1.9vw,16px);color:#fff}
 .c .d,.c .r{font-size:clamp(11px,1.6vw,14px);line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.c .d b{color:var(--vd)} .c .r b{color:var(--rj)}
+.c .d b{color:var(--vd)} .c .r b{color:var(--rs)}
 .c i{font-style:normal;font-weight:700}
-.c .d i{color:var(--vd)} .c .r i{color:var(--rj)}
-body.tapar .c i{color:transparent;background:#e9e5f7;border-radius:4px;display:inline-block;width:5.5em;vertical-align:middle}
-body.tapar .dr i{color:transparent;background:#e9e5f7;border-radius:4px;display:inline-block;width:5.5em;vertical-align:middle}
-body.tapar.ver .dr i,body.tapar.ver .c.sel i{color:inherit;background:none;width:auto}
-body.tapar.ver .c.sel .d i{color:var(--vd)} body.tapar.ver .c.sel .r i{color:var(--rj)}
-footer{font-size:12px;color:var(--rj);font-weight:600;text-align:center;margin-top:6px}
+.c .d i{color:var(--vd)} .c .r i{color:var(--rs)}
+body.tapar .c i,body.tapar .dr i{color:transparent;background:#16365c;border-radius:4px;display:inline-block;width:5.5em;vertical-align:middle}
+body.tapar.ver .dr i,body.tapar.ver .c.sel i{background:none;width:auto}
+body.tapar.ver .dr .d i,body.tapar.ver .c.sel .d i{color:var(--vd)} body.tapar.ver .dr .r i,body.tapar.ver .c.sel .r i{color:var(--rs)}
+footer{font-size:12px;color:var(--am);font-weight:600;text-align:center;margin-top:6px}
 @media (max-width:760px){
  .todo{grid-template-columns:1fr;grid-template-rows:1.25fr 1fr}
  .pista{display:none}
@@ -49,7 +47,7 @@ footer{font-size:12px;color:var(--rj);font-weight:600;text-align:center;margin-t
 <div class="todo">
  <section class="sim">
   <div class="simtop"><span class="fn" id="fn">sen x</span><span class="dr"><span class="d">D = <i id="dd"></i></span> · <span class="r">R = <i id="rr"></i></span></span></div>
-  <svg id="lienzo" viewBox="0 0 400 230" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Gráfica de la función con el punto que se mueve"></svg>
+  <svg id="lienzo" viewBox="0 0 400 230" style="border-radius:10px" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Gráfica de la función con el punto que se mueve"></svg>
   <div class="lect" id="lect"></div>
   <div class="ctrl"><button class="btn" id="play" type="button">▶ Recorrer</button><input type="range" id="barra" min="0" max="1000" value="500" aria-label="Mueve x"></div>
   <p class="pista" id="pista"></p>
@@ -60,8 +58,8 @@ footer{font-size:12px;color:var(--rj);font-weight:600;text-align:center;margin-t
 <script>
 const PI=Math.PI;
 const F=[
- {k:'sen',n:'sen x',f:Math.sin,x:[-7,7],y:[-1.8,1.8],D:'ℝ',R:'[−1, 1]',ok:x=>true,hy:[1,-1],tx:[[PI,'π'],[-PI,'−π']],ty:[[1,'1'],[-1,'−1']],dom:[[null,null,1,1]],rec:[[-1,1,1,1]],p:'Mete cualquier x. Lo que sale nunca pasa de 1 ni baja de −1.'},
- {k:'cos',n:'cos x',f:Math.cos,x:[-7,7],y:[-1.8,1.8],D:'ℝ',R:'[−1, 1]',ok:x=>true,hy:[1,-1],tx:[[PI,'π'],[-PI,'−π']],ty:[[1,'1'],[-1,'−1']],dom:[[null,null,1,1]],rec:[[-1,1,1,1]],p:'Igual que el seno, pero empieza arriba: cos 0 = 1.'},
+ {k:'sen',n:'sen x',f:Math.sin,x:[-7,7],y:[-1.8,1.8],D:'ℝ',R:'[−1, 1]',ok:x=>true,ct:[1,-1],tx:[[PI,'π'],[-PI,'−π']],ty:[[1,'1'],[-1,'−1']],dom:[[null,null,1,1]],rec:[[-1,1,1,1]],p:'Mete cualquier x. Lo que sale nunca pasa de 1 ni baja de −1.'},
+ {k:'cos',n:'cos x',f:Math.cos,x:[-7,7],y:[-1.8,1.8],D:'ℝ',R:'[−1, 1]',ok:x=>true,ct:[1,-1],tx:[[PI,'π'],[-PI,'−π']],ty:[[1,'1'],[-1,'−1']],dom:[[null,null,1,1]],rec:[[-1,1,1,1]],p:'Igual que el seno, pero empieza arriba: cos 0 = 1.'},
  {k:'tg',n:'tg x',f:Math.tan,x:[-4.7,4.7],y:[-4,4],D:'ℝ − {π/2 + kπ}',R:'ℝ',ok:x=>Math.abs(Math.cos(x))>1e-9,vx:[-3*PI/2,-PI/2,PI/2,3*PI/2],tx:[[PI/2,'π/2'],[-PI/2,'−π/2']],ty:[],dom:[[null,-PI/2,0,0],[-PI/2,PI/2,0,0],[PI/2,null,0,0]],rec:[[null,null,1,1]],p:'Acerca la barra a π/2 ≈ 1,57: la tangente se dispara hacia arriba o hacia abajo.'},
  {k:'arcsen',n:'arcsen x',f:Math.asin,x:[-2,2],y:[-2,2],D:'[−1, 1]',R:'[−π/2, π/2]',ok:x=>Math.abs(x)<=1+1e-9,tx:[[1,'1'],[-1,'−1']],ty:[[PI/2,'π/2'],[-PI/2,'−π/2']],dom:[[-1,1,1,1]],rec:[[-PI/2,PI/2,1,1]],p:'Lleva la barra más allá de 1: arcsen(1,5) no existe.'},
  {k:'arccos',n:'arccos x',f:Math.acos,x:[-2,2],y:[-0.6,3.6],D:'[−1, 1]',R:'[0, π]',ok:x=>Math.abs(x)<=1+1e-9,tx:[[1,'1'],[-1,'−1']],ty:[[PI,'π']],dom:[[-1,1,1,1]],rec:[[0,PI,1,1]],p:'Sale de 0 a π: siempre positivo. Fuera de [−1, 1] no existe.'},
@@ -71,7 +69,7 @@ const F=[
  {k:'inv',n:'1/x',f:x=>1/x,x:[-5,5],y:[-5,5],D:'ℝ − {0}',R:'ℝ − {0}',ok:x=>Math.abs(x)>1e-9,vx:[0],hy:[0],tx:[[1,'1']],ty:[[1,'1']],dom:[[null,0,0,0],[0,null,0,0]],rec:[[null,0,0,0],[0,null,0,0]],p:'Pon la barra justo en 0: 1/0 no existe. Y nunca sale 0.'}
 ];
 const $=id=>document.getElementById(id), S=$('lienzo'), barra=$('barra');
-const W=400,H=230,X0=34,X1=390,Y0=10,Y1=220;
+const W=400,H=230,X0=14,X1=390,Y0=10,Y1=220;
 let cur=F[0], anim=null, dir=1;
 const fmt=v=>{if(!isFinite(v))return '∞';const r=Math.round(v*100)/100;return (Object.is(r,-0)?0:r).toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2})};
 function sx(x){return X0+(x-cur.x[0])/(cur.x[1]-cur.x[0])*(X1-X0)}
@@ -89,32 +87,42 @@ function camino(hasta){
 function barras(){
  let s='',ox=sx(Math.max(cur.x[0],Math.min(cur.x[1],0))),oy=sy(Math.max(cur.y[0],Math.min(cur.y[1],0)));
  const pts=[];
- for(const[a,b,ca,cb]of cur.dom){const A=a==null?X0:sx(a),B=b==null?X1:sx(b);s+=`<line x1="${A}" y1="${oy}" x2="${B}" y2="${oy}" stroke="#16a34a" stroke-width="6" stroke-opacity=".35"/>`;
-  if(a!=null)pts.push([A,oy,ca,'#16a34a']); if(b!=null)pts.push([B,oy,cb,'#16a34a'])}
- for(const[a,b,ca,cb]of cur.rec){const A=a==null?Y1:sy(a),B=b==null?Y0:sy(b);s+=`<line x1="${ox}" y1="${A}" x2="${ox}" y2="${B}" stroke="#ef4444" stroke-width="6" stroke-opacity=".35"/>`;
-  if(a!=null)pts.push([ox,A,ca,'#ef4444']); if(b!=null)pts.push([ox,B,cb,'#ef4444'])}
- for(const[x,y,c,col]of pts)s+=`<circle cx="${x}" cy="${y}" r="3.5" fill="${c?col:'#fff'}" stroke="${col}" stroke-width="1.6"/>`;
+ for(const[a,b,ca,cb]of cur.dom){const A=a==null?X0:sx(a),B=b==null?X1:sx(b);s+=`<line x1="${A}" y1="${oy}" x2="${B}" y2="${oy}" stroke="#22e39a" stroke-width="7" stroke-opacity=".35"/>`;
+  if(a!=null)pts.push([A,oy,ca,'#22e39a']); if(b!=null)pts.push([B,oy,cb,'#22e39a'])}
+ for(const[a,b,ca,cb]of cur.rec){const A=a==null?Y1:sy(a),B=b==null?Y0:sy(b);s+=`<line x1="${ox}" y1="${A}" x2="${ox}" y2="${B}" stroke="#ec4899" stroke-width="7" stroke-opacity=".35"/>`;
+  if(a!=null)pts.push([ox,A,ca,'#ec4899']); if(b!=null)pts.push([ox,B,cb,'#ec4899'])}
+ for(const[x,y,c,col]of pts)s+=`<circle cx="${x}" cy="${y}" r="3.5" fill="${c?col:'#071a33'}" stroke="${col}" stroke-width="1.6"/>`;
+ return s}
+const DEFS=`<defs><linearGradient id="gc" x1="0" x2="1" y1="0" y2="0"><stop offset="0" stop-color="#36ECDE"/><stop offset=".5" stop-color="#3b82f6"/><stop offset="1" stop-color="#a855f7"/></linearGradient><filter id="br" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="2.2"/></filter><filter id="br2" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="3.5"/></filter></defs>`;
+function rejilla(){let s=`<rect x="0" y="0" width="${W}" height="${H}" fill="#071a33"/>`;
+ const xs=Math.ceil(cur.x[0]),xe=Math.floor(cur.x[1]),ys=Math.ceil(cur.y[0]),ye=Math.floor(cur.y[1]);
+ const pasoX=(xe-xs)>10?2:1;
+ for(let v=xs;v<=xe;v+=pasoX)s+=`<line x1="${sx(v)}" y1="${Y0}" x2="${sx(v)}" y2="${Y1}" stroke="#16365c" stroke-width="1"/>`;
+ for(let v=ys;v<=ye;v++)s+=`<line x1="${X0}" y1="${sy(v)}" x2="${X1}" y2="${sy(v)}" stroke="#16365c" stroke-width="1"/>`;
  return s}
 function dibuja(){
  const x=xval(), ok=cur.ok(x), y=ok?cur.f(x):NaN;
  const ox=sx(Math.max(cur.x[0],Math.min(cur.x[1],0))), oy=sy(Math.max(cur.y[0],Math.min(cur.y[1],0)));
- let s=`<line x1="${X0}" y1="${oy}" x2="${X1}" y2="${oy}" stroke="#999"/><line x1="${ox}" y1="${Y0}" x2="${ox}" y2="${Y1}" stroke="#999"/>`;
- for(const a of cur.vx||[])s+=`<line x1="${sx(a)}" y1="${Y0}" x2="${sx(a)}" y2="${Y1}" stroke="#3b82f6" stroke-dasharray="4 3"/>`;
- for(const a of cur.hy||[])s+=`<line x1="${X0}" y1="${sy(a)}" x2="${X1}" y2="${sy(a)}" stroke="#3b82f6" stroke-dasharray="4 3"/>`;
+ let s=DEFS+rejilla();
+ s+=`<g stroke="#3b82f6" stroke-width="1.6"><line x1="${X0}" y1="${oy}" x2="${X1}" y2="${oy}" filter="url(#br)" opacity=".7"/><line x1="${ox}" y1="${Y0}" x2="${ox}" y2="${Y1}" filter="url(#br)" opacity=".7"/><line x1="${X0}" y1="${oy}" x2="${X1}" y2="${oy}"/><line x1="${ox}" y1="${Y0}" x2="${ox}" y2="${Y1}"/></g>`;
+ for(const a of cur.vx||[])s+=`<line x1="${sx(a)}" y1="${Y0}" x2="${sx(a)}" y2="${Y1}" stroke="#ff4d6d" stroke-width="1.5" stroke-dasharray="5 4"/>`;
+ for(const a of cur.hy||[])s+=`<line x1="${X0}" y1="${sy(a)}" x2="${X1}" y2="${sy(a)}" stroke="#ff4d6d" stroke-width="1.5" stroke-dasharray="5 4"/>`;
+ for(const a of cur.ct||[])s+=`<line x1="${X0}" y1="${sy(a)}" x2="${X1}" y2="${sy(a)}" stroke="#3b82f6" stroke-width="1.3" stroke-dasharray="5 4"/>`;
  s+=barras();
- s+=`<clipPath id="cl"><rect x="${X0}" y="${Y0-6}" width="${X1-X0}" height="${Y1-Y0+12}"/></clipPath><g clip-path="url(#cl)"><path d="${camino(null)}" fill="none" stroke="#c4b5fd" stroke-width="2"/><path d="${camino(x)}" fill="none" stroke="#7c3aed" stroke-width="3"/></g>`;
- for(const[v,t]of cur.tx)s+=`<text x="${sx(v)}" y="${oy+14}" font-size="11" fill="#555" text-anchor="middle" stroke="#fff" stroke-width="3" paint-order="stroke">${t}</text>`;
- for(const[v,t]of cur.ty)s+=`<text x="${ox-6}" y="${sy(v)+4}" font-size="11" fill="#555" text-anchor="end" stroke="#fff" stroke-width="3" paint-order="stroke">${t}</text>`;
+ const todo=camino(null), hecho=camino(x);
+ s+=`<clipPath id="cl"><rect x="${X0}" y="${Y0-6}" width="${X1-X0}" height="${Y1-Y0+12}"/></clipPath><g clip-path="url(#cl)" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="${todo}" stroke="#36ECDE" stroke-opacity=".22" stroke-width="2"/><path d="${hecho}" stroke="url(#gc)" stroke-width="8" opacity=".55" filter="url(#br2)"/><path d="${hecho}" stroke="url(#gc)" stroke-width="3.5"/><path d="${hecho}" stroke="#fff" stroke-width="1" opacity=".85"/></g>`;
+ for(const[v,t]of cur.tx)s+=`<text x="${sx(v)}" y="${oy+15}" font-size="12" fill="#fff" text-anchor="middle" stroke="#071a33" stroke-width="3" paint-order="stroke">${t}</text>`;
+ for(const[v,t]of cur.ty)s+=`<text x="${ox-10}" y="${sy(v)+4}" font-size="12" fill="#fff" text-anchor="end" stroke="#071a33" stroke-width="3" paint-order="stroke">${t}</text>`;
  const px=sx(x);
  if(ok&&isFinite(y)){
   const vis=y>=cur.y[0]&&y<=cur.y[1], py=sy(Math.max(cur.y[0],Math.min(cur.y[1],y)));
-  s+=`<line x1="${px}" y1="${oy}" x2="${px}" y2="${py}" stroke="#16a34a" stroke-dasharray="3 3"/><line x1="${px}" y1="${py}" x2="${ox}" y2="${py}" stroke="#ef4444" stroke-dasharray="3 3"/>`;
-  s+=`<circle cx="${px}" cy="${oy}" r="5" fill="#16a34a"/>`;
-  if(vis){s+=`<circle cx="${ox}" cy="${py}" r="5" fill="#ef4444"/><circle cx="${px}" cy="${py}" r="7" fill="#7c3aed" stroke="#fff" stroke-width="2"/>`}
-  else s+=`<text x="${px}" y="${y>0?Y0+12:Y1-4}" font-size="16" fill="#7c3aed" text-anchor="middle">${y>0?'↑':'↓'}</text>`;
+  s+=`<line x1="${px}" y1="${oy}" x2="${px}" y2="${py}" stroke="#22e39a" stroke-width="1.4" stroke-dasharray="3 3"/><line x1="${px}" y1="${py}" x2="${ox}" y2="${py}" stroke="#ec4899" stroke-width="1.4" stroke-dasharray="3 3"/>`;
+  s+=`<circle cx="${px}" cy="${oy}" r="7" fill="#22e39a" opacity=".5" filter="url(#br)"/><circle cx="${px}" cy="${oy}" r="4.5" fill="#22e39a"/>`;
+  if(vis){s+=`<circle cx="${ox}" cy="${py}" r="7" fill="#ec4899" opacity=".5" filter="url(#br)"/><circle cx="${ox}" cy="${py}" r="4.5" fill="#ec4899"/><circle cx="${px}" cy="${py}" r="11" fill="#36ECDE" opacity=".55" filter="url(#br2)"/><circle cx="${px}" cy="${py}" r="6" fill="#fff" stroke="#36ECDE" stroke-width="2.5"/>`}
+  else s+=`<text x="${px}" y="${y>0?Y0+14:Y1-4}" font-size="18" fill="#fbbf24" text-anchor="middle" font-weight="bold">${y>0?'↑':'↓'}</text>`;
   $('lect').innerHTML=`<span class="x">entra x = ${fmt(x)}</span><span>→</span><span class="y">sale y = ${Math.abs(y)>9999?(y>0?'muy grande (+∞)':'muy negativo (−∞)'):fmt(y)}</span>`;
  }else{
-  s+=`<line x1="${px}" y1="${Y0}" x2="${px}" y2="${Y1}" stroke="#ef4444" stroke-width="1.5" stroke-dasharray="2 3"/><text x="${px}" y="${oy-8}" font-size="18" fill="#ef4444" text-anchor="middle" font-weight="bold">✕</text>`;
+  s+=`<line x1="${px}" y1="${Y0}" x2="${px}" y2="${Y1}" stroke="#ff4d6d" stroke-width="1.5" stroke-dasharray="2 3"/><text x="${px}" y="${oy-8}" font-size="20" fill="#ff4d6d" text-anchor="middle" font-weight="bold" stroke="#071a33" stroke-width="3" paint-order="stroke">✕</text>`;
   $('lect').innerHTML=`<span class="x">x = ${fmt(x)}</span><span class="no">❌ no se puede meter: no está en el dominio ${cur.D}</span>`;
  }
  S.innerHTML=s;
