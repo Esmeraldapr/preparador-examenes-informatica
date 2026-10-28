@@ -49,6 +49,12 @@ function clYoutubeId(url) {
   return m ? m[1] : null;
 }
 
+/** Segundo en el que empieza el vídeo si la URL lleva t=… (p. ej. t=85s o t=1m25s). 0 si no. */
+function clYoutubeDesde(url) {
+  const m = String(url || "").match(/[?&#](?:t|start)=(?:(\d+)m)?(\d+)s?/);
+  return m ? (parseInt(m[1] || "0", 10) * 60 + parseInt(m[2], 10)) : 0;
+}
+
 /**
  * Vídeos o enlaces que el profe puso EN una diapositiva. Van en `clases.enlaces`
  * con el campo `imagen` = la misma ruta de la diapositiva (p. ej. "img/ffe-clase3-diapo-05-biot-savart.jpg").
@@ -64,7 +70,7 @@ function clEnlacesBajo(lista) {
         <div class="cl-vd-tit">${icono}: <b>${clEsc(e.titulo || "")}</b></div>
         ${e.para_que ? `<div class="cl-vd-para">${clEsc(e.para_que)}</div>` : ""}
         <div class="cl-vd-botones">
-          ${yt ? `<button type="button" class="btn btn-primario cl-vd-ver" data-yt="${clEsc(yt)}">▶ Verlo aquí</button>` : ""}
+          ${yt ? `<button type="button" class="btn btn-primario cl-vd-ver" data-yt="${clEsc(yt)}" data-desde="${clYoutubeDesde(e.url)}">▶ Verlo aquí${clYoutubeDesde(e.url) ? ` (desde el ${Math.floor(clYoutubeDesde(e.url) / 60)}:${String(clYoutubeDesde(e.url) % 60).padStart(2, "0")})` : ""}</button>` : ""}
           <a class="btn btn-secundario" href="${clEsc(e.url)}" target="_blank" rel="noopener">${yt ? "Abrir en YouTube ↗" : "Abrir enlace ↗"}</a>
         </div>
         <div class="cl-vd-player"></div>
@@ -80,10 +86,11 @@ document.addEventListener("click", (ev) => {
   const caja = b.closest(".cl-vd").querySelector(".cl-vd-player");
   if (caja.innerHTML) {
     caja.innerHTML = "";
-    b.textContent = "▶ Verlo aquí";
+    b.textContent = b.dataset.texto || "▶ Verlo aquí";
     return;
   }
-  caja.innerHTML = `<iframe src="https://www.youtube-nocookie.com/embed/${encodeURIComponent(b.dataset.yt)}?autoplay=1&rel=0" title="Vídeo" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe>`;
+  b.dataset.texto = b.textContent;
+  caja.innerHTML = `<iframe src="https://www.youtube-nocookie.com/embed/${encodeURIComponent(b.dataset.yt)}?autoplay=1&rel=0${Number(b.dataset.desde) ? `&start=${Number(b.dataset.desde)}` : ""}" title="Vídeo" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe>`;
   b.textContent = "✖ Cerrar el vídeo";
 });
 
@@ -106,7 +113,7 @@ function clPintar(texto, porImagen = {}) {
       }
       if ((m = b.match(/^!\[([^\]]*)\]\(([^)]+)\)$/))) {
         // Las fichas del profesor (diapositivas apaisadas) se ven más grandes.
-        const ancha = /mapa|\/clases\//.test(m[2]) ? " tm-ancha" : "";
+        const ancha = /mapa|\/clases\/|-diapo-/.test(m[2]) ? " tm-ancha" : "";
         return `<figure class="tm-fig${ancha}"><img class="ampliable" loading="lazy" src="${clEsc(m[2])}" alt="${clEsc(m[1])}" title="Pulsa para ver en grande" /><figcaption ${leible()} data-voz="${clEsc("Imagen. " + clVoz(m[1]))}">${clEsc(m[1])}</figcaption></figure>${clEnlacesBajo(porImagen[m[2]])}`;
       }
       if (b.startsWith("$ ")) {

@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 250" font-family="Arial, sans-serif">
+<rect width="600" height="250" fill="#ffffff"/>
+<defs><marker id="c4fa" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#3b82f6"/></marker></defs>
+<text x="300" y="20" text-anchor="middle" font-size="15" font-weight="bold" fill="#333">El mismo imán (B = 0,2 T) y la misma espira (S = 0,5 m²)</text>
+<g transform="translate(100,0)">
+<line x1="-45" y1="70" x2="45" y2="70" stroke="#3b82f6" stroke-width="2" marker-end="url(#c4fa)"/>
+<line x1="-45" y1="100" x2="45" y2="100" stroke="#3b82f6" stroke-width="2" marker-end="url(#c4fa)"/>
+<line x1="-45" y1="130" x2="45" y2="130" stroke="#3b82f6" stroke-width="2" marker-end="url(#c4fa)"/>
+<ellipse cx="0" cy="100" rx="9" ry="42" fill="none" stroke="#7c3aed" stroke-width="4"/>
+<text x="0" y="168" text-anchor="middle" font-size="13" fill="#333">Espira de frente</text>
+<text x="0" y="186" text-anchor="middle" font-size="13" fill="#333">θ = 0° → cos 0° = 1</text>
+<text x="0" y="206" text-anchor="middle" font-size="13" fill="#333">Φ = 0,2 · 0,5 · 1</text>
+<text x="0" y="230" text-anchor="middle" font-size="15" font-weight="bold" fill="#16a34a">Φ = 0,1 Wb (el máximo)</text>
+</g>
+<g transform="translate(300,0)">
+<line x1="-45" y1="70" x2="45" y2="70" stroke="#3b82f6" stroke-width="2" marker-end="url(#c4fa)"/>
+<line x1="-45" y1="100" x2="45" y2="100" stroke="#3b82f6" stroke-width="2" marker-end="url(#c4fa)"/>
+<line x1="-45" y1="130" x2="45" y2="130" stroke="#3b82f6" stroke-width="2" marker-end="url(#c4fa)"/>
+<ellipse cx="0" cy="100" rx="9" ry="42" fill="none" stroke="#7c3aed" stroke-width="4" transform="rotate(60 0 100)"/>
+<text x="0" y="168" text-anchor="middle" font-size="13" fill="#333">Espira inclinada</text>
+<text x="0" y="186" text-anchor="middle" font-size="13" fill="#333">θ = 60° → cos 60° = 0,5</text>
+<text x="0" y="206" text-anchor="middle" font-size="13" fill="#333">Φ = 0,2 · 0,5 · 0,5</text>
+<text x="0" y="230" text-anchor="middle" font-size="15" font-weight="bold" fill="#7c3aed">Φ = 0,05 Wb (la mitad)</text>
+</g>
+<g transform="translate(500,0)">
+<line x1="-45" y1="70" x2="45" y2="70" stroke="#3b82f6" stroke-width="2" marker-end="url(#c4fa)"/>
+<line x1="-45" y1="100" x2="45" y2="100" stroke="#3b82f6" stroke-width="2" marker-end="url(#c4fa)"/>
+<line x1="-45" y1="130" x2="45" y2="130" stroke="#3b82f6" stroke-width="2" marker-end="url(#c4fa)"/>
+<ellipse cx="0" cy="100" rx="9" ry="42" fill="none" stroke="#7c3aed" stroke-width="4" transform="rotate(90 0 100)"/>
+<text x="0" y="168" text-anchor="middle" font-size="13" fill="#333">Espira de canto</text>
+<text x="0" y="186" text-anchor="middle" font-size="13" fill="#333">θ = 90° → cos 90° = 0</text>
+<text x="0" y="206" text-anchor="middle" font-size="13" fill="#333">Φ = 0,2 · 0,5 · 0</text>
+<text x="0" y="230" text-anchor="middle" font-size="14" font-weight="bold" fill="#ef4444">Φ = 0 (no la cruza nada)</text>
+</g>
+</svg>
