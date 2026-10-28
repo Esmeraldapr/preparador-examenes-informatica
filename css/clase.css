@@ -21,3 +21,12 @@
   /* En el móvil, una ficha por fila: son diapositivas apaisadas con letra pequeña. */
   .cl-rejilla{grid-template-columns:1fr;gap:12px;}
 }
+
+/* Vídeo o enlace que el profe puso en una diapositiva: sale justo debajo de ella. */
+.cl-vd{margin:6px 0 16px;padding:10px 12px;border:2px solid #7c3aed;border-radius:12px;background:#f5f3ff;}
+.cl-ficha .cl-vd{margin:0 8px 10px;}
+.cl-vd-tit{font-size:.98rem;line-height:1.35;color:#3b0764;}
+.cl-vd-para{margin:4px 0 8px;font-size:.9rem;color:var(--texto-suave,#6b7280);}
+.cl-vd-botones{display:flex;flex-wrap:wrap;gap:8px;}
+.cl-vd-player:not(:empty){margin-top:10px;position:relative;width:100%;aspect-ratio:16/9;}
+.cl-vd-player iframe{position:absolute;inset:0;width:100%;height:100%;border:0;border-radius:10px;}

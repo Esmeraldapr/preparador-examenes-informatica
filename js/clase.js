@@ -43,8 +43,52 @@ const CL_TIPOS_NOTA = [
   [/^v[ií]deo|^viaja/i, "tm-video"],
 ];
 
+/** Id de YouTube de una URL (o null si no es de YouTube). */
+function clYoutubeId(url) {
+  const m = String(url || "").match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/))([\w-]{11})/);
+  return m ? m[1] : null;
+}
+
+/**
+ * Vídeos o enlaces que el profe puso EN una diapositiva. Van en `clases.enlaces`
+ * con el campo `imagen` = la misma ruta de la diapositiva (p. ej. "img/ffe-clase3-diapo-05-biot-savart.jpg").
+ * Salen justo debajo de esa diapositiva, con botón para verlo ahí mismo.
+ */
+function clEnlacesBajo(lista) {
+  if (!lista || !lista.length) return "";
+  return lista
+    .map((e) => {
+      const yt = clYoutubeId(e.url);
+      const icono = e.tipo === "video" || yt ? "🎬 Vídeo de esta diapositiva" : "🔗 Enlace de esta diapositiva";
+      return `<div class="cl-vd">
+        <div class="cl-vd-tit">${icono}: <b>${clEsc(e.titulo || "")}</b></div>
+        ${e.para_que ? `<div class="cl-vd-para">${clEsc(e.para_que)}</div>` : ""}
+        <div class="cl-vd-botones">
+          ${yt ? `<button type="button" class="btn btn-primario cl-vd-ver" data-yt="${clEsc(yt)}">▶ Verlo aquí</button>` : ""}
+          <a class="btn btn-secundario" href="${clEsc(e.url)}" target="_blank" rel="noopener">${yt ? "Abrir en YouTube ↗" : "Abrir enlace ↗"}</a>
+        </div>
+        <div class="cl-vd-player"></div>
+      </div>`;
+    })
+    .join("");
+}
+
+// Pulsar «▶ Verlo aquí» mete el vídeo debajo de la diapositiva (y lo quita si se vuelve a pulsar).
+document.addEventListener("click", (ev) => {
+  const b = ev.target.closest(".cl-vd-ver");
+  if (!b) return;
+  const caja = b.closest(".cl-vd").querySelector(".cl-vd-player");
+  if (caja.innerHTML) {
+    caja.innerHTML = "";
+    b.textContent = "▶ Verlo aquí";
+    return;
+  }
+  caja.innerHTML = `<iframe src="https://www.youtube-nocookie.com/embed/${encodeURIComponent(b.dataset.yt)}?autoplay=1&rel=0" title="Vídeo" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe>`;
+  b.textContent = "✖ Cerrar el vídeo";
+});
+
 /** Convierte el texto del tema en HTML. Devuelve { html, indice }. */
-function clPintar(texto) {
+function clPintar(texto, porImagen = {}) {
   const indice = [];
   let n = 0;
   const leible = (extra) => `class="tm-leible${extra ? " " + extra : ""}" title="Pulsa para escuchar desde aquí"`;
@@ -63,7 +107,7 @@ function clPintar(texto) {
       if ((m = b.match(/^!\[([^\]]*)\]\(([^)]+)\)$/))) {
         // Las fichas del profesor (diapositivas apaisadas) se ven más grandes.
         const ancha = /mapa|\/clases\//.test(m[2]) ? " tm-ancha" : "";
-        return `<figure class="tm-fig${ancha}"><img class="ampliable" loading="lazy" src="${clEsc(m[2])}" alt="${clEsc(m[1])}" title="Pulsa para ver en grande" /><figcaption ${leible()} data-voz="${clEsc("Imagen. " + clVoz(m[1]))}">${clEsc(m[1])}</figcaption></figure>`;
+        return `<figure class="tm-fig${ancha}"><img class="ampliable" loading="lazy" src="${clEsc(m[2])}" alt="${clEsc(m[1])}" title="Pulsa para ver en grande" /><figcaption ${leible()} data-voz="${clEsc("Imagen. " + clVoz(m[1]))}">${clEsc(m[1])}</figcaption></figure>${clEnlacesBajo(porImagen[m[2]])}`;
       }
       if (b.startsWith("$ ")) {
         const [exp, lee] = b.slice(2).split("::").map((x) => x.trim());
@@ -148,7 +192,12 @@ function resumenRepaso(texto) {
     .eq("clase_id", c.id)
     .order("orden");
 
-  const { html, indice } = clPintar(modoRepaso ? resumenRepaso(c.contenido) : c.contenido);
+  // Enlaces que van con una diapositiva concreta (campo `imagen`).
+  const porImagen = {};
+  for (const e of Array.isArray(c.enlaces) ? c.enlaces : []) {
+    if (e && e.imagen) (porImagen[e.imagen] = porImagen[e.imagen] || []).push(e);
+  }
+  const { html, indice } = clPintar(modoRepaso ? resumenRepaso(c.contenido) : c.contenido, porImagen);
 
   // ---- Datos de cabecera (unidad, día, profesor) ----
   const fecha = c.fecha
@@ -187,6 +236,7 @@ function resumenRepaso(texto) {
                   (f) => `<figure class="cl-ficha">
                     <img class="ampliable" loading="lazy" src="${clEsc(f.imagen_url)}" alt="${clEsc(f.titulo || "Ficha del profesor")}" title="Pulsa para ver en grande" />
                     <figcaption class="cl-pie"><span class="cl-num">${f.orden}</span>${clEsc(f.titulo || "")}${f.nota ? `<br/>${clEsc(f.nota)}` : ""}</figcaption>
+                    ${clEnlacesBajo(porImagen[f.imagen_url])}
                   </figure>`
                 )
                 .join("")}
@@ -204,9 +254,9 @@ function resumenRepaso(texto) {
         ${enlaces
           .map(
             (e) => `<div class="tm-enlace">
-              <div><b>${clEsc(e.titulo)}</b></div>
+              <div><b>${clEsc(e.titulo)}</b>${e.imagen ? ` <span class="subtitulo">· sale debajo de su diapositiva</span>` : ""}</div>
               ${e.para_que ? `<div class="subtitulo">${clEsc(e.para_que)}</div>` : ""}
-              <a class="btn btn-secundario" href="${clEsc(e.url)}" target="_blank" rel="noopener">${e.tipo === "video" ? "▶ Ver la grabación" : "Abrir enlace ↗"}</a>
+              <a class="btn btn-secundario" href="${clEsc(e.url)}" target="_blank" rel="noopener">${e.tipo === "video" ? (e.imagen ? "▶ Ver el vídeo" : "▶ Ver la grabación") : "Abrir enlace ↗"}</a>
             </div>`
           )
           .join("")}
