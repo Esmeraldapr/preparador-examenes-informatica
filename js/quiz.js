@@ -104,6 +104,8 @@ function claveProgreso() {
     extra = `examen_${params.get("examen_id") || ""}${params.get("n") ? "_n" + params.get("n") : ""}`;
   } else if (MODO === "plan") {
     extra = `plan_ud${params.get("ud") || ""}`;
+  } else if (MODO === "ids") {
+    extra = `ids_${params.get("ids") || ""}`;
   } else if (MODO === "pexamen") {
     extra = `pexamen_${new Date().toISOString().slice(0, 10)}`;
   } else if (MODO === "tema") {
@@ -252,11 +254,9 @@ function leerProgresoGuardado() {
     let { data } = await sb.from("preguntas").select("*").eq("examen_id", examenId).order("orden", { ascending: true });
     // &dadas=1 (simulacros de Mi plan): solo preguntas de las unidades que ya se han dado.
     if (params.get("dadas") === "1" && data) {
-      const [{ data: tc }, { data: cl }] = await Promise.all([
-        sb.from("tema_completo").select("unidad_num").eq("asignatura_id", ASIGNATURA_ID),
-        sb.from("clases").select("unidad_num").eq("asignatura_id", ASIGNATURA_ID),
-      ]);
-      const tope = Math.max(0, ...[...(tc || []), ...(cl || [])].map((x) => x.unidad_num || 0));
+      // Una unidad está «dada» cuando su temario (tema completo) está cargado.
+      const { data: tc } = await sb.from("tema_completo").select("unidad_num").eq("asignatura_id", ASIGNATURA_ID);
+      const tope = Math.max(0, ...(tc || []).map((x) => x.unidad_num || 0));
       const udDe = (p) => {
         const base = /^UD\d/.test(p.unidad || "") ? p.unidad : p.unidad_original || "";
         const m = /^UD(\d+)/.exec(base);
@@ -268,6 +268,13 @@ function leerProgresoGuardado() {
     // Con &n=8 (repasos de Mi plan): solo unas pocas preguntas al azar del examen.
     preguntas = cuantasEx > 0 ? mezclar(data || []).slice(0, cuantasEx) : noHechasPrimero(data || []);
     if (cuantasEx > 0) tituloModo = `🔁 Repaso: ${examen ? examen.nombre : "Cuestionario"}`;
+  } else if (modo === "ids") {
+    // Mi plan: preguntas FIJAS elegidas al hacer el plan (si no se hacen, al día siguiente salen las mismas).
+    const ids = (params.get("ids") || "").split(",").map((x) => parseInt(x, 10)).filter(Boolean);
+    tituloModo = params.get("titulo") || "📝 Preguntas";
+    const { data } = ids.length ? await sb.from("preguntas").select("*").in("id", ids) : { data: [] };
+    preguntas = ids.map((id) => (data || []).find((p) => p.id === id)).filter(Boolean);
+    examenOficialActual = false;
   } else if (modo === "fallos") {
     tituloModo = "🔁 Repaso de fallos";
     const { data: preguntasAsignatura } = await sb.from("preguntas").select("id").eq("asignatura_id", ASIGNATURA_ID);

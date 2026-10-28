@@ -17,6 +17,12 @@ function planDiasRepaso(dia) {
   while (planSumarDias(dia, k) <= PLAN_EXAMEN) { ks.push(k); k += PLAN_REPASO_LUEGO; }
   return ks;
 }
+// Minutos de estudio de cada día: fin de semana 5 h; teletrabajo (lunes, jueves y viernes) 4 h; el resto 3 h.
+const PLAN_TELETRABAJO = [1, 4, 5];
+function planMetaMin(f) {
+  const d = planDiaSemana(f);
+  return [0, 6].includes(d) ? 300 : PLAN_TELETRABAJO.includes(d) ? 240 : 180;
+}
 function planDiasHasta(desde, hasta) {
   return Math.round((new Date(hasta + "T12:00:00Z") - new Date(desde + "T12:00:00Z")) / 86400000);
 }
@@ -67,7 +73,26 @@ async function planCatalogo(asigId) {
   ]);
   const { data: ofis } = await sb.from("examenes").select("id, nombre").eq("asignatura_id", asigId).eq("tipo", "oficial").order("id");
   // Prácticas hechas con los ejercicios de las actividades/entregables (p. ej. «los 6 ejercicios de la actividad»).
-  const { data: acts } = await sb.from("examenes").select("id, nombre").eq("asignatura_id", asigId).eq("tipo", "practica").ilike("nombre", "%actividad%").order("id");
+  const { data: acts } = await sb.from("examenes").select("id, nombre").eq("asignatura_id", asigId).eq("tipo", "practica").or("nombre.ilike.%actividad%,nombre.ilike.%copias%").order("id");
+  // Tests de la universidad (no evaluables, evaluables y actividades del campus).
+  const { data: tuni } = await sb.from("examenes").select("id, nombre").eq("asignatura_id", asigId).eq("tipo", "cuestionario").order("id");
+  // Una unidad está «dada» cuando su temario está cargado (tema_completo).
+  const temaMax = Math.max(0, ...((te.data || []).map((t) => t.unidad_num || 0)));
+  const udDe = (q) => { const m = /^UD(\d+)/.exec(/^UD\d/.test(q.unidad || "") ? q.unidad : q.unidad_original || ""); return m ? parseInt(m[1], 10) : 999; };
+  const idsExamenes = [...(acts || []), ...(tuni || [])].map((e) => e.id);
+  const { data: pregs } = idsExamenes.length
+    ? await sb.from("preguntas").select("id, examen_id, unidad, unidad_original, orden").in("examen_id", idsExamenes).order("orden")
+    : { data: [] };
+  const preguntasDe = (exId) => (pregs || []).filter((q) => q.examen_id === exId);
+  // 🧮 Preguntas para practicar con la calculadora (solo Cálculo): extremos, recorrido, dominio, límites…
+  let calcIds = [];
+  if (asigId === 1) {
+    const { data: cq } = await sb.from("preguntas").select("id, unidad, unidad_original, examenes!inner(tipo)")
+      .eq("asignatura_id", 1).in("examenes.tipo", ["oficial", "cuestionario", "practica"])
+      .in("tipo_tarea", ["Extremos y monotonía", "Recorrido de una función", "Rango de una función", "Dominio de una función", "Asíntotas", "Cálculo de límites", "Criterio de la segunda derivada", "Continuidad y discontinuidades", "Teorema de Bolzano", "Propiedades de funciones", "Interpretación de la derivada"])
+      .order("id");
+    calcIds = (cq || []).filter((q) => udDe(q) <= temaMax).map((q) => q.id);
+  }
   const nombre = (as.data?.nombre || "").split(" ")[0];
   const unidades = new Set();
   (cl.data || []).forEach((c) => c.unidad_num && unidades.add(c.unidad_num));
@@ -103,7 +128,13 @@ async function planCatalogo(asigId) {
     });
   });
   items.oficiales = ofis || [];
+  // Actividades y copias: sus preguntas de unidades ya dadas, en orden, para ir sacando 2 al día.
   items.actividades = acts || [];
+  items.preguntasActividad = (acts || []).flatMap((e) => preguntasDe(e.id).filter((q) => udDe(q) <= temaMax).map((q) => ({ id: q.id, examen: e.nombre })));
+  // Tests de la universidad que solo tienen unidades ya dadas.
+  items.testsUni = (tuni || []).filter((e) => { const q = preguntasDe(e.id); return q.length && q.every((x) => udDe(x) <= temaMax); }).map((e) => ({ ...e, n: preguntasDe(e.id).length }));
+  items.calcIds = calcIds;
+  items.clasesFuncion = asigId === 1 ? (cl.data || []).filter((c) => c.numero >= 2).sort((a, b) => a.numero - b.numero) : [];
   items.unidadActual = Math.max(0, ...[...unidades]);
   return items;
 }
@@ -116,7 +147,8 @@ function planUrlRepaso(base, clave) {
 
 function planGenerar(hoy, catalogos, hechos, arrastre = []) {
   const finde = [0, 6].includes(planDiaSemana(hoy));
-  const presupuesto = finde ? 300 : 180;
+  const tele = PLAN_TELETRABAJO.includes(planDiaSemana(hoy));
+  const presupuesto = planMetaMin(hoy);
   const tareas = [];
   let usado = 0;
   // ⏪ Lo que quedó sin hacer el último día va primero: se acumula, no se pierde.
@@ -211,11 +243,15 @@ function planGenerar(hoy, catalogos, hechos, arrastre = []) {
     });
   });
   repasos.sort((a, b) => a.vence.localeCompare(b.vence));
+  // Si hay repasos atrasados (vencidos hace más de 2 días), se cuela algo más para ponerse al día,
+  // sin pasarse: 30 min más un día normal, 60 min en teletrabajo y fin de semana.
+  const atrasados = repasos.filter((r) => planDiasHasta(r.vence, hoy) > 2).reduce((m, r) => m + r.tarea.min, 0);
+  const extraAtraso = Math.min(atrasados, finde || tele ? 60 : 30);
   for (const r of repasos) {
     // Como mucho su parte del día; pero si lo nuevo ya ocupa mucho, al menos 2 repasos.
     const nRep = tareas.filter((t) => t.tipo === "repaso").length;
-    if (usado + r.tarea.min > presupuesto * parteRepaso + (garantizadas.size ? 60 : 0) && nRep >= 2) break;
-    if (nRep >= 2 && usado + r.tarea.min > presupuesto) break;
+    if (usado + r.tarea.min > presupuesto * parteRepaso + (garantizadas.size ? 60 : 0) + extraAtraso && nRep >= 2) break;
+    if (nRep >= 2 && usado + r.tarea.min > presupuesto + extraAtraso) break;
     tareas.push(r.tarea);
     usado += r.tarea.min;
   }
@@ -236,21 +272,67 @@ function planGenerar(hoy, catalogos, hechos, arrastre = []) {
       url: `quiz.html?asignatura=${a}&modo=pexamen&n=${n}&desde=plan&claveplan=${encodeURIComponent(clave)}`,
     });
     usado += Math.round(n * 1.2);
-    // 🧮 Y una o dos cuestiones sueltas de los ejercicios de las actividades (entregables), si hay.
-    const acts = (catalogos[a] || {}).actividades || [];
-    if (acts.length) {
-      const act = acts[planDiaDelAnio(hoy) % acts.length];
+    // 🧪 2 cuestiones nuevas de los ejercicios de las actividades y de las copias con otros números.
+    // Son preguntas FIJAS: si un día no se hacen, pasan al siguiente tal cual, y además salen 2 nuevas.
+    const pa = (catalogos[a] || {}).preguntasActividad || [];
+    const yaArrastradas = new Set(arrastre.filter((t) => /^act:/.test(t.clave)).flatMap((t) => t.ids || []));
+    const libres = pa.filter((q) => !yaArrastradas.has(q.id));
+    if (libres.length) {
+      const desde = (planDiaDelAnio(hoy) * 2) % libres.length;
+      const dos = [libres[desde], libres[(desde + 1) % libres.length]].filter((q, i, l) => l.findIndex((x) => x.id === q.id) === i);
       const claveA = `act:${a}:${hoy}`;
+      const tit = `2 cuestiones de práctica (${dos[0].examen.replace(/^Práctica de (la )?/, "").replace(/ \(preguntas creadas, no oficiales\)/, "")})`;
       tareas.push({
-        clave: claveA, tipo: "test", sub: "examen", asig: nombreA, asigId: a,
-        titulo: `2 cuestiones de los ejercicios de la actividad: ${act.nombre.replace(/^Práctica de /, "").replace(/ \(preguntas creadas, no oficiales\)/, "")}`,
-        min: 6,
-        url: `quiz.html?asignatura=${a}&modo=examen&examen_id=${act.id}&n=2&desde=plan&claveplan=${encodeURIComponent(claveA)}`,
+        clave: claveA, tipo: "test", sub: "practica", asig: nombreA, asigId: a, ids: dos.map((q) => q.id),
+        titulo: tit, min: 6,
+        url: `quiz.html?asignatura=${a}&modo=ids&ids=${dos.map((q) => q.id).join(",")}&titulo=${encodeURIComponent("🧪 " + tit)}&desde=plan&claveplan=${encodeURIComponent(claveA)}`,
       });
       usado += 6;
     }
   });
 
+  // 🎓 Un test de la universidad entero cada día (rotando asignatura y test): son los que mejor
+  // enseñan cómo pregunta el examen. Solo de unidades ya dadas.
+  {
+    const conTests = activas.filter((a) => ((catalogos[a] || {}).testsUni || []).length);
+    if (conTests.length && !arrastre.some((t) => /^tuni:/.test(t.clave))) {
+      const a = conTests[planDiaDelAnio(hoy) % conTests.length];
+      const lista = catalogos[a].testsUni;
+      const ex = lista[Math.floor(planDiaDelAnio(hoy) / conTests.length) % lista.length];
+      const clave = `tuni:${a}:${ex.id}:${hoy}`;
+      tareas.push({ clave, tipo: "test", sub: "test", asig: catalogos[a][0]?.asig || "", asigId: a,
+        titulo: `Test de la universidad entero: ${ex.nombre}`, min: Math.max(8, Math.round(ex.n * 1.2)),
+        url: `quiz.html?asignatura=${a}&modo=examen&examen_id=${ex.id}&desde=plan&claveplan=${encodeURIComponent(clave)}` });
+      usado += Math.max(8, Math.round(ex.n * 1.2));
+    }
+  }
+
+  // 🧮 Calculadora: 3 preguntas de Cálculo para resolver con la calculadora (con la guía impresa).
+  {
+    const ids = (catalogos[1] || {}).calcIds || [];
+    if (ids.length && !arrastre.some((t) => /^calc:/.test(t.clave))) {
+      const desde = (planDiaDelAnio(hoy) * 3) % ids.length;
+      const tres = [0, 1, 2].map((k) => ids[(desde + k) % ids.length]).filter((x, i, l) => l.indexOf(x) === i);
+      const clave = `calc:${hoy}`;
+      const tit = "Con la calculadora: 3 preguntas de Cálculo (usa la guía impresa)";
+      tareas.push({ clave, tipo: "test", sub: "calc", asig: catalogos[1][0]?.asig || "Cálculo", asigId: 1, ids: tres, titulo: tit, min: 15,
+        url: `quiz.html?asignatura=1&modo=ids&ids=${tres.join(",")}&titulo=${encodeURIComponent("🧮 " + tit)}&desde=plan&claveplan=${encodeURIComponent(clave)}` });
+      usado += 15;
+    }
+  }
+
+  // ✏️ Fines de semana: una función entera como las del profe de Cálculo en clase, con papel y calculadora.
+  if (finde && !arrastre.some((t) => /^func:/.test(t.clave))) {
+    const cls = (catalogos[1] || {}).clasesFuncion || [];
+    if (cls.length) {
+      const c = cls[Math.floor(planDiaDelAnio(hoy) / 7) % cls.length];
+      const clave = `func:${hoy}`;
+      tareas.push({ clave, tipo: "test", sub: "calc", asig: catalogos[1][0]?.asig || "Cálculo", asigId: 1,
+        titulo: `Estudio completo como en clase: rehaz tú sola el ejercicio de la Clase ${c.numero} (${c.titulo}) con papel y calculadora, y luego compara`,
+        min: 45, url: `clase.html?asignatura=1&clase=${c.numero}&claveplan=${encodeURIComponent(clave)}` });
+      usado += 45;
+    }
+  }
   // 🏁 Simulacro de examen oficial completo: los sábados; en las 3 últimas semanas, todos los días.
   if (faltan >= 0 && (planDiaSemana(hoy) === 6 || faltan <= 21)) {
     const asigSim = activas[(planDiaDelAnio(hoy) + 1) % activas.length];
@@ -428,6 +510,8 @@ const PLAN_GRUPOS = [
   ["repaso", "🔁", "repaso", "repasos"],
   ["cae", "🎯", "lo que más cae", "lo que más cae"],
   ["examen", "📝", "preguntas de examen", "preguntas de examen"],
+  ["practica", "🧪", "práctica", "prácticas"],
+  ["calc", "🧮", "calculadora", "calculadora"],
   ["simulacro", "🏁", "simulacro", "simulacros"],
   ["trabajo", "💼", "trabajo", "trabajos"],
 ];
@@ -538,7 +622,7 @@ function planTiempoTxt(seg) {
       // (Se salta los días en que solo se apuntaron trabajos durante una pausa.)
       const anterior = (dia || []).find((d) => d.fecha < hoy && d.tareas.some((t) => t.sub !== "trabajo"));
       const arrastre = anterior
-        ? anterior.tareas.filter((t) => !hechos.has(t.clave) && !/^(exa|act|sim|cae|trab):/.test(t.clave)).map((t) => ({ ...t, arrastrada: true }))
+        ? anterior.tareas.filter((t) => !hechos.has(t.clave) && !/^(exa|sim|cae|trab):/.test(t.clave)).map((t) => ({ ...t, arrastrada: true }))
         : [];
       const nuevas = planGenerar(hoy, catalogos, hechosSinHoy, arrastre).filter((t) => !previas.some((p) => p.clave === t.clave));
       const tareas = [...previas, ...nuevas];
@@ -564,7 +648,7 @@ function planTiempoTxt(seg) {
     const { data: tiempos } = await sb.from("plan_tiempo").select("fecha, segundos").order("fecha", { ascending: false }).limit(15);
     const tiempoDe = new Map((tiempos || []).map((x) => [x.fecha, x.segundos]));
     const segHoy = (tiempoDe.get(hoy) || 0) + cronoPendiente();
-    const metaMin = [0, 6].includes(planDiaSemana(hoy)) ? 300 : 180;
+    const metaMin = planMetaMin(hoy);
     const pctTiempo = Math.min(100, Math.round((segHoy / 60 / metaMin) * 100));
     const faltaSeg = Math.max(0, metaMin * 60 - segHoy);
     const { data: fechas } = await sb.from("plan_fechas").select("titulo, fecha, asignatura_id, nota, listo").eq("hecho", false).gte("fecha", new Date().toISOString()).order("fecha").limit(8);
@@ -572,7 +656,7 @@ function planTiempoTxt(seg) {
     const histo = dias.filter((d) => d.fecha < hoy).slice(0, 6).map((d) => {
       const h = d.tareas.filter((t) => hechos.has(t.clave)).length;
       const s = tiempoDe.get(d.fecha);
-      const meta = ([0, 6].includes(planDiaSemana(d.fecha)) ? 300 : 180) * 60;
+      const meta = planMetaMin(d.fecha) * 60;
       const extra = s && s > meta + 59 ? ` (+${planTiempoTxt(s - meta)})` : "";
       if (planEnPausa(d.fecha)) {
         const tr = d.tareas.filter((t) => t.sub === "trabajo" || hechos.has(t.clave));
@@ -622,7 +706,6 @@ function planTiempoTxt(seg) {
         }).join("")}</div>`;
       })()}
 
-      ${planCajaProfe(tareas, avisos)}
 
       <div class="pl-pregunta">
         <b>🗣️ Pregúntame</b>
