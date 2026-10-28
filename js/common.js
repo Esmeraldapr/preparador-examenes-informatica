@@ -665,7 +665,16 @@ document.addEventListener("click", (e) => {
   if (parrafo) {
     // Se sigue leyendo dentro del mismo bloque (por ejemplo, de un párrafo a la tabla que viene después).
     const bloque = parrafo.closest("[data-lectura]") || parrafo.parentElement;
-    const hermanos = Array.from(bloque.querySelectorAll(".parrafo-leible"));
+    // Solo se encadena lo que se ve: nada de lo que está dentro de un desplegable cerrado ni oculto.
+    // Y los trucos (💡 Ver trucos) no se leen solos: solo si se pulsa dentro de ellos.
+    const dentroTrucos = !!parrafo.closest(".qz-trucos");
+    const hermanos = Array.from(bloque.querySelectorAll(".parrafo-leible")).filter(
+      (p) =>
+        p === parrafo ||
+        (!p.closest("details:not([open])") &&
+          p.getClientRects().length > 0 &&
+          (dentroTrucos || !p.closest(".qz-trucos")))
+    );
     const desde = hermanos.indexOf(parrafo);
     // Si vuelve a pulsar el mismo párrafo desde el que se está leyendo, se para.
     if (parrafo.classList.contains("leyendo-desde") && sintesisVoz && sintesisVoz.speaking) {
