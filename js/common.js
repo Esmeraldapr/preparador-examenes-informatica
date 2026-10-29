@@ -918,7 +918,7 @@ async function cronoEnviar() {
 );
 setInterval(() => {
   if (!cronoActivo() || document.visibilityState !== "visible") return;
-  const hablando = window.speechSynthesis && window.speechSynthesis.speaking;
+  const hablando = (window.speechSynthesis && window.speechSynthesis.speaking) || window.cronoVideoSonando === true;
   if (!hablando && Date.now() - cronoUltimoToque > 5 * 60 * 1000) return;
   cronoSumar(15);
   if (cronoPendiente() >= 60) cronoEnviar();

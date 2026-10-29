@@ -34,6 +34,10 @@ function planMetaMin(f) {
 function planDiasHasta(desde, hasta) {
   return Math.round((new Date(hasta + "T12:00:00Z") - new Date(desde + "T12:00:00Z")) / 86400000);
 }
+// ¿Es un vídeo suelto de YouTube (no una lista)? Esos se ven dentro de la web.
+function planEsYoutube(url) {
+  return /(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/|live\/))[\w-]{11}/.test(String(url || "")) && !/[?&]list=/.test(String(url || "")) ;
+}
 const PLAN_MIN = { clase: 40, video: 20, tema: 45, test: 15, repaso: 10, cae: 15, simulacro: 45 };
 const PLAN_VIDEOS_MAX = 10; // vídeos de ejercicios al día, como mucho
 const PLAN_VIDEOS_MIN = { semana: 45, finde: 75 }; // minutos de vídeos de ejercicios al día
@@ -117,7 +121,9 @@ async function planCatalogo(asigId) {
     const videosUD = (vi.data || []).filter((v) => v.unidad === "UD" + u).sort((a, b) => a.orden - b.orden);
     const meteVideo = (v) =>
       items.push({ clave: `video:${v.id}`, tipo: "nuevo", sub: "video", asig: nombre, asigId, unidadNum: u, deTema: v.tipo !== "ejercicios",
-        titulo: v.tipo !== "ejercicios" ? `Vídeo del tema UD${u}${v.apartado ? ` (va con el apartado «${v.apartado}»)` : ""}: ${v.titulo}` : v.titulo, min: v.duracion_min || PLAN_MIN.video, sinDuracion: !v.duracion_min, url: v.url + (v.minuto_inicio && /youtu/.test(v.url) ? (v.url.includes("?") ? "&" : "?") + "t=" + v.minuto_inicio : ""), externo: true });
+        titulo: v.tipo !== "ejercicios" ? `Vídeo del tema UD${u}${v.apartado ? ` (va con el apartado «${v.apartado}»)` : ""}: ${v.titulo}` : v.titulo, min: v.duracion_min ? Math.max(1, Math.ceil(v.duracion_min - (v.minuto_inicio || 0) / 60)) : PLAN_MIN.video, sinDuracion: !v.duracion_min,
+        // Los de YouTube se ven dentro de la web (video.html); los demás se abren fuera.
+        url: planEsYoutube(v.url) ? `video.html?id=${v.id}&claveplan=${encodeURIComponent("video:" + v.id)}` : v.url, externo: !planEsYoutube(v.url) });
     // Vídeos de explicación: justo después del tema (son los vídeos de ese tema).
     // Vídeos de ejercicios: después del test, en su carril.
     const t = (te.data || []).find((x) => x.unidad_num === u);
@@ -183,7 +189,7 @@ function planGenerar(hoy, catalogos, hechos, arrastre = []) {
     if (sig.sub === "tema") {
       cat.filter((v) => v.deTema && v.unidadNum === sig.unidadNum && !hechos.has(v.clave) && !enArrastre.has(v.clave)).forEach((v) => {
         garantizadas.add(v.clave);
-        tareas.push({ clave: v.clave, tipo: v.tipo, sub: v.sub, asig: v.asig, asigId: v.asigId, unidadNum: v.unidadNum, titulo: `🆕 ${v.titulo}`, min: v.min, sinDuracion: v.sinDuracion, url: v.url, externo: true });
+        tareas.push({ clave: v.clave, tipo: v.tipo, sub: v.sub, asig: v.asig, asigId: v.asigId, unidadNum: v.unidadNum, titulo: `🆕 ${v.titulo}`, min: v.min, sinDuracion: v.sinDuracion, url: v.url, externo: !!v.externo });
         usado += v.min;
       });
     }
@@ -382,7 +388,7 @@ function planGenerar(hoy, catalogos, hechos, arrastre = []) {
       const v = cola[0];
       if (!v || nVideo >= PLAN_VIDEOS_MAX || minVideo + v.min > topeVideo) continue;
       cola.shift();
-      tareasVideo.push({ clave: v.clave, tipo: v.tipo, sub: v.sub, asig: v.asig, asigId: v.asigId, unidadNum: v.unidadNum, titulo: v.titulo, min: v.min, sinDuracion: v.sinDuracion, url: v.url, externo: true });
+      tareasVideo.push({ clave: v.clave, tipo: v.tipo, sub: v.sub, asig: v.asig, asigId: v.asigId, unidadNum: v.unidadNum, titulo: v.titulo, min: v.min, sinDuracion: v.sinDuracion, url: v.url, externo: !!v.externo });
       minVideo += v.min; nVideo++; usado += v.min; sigueVideo = true;
     }
   }
