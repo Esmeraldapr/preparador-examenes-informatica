@@ -94,6 +94,7 @@ function vdApiYoutube() {
       ${volver}
       <a class="btn btn-secundario" href="${vdEsc(r.url)}" target="_blank" rel="noopener">Abrir en YouTube ↗</a>
     </div>
+    <div class="cl-vd-sub" id="vd-sub" hidden></div>
     <div class="cl-vd-aviso" id="vd-aviso-voz" hidden>🔇 El vídeo va sin sonido: lo lee la voz de la web en español. Si pausas el vídeo, la voz también para.</div>
     <p class="pl-mini vd-nota">Mientras el vídeo está en marcha, el tiempo cuenta en Mi plan aunque no toques nada. Al llegar al final se marca hecho solo.</p>`;
 
@@ -111,7 +112,7 @@ function vdApiYoutube() {
   const player = new YT.Player("vd-player", {
     host: "https://www.youtube-nocookie.com",
     videoId: yt,
-    playerVars: { rel: 0, playsinline: 1, hl: "es", cc_lang_pref: "es", start: Math.floor(posGuardada > inicio + 5 ? posGuardada : inicio) },
+    playerVars: { rel: 0, playsinline: 1, hl: "es", iv_load_policy: 3, start: Math.floor(posGuardada > inicio + 5 ? posGuardada : inicio) },
     events: {
       onReady: () => { total = player.getDuration() || 0; },
       onStateChange: (e) => {
@@ -131,7 +132,8 @@ function vdApiYoutube() {
     document.getElementById("vd-aviso-voz").hidden = !conVoz;
     try { speechSynthesis.cancel(); } catch (x) {}
     ultima = -1;
-    if (conVoz) { player.mute(); player.setOption && player.setOption("captions", "track", { languageCode: "es" }); player.playVideo(); }
+    document.getElementById("vd-sub").hidden = !conVoz;
+    if (conVoz) { player.mute(); player.playVideo(); }
     else player.unMute();
   });
   const decir = (f, sig) => {
@@ -167,6 +169,7 @@ function vdApiYoutube() {
       if (i >= 0 && i !== ultima) {
         const reciente = t - frases[i].t < 1.5 || ultima === i - 1;
         ultima = i;
+        document.getElementById("vd-sub").textContent = frases[i].s;
         if (reciente) decir(frases[i], frases[i + 1] && frases[i + 1].t);
       }
     }

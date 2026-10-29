@@ -142,14 +142,14 @@ document.addEventListener("click", async (ev) => {
   }
   await clCargarApiYoutube();
   caja.classList.add("cl-vd-con-voz");
-  caja.innerHTML = `<div class="cl-vd-aviso">🔇 El vídeo va sin sonido: lo que dice lo lee la voz de la web en español. Si pausas el vídeo, la voz también para.</div><div id="cl-voz-player"></div>`;
+  caja.innerHTML = `<div class="cl-vd-aviso">🔇 El vídeo va sin sonido: lo que dice lo lee la voz de la web en español. Si pausas el vídeo, la voz también para.</div><div id="cl-voz-player"></div><div class="cl-vd-sub" aria-live="polite"></div>`;
   const frases = clFrasesVoz[yt];
   const estado = { frases, ultima: -1, caja, boton: b, timer: null, player: null };
   clVozActiva = estado;
   estado.player = new YT.Player("cl-voz-player", {
     host: "https://www.youtube-nocookie.com",
     videoId: yt,
-    playerVars: { autoplay: 1, mute: 1, rel: 0, start: Number(b.dataset.desde) || 0, hl: "es", cc_lang_pref: "es", cc_load_policy: 1, playsinline: 1 },
+    playerVars: { autoplay: 1, mute: 1, rel: 0, start: Number(b.dataset.desde) || 0, hl: "es", cc_load_policy: 0, iv_load_policy: 3, playsinline: 1 },
     events: {
       onReady: (e) => { e.target.mute(); e.target.playVideo(); },
       onStateChange: (e) => {
@@ -169,6 +169,8 @@ document.addEventListener("click", async (ev) => {
     // Al volver de una pausa o de un salto, solo se lee si estamos al principio de la frase.
     const reciente = t - frases[i].t < 1.5 || estado.ultima === i - 1;
     estado.ultima = i;
+    const sub = caja.querySelector(".cl-vd-sub");
+    if (sub) sub.textContent = frases[i].s;
     if (reciente) clDecir(frases[i], frases[i + 1] && frases[i + 1].t);
   }, 200);
 });
