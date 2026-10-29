@@ -619,6 +619,11 @@ function planTiempoTxt(seg) {
       sb.from("plan_hecho").select("clave, hecho_en"),
       sb.from("plan_dia").select("fecha, tareas").order("fecha", { ascending: false }).limit(30),
     ]);
+    // Planes guardados antes del 29-oct: sus vídeos de YouTube también se abren dentro de la web.
+    (dia || []).forEach((d) => (d.tareas || []).forEach((t) => {
+      const m = /^video:(\d+)$/.exec(t.clave || "");
+      if (m && planEsYoutube(t.url)) { t.url = `video.html?id=${m[1]}&claveplan=${encodeURIComponent(t.clave)}`; t.externo = false; }
+    }));
     const { data: pausas } = await sb.from("plan_pausa").select("desde, hasta, motivo");
     PLAN_PAUSAS = pausas || [];
     const hechos = new Map((hh || []).map((x) => [x.clave, x.hecho_en]));
