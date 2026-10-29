@@ -19,6 +19,14 @@ function planDiasRepaso(dia) {
 }
 // Minutos de estudio de cada día: fin de semana 5 h; teletrabajo (lunes, jueves y viernes) 4 h; el resto 3 h.
 const PLAN_TELETRABAJO = [1, 4, 5];
+// Test de práctica «estudio completo de una función» (examen 91): una función por tarjeta.
+const PLAN_ESTUDIO_FUNCION = [
+  { fx: "f(x) = 2x/(x² − 4)", ids: "2403,2404,2405,2406,2407" },
+  { fx: "f(x) = x²/(x − 1)", ids: "2408,2409,2410,2411,2412" },
+  { fx: "f(x) = x·e^(−x)", ids: "2413,2414,2415,2416,2417" },
+  { fx: "f(x) = ln(x² + 1)", ids: "2418,2419,2420,2421,2422" },
+  { fx: "f(x) = x/(x² + 1)", ids: "2423,2424,2425,2426,2427" },
+];
 function planMetaMin(f) {
   const d = planDiaSemana(f);
   return [0, 6].includes(d) ? 300 : PLAN_TELETRABAJO.includes(d) ? 240 : 180;
@@ -332,6 +340,16 @@ function planGenerar(hoy, catalogos, hechos, arrastre = []) {
         min: 45, url: `clase.html?asignatura=1&clase=${c.numero}&claveplan=${encodeURIComponent(clave)}` });
       usado += 45;
     }
+  }
+  // 📈 Fines de semana: una función del test «estudio completo de una función» (examen 91), 5 preguntas como en el examen.
+  if (finde && !arrastre.some((t) => /^estf:/.test(t.clave))) {
+    const f = PLAN_ESTUDIO_FUNCION[planDiaDelAnio(hoy) % PLAN_ESTUDIO_FUNCION.length];
+    const clave = `estf:${hoy}`;
+    tareas.push({ clave, tipo: "test", sub: "calc", asig: "Cálculo", asigId: 1,
+      titulo: `Una función con 5 preguntas, como en el examen: ${f.fx}`,
+      min: 20,
+      url: `quiz.html?asignatura=1&modo=ids&ids=${f.ids}&titulo=${encodeURIComponent("📈 Estudio de " + f.fx)}&desde=plan&claveplan=${encodeURIComponent(clave)}` });
+    usado += 20;
   }
   // 🏁 Simulacro de examen oficial completo: los sábados; en las 3 últimas semanas, todos los días.
   if (faltan >= 0 && (planDiaSemana(hoy) === 6 || faltan <= 21)) {
