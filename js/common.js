@@ -643,17 +643,115 @@ function leerTexto(prefijo, elementos, boton) {
 }
 
 /** Abre la imagen a pantalla completa (lightbox). */
+// Visor de imágenes: tocar la imagen la amplía más (x2, x3 y vuelve al tamaño normal),
+// se puede ampliar con dos dedos o con la rueda del ratón, y arrastrar para moverla.
+const LB = { escala: 1, x: 0, y: 0 };
+function lbAplicar(suave = true) {
+  const img = document.getElementById("lightbox-img");
+  if (!img) return;
+  img.classList.toggle("lb-zoom", LB.escala > 1.01);
+  if (!suave) img.classList.add("lb-arrastrando");
+  img.style.transform = `translate(${LB.x}px, ${LB.y}px) scale(${LB.escala})`;
+  const t = document.getElementById("lightbox-nivel");
+  if (t) t.textContent = `x${LB.escala.toFixed(LB.escala % 1 ? 1 : 0)}`;
+}
+// Cambia la escala dejando quieto el punto (px, py) de la pantalla que se toca.
+function lbZoomEn(nueva, px, py, suave = true) {
+  const img = document.getElementById("lightbox-img");
+  nueva = Math.min(6, Math.max(1, nueva));
+  const ox = img.offsetLeft, oy = img.offsetTop; // esquina de la imagen sin mover (el visor ocupa toda la pantalla)
+  const lx = (px - ox - LB.x) / LB.escala, ly = (py - oy - LB.y) / LB.escala; // punto dentro de la imagen
+  LB.escala = nueva;
+  if (nueva <= 1.01) { LB.escala = 1; LB.x = 0; LB.y = 0; }
+  else { LB.x = px - ox - lx * nueva; LB.y = py - oy - ly * nueva; }
+  lbAplicar(suave);
+}
+function lbCentro() {
+  return [window.innerWidth / 2, window.innerHeight / 2];
+}
 function abrirLightbox(src, alt) {
   let overlay = document.getElementById("lightbox-overlay");
   if (!overlay) {
     overlay = document.createElement("div");
     overlay.id = "lightbox-overlay";
-    overlay.innerHTML = `<img id="lightbox-img" src="" alt="" /><button id="lightbox-cerrar" title="Cerrar" aria-label="Cerrar">✕</button>`;
+    overlay.innerHTML = `<img id="lightbox-img" src="" alt="" draggable="false" />
+      <button id="lightbox-cerrar" title="Cerrar" aria-label="Cerrar">✕</button>
+      <div id="lightbox-ayuda">Toca la imagen para ampliar más. Arrastra para moverla.</div>
+      <div id="lightbox-barra">
+        <button id="lightbox-menos" title="Hacer más pequeña" aria-label="Hacer más pequeña">➖</button>
+        <span id="lightbox-nivel">x1</span>
+        <button id="lightbox-mas" title="Ampliar más" aria-label="Ampliar más">➕</button>
+        <button id="lightbox-normal" title="Tamaño normal" aria-label="Tamaño normal">↺</button>
+      </div>`;
     document.body.appendChild(overlay);
+    lbGestos(overlay, overlay.querySelector("#lightbox-img"));
   }
-  document.getElementById("lightbox-img").src = src;
-  document.getElementById("lightbox-img").alt = alt || "";
+  const img = document.getElementById("lightbox-img");
+  LB.escala = 1; LB.x = 0; LB.y = 0;
+  img.style.transform = "";
+  img.classList.remove("lb-zoom", "lb-arrastrando");
+  img.src = src;
+  img.alt = alt || "";
+  document.getElementById("lightbox-nivel").textContent = "x1";
   overlay.classList.add("activo");
+}
+function lbGestos(overlay, img) {
+  const dedos = new Map();
+  let inicio = null, movido = false, pinza = null;
+  img.addEventListener("pointerdown", (e) => {
+    e.preventDefault();
+    img.setPointerCapture(e.pointerId);
+    dedos.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    movido = false;
+    if (dedos.size === 1) inicio = { x: e.clientX, y: e.clientY, lx: LB.x, ly: LB.y };
+    if (dedos.size === 2) {
+      const [a, b] = [...dedos.values()];
+      pinza = { d: Math.hypot(a.x - b.x, a.y - b.y), escala: LB.escala };
+    }
+  });
+  img.addEventListener("pointermove", (e) => {
+    if (!dedos.has(e.pointerId)) return;
+    dedos.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (dedos.size === 2 && pinza) {
+      const [a, b] = [...dedos.values()];
+      const d = Math.hypot(a.x - b.x, a.y - b.y);
+      movido = true;
+      lbZoomEn(pinza.escala * (d / pinza.d), (a.x + b.x) / 2, (a.y + b.y) / 2, false);
+    } else if (dedos.size === 1 && inicio && LB.escala > 1) {
+      const dx = e.clientX - inicio.x, dy = e.clientY - inicio.y;
+      if (Math.abs(dx) + Math.abs(dy) > 6) movido = true;
+      LB.x = inicio.lx + dx; LB.y = inicio.ly + dy;
+      lbAplicar(false);
+    } else if (dedos.size === 1 && inicio) {
+      if (Math.abs(e.clientX - inicio.x) + Math.abs(e.clientY - inicio.y) > 6) movido = true;
+    }
+  });
+  const soltar = (e) => {
+    if (!dedos.has(e.pointerId)) return;
+    const eraUno = dedos.size === 1;
+    dedos.delete(e.pointerId);
+    img.classList.remove("lb-arrastrando");
+    if (dedos.size < 2) pinza = null;
+    if (eraUno && !movido && e.type === "pointerup") {
+      // Toque sin mover: x1 → x2 → x3 → x1, ampliando donde se toca.
+      const siguiente = LB.escala < 1.9 ? 2 : LB.escala < 2.9 ? 3 : 1;
+      lbZoomEn(siguiente, e.clientX, e.clientY);
+    }
+    if (dedos.size === 1) {
+      const [p] = [...dedos.values()];
+      inicio = { x: p.x, y: p.y, lx: LB.x, ly: LB.y };
+    } else inicio = null;
+  };
+  img.addEventListener("pointerup", soltar);
+  img.addEventListener("pointercancel", soltar);
+  overlay.addEventListener("wheel", (e) => {
+    if (!overlay.classList.contains("activo")) return;
+    e.preventDefault();
+    lbZoomEn(LB.escala * (e.deltaY < 0 ? 1.2 : 1 / 1.2), e.clientX, e.clientY);
+  }, { passive: false });
+  overlay.querySelector("#lightbox-mas").addEventListener("click", () => lbZoomEn(LB.escala + 1, ...lbCentro()));
+  overlay.querySelector("#lightbox-menos").addEventListener("click", () => lbZoomEn(LB.escala - 1, ...lbCentro()));
+  overlay.querySelector("#lightbox-normal").addEventListener("click", () => lbZoomEn(1, 0, 0));
 }
 function cerrarLightbox() {
   document.getElementById("lightbox-overlay")?.classList.remove("activo");
@@ -702,6 +800,9 @@ document.addEventListener("click", (e) => {
 
 document.addEventListener("keydown", (e) => {
   if (e.key === "Escape") cerrarLightbox();
+  if (!document.getElementById("lightbox-overlay")?.classList.contains("activo")) return;
+  if (e.key === "+" || e.key === "=") lbZoomEn(LB.escala + 1, ...lbCentro());
+  if (e.key === "-") lbZoomEn(LB.escala - 1, ...lbCentro());
 });
 
 // ============================================================
