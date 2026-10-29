@@ -1,3 +1,4 @@
+// clase.js — versión 29-oct (subtítulo propio bajo el vídeo con voz)
 // ============================================================
 // Una clase del profesor — clase.html?asignatura=ID&clase=1
 // Las clases en directo (sesiones síncronas) van en su propia
