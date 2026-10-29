@@ -71,6 +71,7 @@ function clEnlacesBajo(lista) {
         ${e.para_que ? `<div class="cl-vd-para">${clEsc(e.para_que)}</div>` : ""}
         <div class="cl-vd-botones">
           ${yt ? `<button type="button" class="btn btn-primario cl-vd-ver" data-yt="${clEsc(yt)}" data-desde="${clYoutubeDesde(e.url)}">▶ Verlo aquí${clYoutubeDesde(e.url) ? ` (desde el ${Math.floor(clYoutubeDesde(e.url) / 60)}:${String(clYoutubeDesde(e.url) % 60).padStart(2, "0")})` : ""}</button>` : ""}
+          ${yt && CL_VOZ.has(yt) ? `<button type="button" class="btn btn-primario cl-vd-voz" data-yt="${clEsc(yt)}" data-desde="${clYoutubeDesde(e.url)}">🔊 Verlo con voz en español</button>` : ""}
           <a class="btn btn-secundario" href="${clEsc(e.url)}" target="_blank" rel="noopener">${yt ? "Abrir en YouTube ↗" : "Abrir enlace ↗"}</a>
         </div>
         <div class="cl-vd-player"></div>
@@ -79,10 +80,104 @@ function clEnlacesBajo(lista) {
     .join("");
 }
 
+// ---- Vídeos con voz en español ----
+// Para los vídeos que están en la tabla `video_voz`, el vídeo se ve sin sonido y la voz de la web
+// lee cada frase en español en su segundo. Si la frase es larga para el hueco que tiene, la voz va más rápida.
+let CL_VOZ = new Set();
+const clFrasesVoz = {};
+let clVozActiva = null; // { player, frases, ultima, timer, caja, boton }
+
+function clCargarApiYoutube() {
+  if (window.YT && window.YT.Player) return Promise.resolve();
+  return new Promise((ok) => {
+    const previo = window.onYouTubeIframeAPIReady;
+    window.onYouTubeIframeAPIReady = () => { if (previo) previo(); ok(); };
+    if (!document.getElementById("yt-api")) {
+      const sc = document.createElement("script");
+      sc.id = "yt-api";
+      sc.src = "https://www.youtube.com/iframe_api";
+      document.head.appendChild(sc);
+    }
+  });
+}
+
+function clPararVoz() {
+  if (!clVozActiva) return;
+  clearInterval(clVozActiva.timer);
+  try { window.speechSynthesis && speechSynthesis.cancel(); } catch (e) {}
+  try { clVozActiva.player.destroy(); } catch (e) {}
+  clVozActiva.caja.innerHTML = "";
+  clVozActiva.caja.classList.remove("cl-vd-con-voz");
+  clVozActiva.boton.textContent = clVozActiva.boton.dataset.texto || "🔊 Verlo con voz en español";
+  clVozActiva = null;
+}
+
+function clDecir(frase, siguienteT) {
+  if (!window.speechSynthesis) return;
+  speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(frase.s);
+  u.lang = "es-ES";
+  const hueco = Math.max(1, (siguienteT || frase.t + 6) - frase.t);
+  const necesaria = frase.s.length / (15 * hueco); // ~15 letras por segundo a velocidad 1
+  const base = Math.max(1.2, typeof velocidadLectura === "number" ? velocidadLectura : 1.2);
+  u.rate = Math.min(2, Math.max(base, necesaria));
+  speechSynthesis.speak(u);
+}
+
+document.addEventListener("click", async (ev) => {
+  const b = ev.target.closest(".cl-vd-voz");
+  if (!b) return;
+  if (clVozActiva && clVozActiva.boton === b) { clPararVoz(); return; }
+  clPararVoz();
+  const cajaVd = b.closest(".cl-vd");
+  const caja = cajaVd.querySelector(".cl-vd-player");
+  const verNormal = cajaVd.querySelector(".cl-vd-ver");
+  if (verNormal && caja.innerHTML) { caja.innerHTML = ""; verNormal.textContent = verNormal.dataset.texto || "▶ Verlo aquí"; }
+  b.dataset.texto = b.dataset.texto || b.textContent;
+  b.textContent = "⏳ Preparando…";
+  const yt = b.dataset.yt;
+  if (!clFrasesVoz[yt]) {
+    const { data } = await sb.from("video_voz").select("frases").eq("youtube_id", yt).maybeSingle();
+    clFrasesVoz[yt] = (data && data.frases) || [];
+  }
+  await clCargarApiYoutube();
+  caja.classList.add("cl-vd-con-voz");
+  caja.innerHTML = `<div class="cl-vd-aviso">🔇 El vídeo va sin sonido: lo que dice lo lee la voz de la web en español. Si pausas el vídeo, la voz también para.</div><div id="cl-voz-player"></div>`;
+  const frases = clFrasesVoz[yt];
+  const estado = { frases, ultima: -1, caja, boton: b, timer: null, player: null };
+  clVozActiva = estado;
+  estado.player = new YT.Player("cl-voz-player", {
+    host: "https://www.youtube-nocookie.com",
+    videoId: yt,
+    playerVars: { autoplay: 1, mute: 1, rel: 0, start: Number(b.dataset.desde) || 0, hl: "es", cc_lang_pref: "es", cc_load_policy: 1, playsinline: 1 },
+    events: {
+      onReady: (e) => { e.target.mute(); e.target.playVideo(); },
+      onStateChange: (e) => {
+        if (e.data !== YT.PlayerState.PLAYING) { try { speechSynthesis.cancel(); } catch (x) {} estado.ultima = -2; }
+      },
+    },
+  });
+  b.textContent = "✖ Cerrar el vídeo en español";
+  estado.timer = setInterval(() => {
+    const p = estado.player;
+    if (!p || !p.getCurrentTime || !p.getPlayerState || p.getPlayerState() !== YT.PlayerState.PLAYING) return;
+    if (!p.isMuted()) p.mute();
+    const t = p.getCurrentTime();
+    let i = -1;
+    for (let k = 0; k < frases.length; k++) { if (frases[k].t <= t + 0.15) i = k; else break; }
+    if (i < 0 || i === estado.ultima) return;
+    // Al volver de una pausa o de un salto, solo se lee si estamos al principio de la frase.
+    const reciente = t - frases[i].t < 1.5 || estado.ultima === i - 1;
+    estado.ultima = i;
+    if (reciente) clDecir(frases[i], frases[i + 1] && frases[i + 1].t);
+  }, 200);
+});
+
 // Pulsar «▶ Verlo aquí» mete el vídeo debajo de la diapositiva (y lo quita si se vuelve a pulsar).
 document.addEventListener("click", (ev) => {
   const b = ev.target.closest(".cl-vd-ver");
   if (!b) return;
+  clPararVoz();
   const caja = b.closest(".cl-vd").querySelector(".cl-vd-player");
   if (caja.innerHTML) {
     caja.innerHTML = "";
@@ -198,6 +293,12 @@ function resumenRepaso(texto) {
     .select("orden, grupo, titulo, imagen_url, nota")
     .eq("clase_id", c.id)
     .order("orden");
+
+  // Vídeos que tienen voz en español (tabla video_voz).
+  try {
+    const { data: voces } = await sb.from("video_voz").select("youtube_id");
+    CL_VOZ = new Set((voces || []).map((v) => v.youtube_id));
+  } catch (e) {}
 
   // Enlaces que van con una diapositiva concreta (campo `imagen`).
   const porImagen = {};
