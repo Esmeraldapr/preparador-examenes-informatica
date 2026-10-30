@@ -366,13 +366,18 @@ async function avisarRespuestasNuevas() {
     // navegador cambiaba de página y cancelaba la petición a medias: el aviso
     // volvía a salir una y otra vez aunque ya se hubiera leído.
     let marcado = false;
-    const marcar = async () => {
-      if (marcado) return;
-      marcado = true;
+    const marcar = async (lista) => {
+      // Sin lista = todas (al cerrar el aviso o pulsar «Ya lo he visto»).
+      // Con lista = solo esas (al abrir UNA pregunta; las demás siguen pendientes).
+      const aMarcar = lista || ids;
+      if (!lista) {
+        if (marcado) return;
+        marcado = true;
+      }
       try {
-        await sb.rpc("comentarios_marcar_vistos", { p_ids: ids });
+        await sb.rpc("comentarios_marcar_vistos", { p_ids: aMarcar });
       } catch (e) {
-        marcado = false; // si falló, que se pueda reintentar
+        if (!lista) marcado = false; // si falló, que se pueda reintentar
       }
     };
 
@@ -390,7 +395,8 @@ async function avisarRespuestasNuevas() {
       a.addEventListener("click", async (ev) => {
         ev.preventDefault();
         const destino = a.getAttribute("href");
-        await marcar();
+        // Solo se marca la respuesta que se abre: al volver, las otras siguen saliendo.
+        await marcar([Number(a.dataset.id)]);
         window.location.href = destino;
       })
     );
