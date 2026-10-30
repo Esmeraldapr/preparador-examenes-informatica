@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kirchhoff paso a paso: la ecuación de una malla</title>
+<style>
+  :root{--mor:#7c3aed;--roj:#ef4444;--azu:#3b82f6;--ver:#16a34a;--gri:#6b7280;--fondo:#faf8ff;--tarj:#ffffff;--txt:#1f2937}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:"Segoe UI",system-ui,-apple-system,sans-serif;background:var(--fondo);color:var(--txt);font-size:18px;line-height:1.6}
+  .cont{max-width:980px;margin:0 auto;padding:16px}
+  h1{font-size:1.35rem;margin:6px 0 2px;color:var(--mor)}
+  .sub{color:var(--gri);font-size:.95rem;margin:0 0 12px}
+  .rejilla{display:grid;grid-template-columns:1.1fr 1fr;gap:16px}
+  @media (max-width:820px){.rejilla{grid-template-columns:1fr}}
+  .tarjeta{background:var(--tarj);border-radius:16px;padding:14px;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+  svg{width:100%;height:auto;display:block}
+  .paso-n{font-size:.85rem;color:var(--gri)}
+  .titulo{font-size:1.2rem;font-weight:700;margin:2px 0 8px;color:var(--mor)}
+  .lineas div{margin:3px 0}
+  .lineas .cuenta{font-family:ui-monospace,Consolas,monospace;background:#f3efff;border-radius:6px;padding:2px 8px;display:inline-block}
+  .lineas .ok{color:var(--ver);font-weight:700}
+  .lineas .mal{color:var(--roj);font-weight:700}
+  .ecu{margin-top:12px;border:2px dashed #d8cffc;border-radius:12px;padding:10px;font-size:1.05rem}
+  .ecu .lbl{font-size:.8rem;color:var(--gri)}
+  .ecu .fila{display:flex;flex-wrap:wrap;align-items:center;gap:6px;min-height:34px}
+  .term{padding:2px 8px;border-radius:8px;font-family:ui-monospace,Consolas,monospace;animation:entra .5s ease}
+  .term.f{background:#fee2e2;color:#b91c1c}
+  .term.r{background:#dbeafe;color:#1d4ed8}
+  .igual{font-weight:700;font-size:1.2rem;color:var(--mor)}
+  @keyframes entra{from{transform:scale(.4);opacity:0}to{transform:scale(1);opacity:1}}
+  .controles{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;justify-content:center}
+  button{font:inherit;font-size:1rem;border:0;border-radius:12px;padding:10px 16px;cursor:pointer;background:#ede9fe;color:#4c1d95}
+  button.prim{background:var(--mor);color:#fff}
+  button:disabled{opacity:.4;cursor:default}
+  .puntos{display:flex;gap:5px;justify-content:center;margin-top:10px;flex-wrap:wrap}
+  .puntos span{width:10px;height:10px;border-radius:50%;background:#ddd6fe;cursor:pointer}
+  .puntos span.act{background:var(--mor)}
+  .reglas{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  @media (max-width:560px){.reglas{grid-template-columns:1fr}}
+  .regla{border-radius:12px;padding:10px;font-size:.95rem}
+  .regla.f{background:#fef2f2;border:1px solid #fecaca}
+  .regla.r{background:#eff6ff;border:1px solid #bfdbfe}
+  .regla b{display:block}
+  .hl{filter:drop-shadow(0 0 6px #f59e0b)}
+  .flujo{stroke-dasharray:10 12;animation:fluye 1.2s linear infinite}
+  @keyframes fluye{to{stroke-dashoffset:-22}}
+  @media (prefers-reduced-motion:reduce){.flujo{animation:none}.term{animation:none}}
+</style>
+</head>
+<body>
+<div class="cont">
+  <h1>⚡ Kirchhoff paso a paso: la ecuación de una malla</h1>
+  <p class="sub">Fundamentos Físicos y Electrónica · UD2 · Pulsa «Siguiente» o «▶ Automático». El punto amarillo recorre la malla.</p>
+
+  <div class="rejilla">
+    <div class="tarjeta">
+      <!-- Circuito pequeño (ejemplos 1 a 3) -->
+      <svg id="svgMini" viewBox="0 0 400 300" role="img" aria-label="Circuito sencillo con una pila y una resistencia">
+        <path id="loopMini" d="M80,60 L320,60 L320,240 L80,240 Z" fill="none" stroke="#9ca3af" stroke-width="3"/>
+        <path id="flujoMini" class="flujo" d="M80,240 L80,60 L320,60 L320,240 Z" fill="none" stroke="#c4b5fd" stroke-width="3"/>
+        <g id="m-pila">
+          <rect x="50" y="128" width="60" height="26" fill="#fff"/>
+          <line id="m-placaA" x1="66" y1="134" x2="94" y2="134" stroke="#111" stroke-width="7"/>
+          <line id="m-placaB" x1="56" y1="148" x2="104" y2="148" stroke="#111" stroke-width="2.5"/>
+          <text id="m-sigA" x="114" y="138" font-size="16" fill="#ef4444" font-weight="700">−</text>
+          <text id="m-sigB" x="114" y="156" font-size="16" fill="#ef4444" font-weight="700">+</text>
+          <text x="16" y="146" font-size="15" fill="#111" font-weight="700">12 V</text>
+        </g>
+        <g id="m-res">
+          <rect x="300" y="110" width="40" height="70" fill="#fff"/>
+          <polyline points="320,110 320,118 308,124 332,134 308,144 332,154 308,164 320,170 320,180" fill="none" stroke="#111" stroke-width="2.5"/>
+          <text x="342" y="150" font-size="15" fill="#111" font-weight="700">3 Ω</text>
+        </g>
+        <g id="m-flecha">
+          <line x1="170" y1="40" x2="230" y2="40" stroke="#3b82f6" stroke-width="3"/>
+          <polygon id="m-punta" points="230,34 242,40 230,46" fill="#3b82f6"/>
+          <text x="196" y="30" font-size="16" fill="#3b82f6" font-weight="700">I</text>
+        </g>
+        <text x="200" y="275" font-size="14" fill="#6b7280" text-anchor="middle">Recorrido: sentido de las agujas del reloj ↻</text>
+        <circle id="puntoMini" r="9" fill="#f59e0b" stroke="#fff" stroke-width="2" cx="80" cy="240"/>
+      </svg>
+
+      <!-- Circuito del examen -->
+      <svg id="svgGrande" viewBox="0 0 600 390" role="img" aria-label="Circuito del examen con tres fuentes y cinco resistencias" style="display:none">
+        <path d="M60,60 L540,60 L540,320 L60,320 Z M300,60 L300,320" fill="none" stroke="#9ca3af" stroke-width="3"/>
+        <path id="flujoR" class="flujo" d="M300,60 L540,60 L540,320 L300,320 Z" fill="none" stroke="#c4b5fd" stroke-width="3" style="display:none"/>
+        <path id="flujoL" class="flujo" d="M60,60 L300,60 L300,320 L60,320 Z" fill="none" stroke="#c4b5fd" stroke-width="3" style="display:none"/>
+        <!-- Nudos -->
+        <circle cx="300" cy="60" r="6" fill="#111"/><circle cx="300" cy="320" r="6" fill="#111"/>
+        <text x="308" y="92" font-size="14" fill="#6b7280">nudo de arriba</text>
+        <!-- R1 -->
+        <g id="R1"><rect x="150" y="45" width="60" height="30" fill="#fff"/><polyline points="150,60 158,60 164,48 174,72 184,48 194,72 202,60 210,60" fill="none" stroke="#111" stroke-width="2.5"/><text x="168" y="40" font-size="18" font-weight="700">R1</text></g>
+        <!-- R2 -->
+        <g id="R2"><rect x="390" y="45" width="60" height="30" fill="#fff"/><polyline points="390,60 398,60 404,48 414,72 424,48 434,72 442,60 450,60" fill="none" stroke="#111" stroke-width="2.5"/><text x="408" y="40" font-size="18" font-weight="700">R2</text></g>
+        <!-- R3 -->
+        <g id="R3"><rect x="150" y="305" width="60" height="30" fill="#fff"/><polyline points="150,320 158,320 164,308 174,332 184,308 194,332 202,320 210,320" fill="none" stroke="#111" stroke-width="2.5"/><text x="168" y="355" font-size="18" font-weight="700">R3</text></g>
+        <!-- R4 -->
+        <g id="R4"><rect x="285" y="210" width="30" height="60" fill="#fff"/><polyline points="300,210 300,218 288,224 312,234 288,244 312,254 300,262 300,270" fill="none" stroke="#111" stroke-width="2.5"/><text x="318" y="246" font-size="18" font-weight="700">R4</text></g>
+        <!-- R5 -->
+        <g id="R5"><rect x="525" y="210" width="30" height="60" fill="#fff"/><polyline points="540,210 540,218 528,224 552,234 528,244 552,254 540,262 540,270" fill="none" stroke="#111" stroke-width="2.5"/><text x="558" y="246" font-size="18" font-weight="700">R5</text></g>
+        <!-- V1: − arriba (raya corta y gorda), + abajo (raya larga y fina) -->
+        <g id="V1"><rect x="34" y="176" width="52" height="28" fill="#fff"/><line x1="49" y1="183" x2="71" y2="183" stroke="#111" stroke-width="7"/><line x1="38" y1="197" x2="82" y2="197" stroke="#111" stroke-width="2.5"/><text x="4" y="196" font-size="18" font-weight="700">V1</text><text x="88" y="188" font-size="18" fill="#ef4444" font-weight="700">−</text><text x="88" y="206" font-size="18" fill="#ef4444" font-weight="700">+</text></g>
+        <!-- V2: − arriba, + abajo -->
+        <g id="V2"><rect x="274" y="116" width="52" height="28" fill="#fff"/><line x1="289" y1="123" x2="311" y2="123" stroke="#111" stroke-width="7"/><line x1="278" y1="137" x2="322" y2="137" stroke="#111" stroke-width="2.5"/><text x="240" y="136" font-size="18" font-weight="700">V2</text><text x="328" y="128" font-size="18" fill="#ef4444" font-weight="700">−</text><text x="328" y="146" font-size="18" fill="#ef4444" font-weight="700">+</text></g>
+        <!-- V3: + arriba (raya larga y fina), − abajo -->
+        <g id="V3"><rect x="514" y="126" width="52" height="28" fill="#fff"/><line x1="518" y1="133" x2="562" y2="133" stroke="#111" stroke-width="2.5"/><line x1="529" y1="147" x2="551" y2="147" stroke="#111" stroke-width="7"/><text x="568" y="146" font-size="18" font-weight="700">V3</text><text x="500" y="138" font-size="18" fill="#ef4444" font-weight="700">+</text><text x="500" y="156" font-size="18" fill="#ef4444" font-weight="700">−</text></g>
+        <!-- Corrientes -->
+        <g id="fI1"><line x1="90" y1="30" x2="130" y2="30" stroke="#3b82f6" stroke-width="3"/><polygon points="130,24 142,30 130,36" fill="#3b82f6"/><text x="100" y="22" font-size="19" fill="#3b82f6" font-weight="700">I1</text></g>
+        <g id="fI2"><line x1="270" y1="160" x2="270" y2="190" stroke="#3b82f6" stroke-width="3"/><polygon points="264,190 270,202 276,190" fill="#3b82f6"/><text x="246" y="186" font-size="19" fill="#3b82f6" font-weight="700">I2</text></g>
+        <g id="fI3"><line x1="470" y1="30" x2="510" y2="30" stroke="#3b82f6" stroke-width="3"/><polygon points="510,24 522,30 510,36" fill="#3b82f6"/><text x="480" y="22" font-size="19" fill="#3b82f6" font-weight="700">I3</text></g>
+        <text x="300" y="382" font-size="14" fill="#6b7280" text-anchor="middle">Raya larga y fina = +   ·   raya corta y gorda = −</text>
+        <circle id="puntoG" r="10" fill="#f59e0b" stroke="#fff" stroke-width="2" cx="300" cy="60" style="display:none"/>
+      </svg>
+    </div>
+
+    <div class="tarjeta">
+      <div class="paso-n" id="pasoN"></div>
+      <div class="titulo" id="titulo"></div>
+      <div class="lineas" id="lineas"></div>
+      <div class="ecu" id="ecuCaja">
+        <div class="lbl">Pilas (a la izquierda del =)</div>
+        <div class="fila" id="ecuF"></div>
+        <div class="igual">=</div>
+        <div class="lbl">Resistencias (a la derecha del =)</div>
+        <div class="fila" id="ecuR"></div>
+      </div>
+      <div class="controles">
+        <button id="bAnt">◀ Anterior</button>
+        <button id="bSig" class="prim">Siguiente ▶</button>
+        <button id="bAuto">▶ Automático</button>
+        <button id="bVoz">🔊 Escuchar</button>
+      </div>
+      <div class="puntos" id="puntos"></div>
+    </div>
+  </div>
+  <div class="tarjeta" style="margin-top:16px">
+      <div class="reglas">
+        <div class="regla f"><b>🔋 Regla de la pila</b>Entras por − y sales por + → <b style="display:inline">+V</b><br>Entras por + y sales por − → <b style="display:inline">−V</b></div>
+        <div class="regla r"><b>〰️ Regla de la resistencia</b>Vas como su flecha de corriente → <b style="display:inline">+I·R</b><br>Vas contra su flecha → <b style="display:inline">−I·R</b></div>
+      </div>
+  </div>
+</div>
+
+<script>
+// Recorridos (puntos por los que pasa el punto amarillo)
+const P = {
+  mini: [[80,240],[80,141],[80,60],[320,60],[320,145],[320,240],[80,240]],
+  der:  [[300,60],[420,60],[540,60],[540,140],[540,240],[540,320],[300,320],[300,240],[300,130],[300,60]],
+  izq:  [[60,60],[180,60],[300,60],[300,130],[300,240],[300,320],[180,320],[60,320],[60,190],[60,60]]
+};
+// Cada paso: qué circuito, hasta qué punto se mueve, qué se ilumina y qué términos hay en la ecuación
+const PASOS = [
+  {c:"mini", t:"¿Qué te piden?", l:[
+    "Escribir la ecuación de UNA malla (una «ventana» del circuito).",
+    "Se da una vuelta completa a la malla y se apunta lo que te encuentras:",
+    "las pilas van a la izquierda del =",
+    "las resistencias (I·R) van a la derecha del =",
+    "Primero lo vemos con un circuito pequeño y con números."], F:[], R:[]},
+  {c:"mini", ir:2, hl:"m-pila", t:"Ejemplo 1 · La pila", l:[
+    "Pila de 12 V. Raya corta y gorda = −. Raya larga y fina = +.",
+    "Damos la vuelta como las agujas del reloj ↻.",
+    "Subimos por la pila: entramos por abajo y salimos por arriba.",
+    "Abajo está el − (raya corta y gorda) y arriba el + (raya larga y fina).",
+    "<span class='cuenta'>entro por − y salgo por + → +12</span>"], F:["+12"], R:[]},
+  {c:"mini", ir:5, hl:"m-res", t:"Ejemplo 1 · La resistencia", l:[
+    "Bajamos por la resistencia de 3 Ω.",
+    "Vamos en el mismo sentido que la flecha I.",
+    "<span class='cuenta'>a favor de la corriente → +3·I</span>",
+    "Ecuación:",
+    "<span class='cuenta'>12 = 3·I</span>",
+    "<span class='cuenta'>I = 12 ÷ 3</span>",
+    "<span class='cuenta'>I = 4 A</span> <span class='ok'>✓</span>"], F:["+12"], R:["+3·I"]},
+  {c:"mini", giro:true, ir:2, hl:"m-pila", t:"Ejemplo 2 · Pila dada la vuelta", l:[
+    "Misma pila, pero ahora el − está arriba y el + abajo.",
+    "Subimos otra vez por la pila: entramos por + y salimos por −.",
+    "<span class='cuenta'>entro por + y salgo por − → −12</span>",
+    "La resistencia no cambia: <span class='cuenta'>+3·I</span>",
+    "<span class='cuenta'>−12 = 3·I</span>",
+    "<span class='cuenta'>I = −12 ÷ 3</span>",
+    "<span class='cuenta'>I = −4 A</span>",
+    "El − solo dice que la corriente va al revés de la flecha."], F:["−12"], R:["+3·I"]},
+  {c:"mini", contra:true, ir:5, hl:"m-res", t:"Ejemplo 3 · Resistencia a contracorriente", l:[
+    "Pila como en el ejemplo 1 (+12).",
+    "Ahora la flecha I está dibujada al revés: va hacia la izquierda.",
+    "Seguimos dando la vuelta ↻: vamos CONTRA la flecha.",
+    "<span class='cuenta'>contra la corriente → −3·I</span>",
+    "<span class='cuenta'>12 = −3·I</span>",
+    "<span class='cuenta'>I = 12 ÷ (−3)</span>",
+    "<span class='cuenta'>I = −4 A</span>",
+    "Con estas 2 reglas ya puedes con el circuito del examen."], F:["+12"], R:["−3·I"]},
+  {c:"grande", t:"El circuito del examen", l:[
+    "Tiene 2 mallas: la de la izquierda (con V1) y la de la derecha (con V3).",
+    "Las dos comparten la rama del medio (V2 y R4).",
+    "Mira las pilas:",
+    "V1 y V2: − arriba, + abajo.",
+    "V3: + arriba, − abajo.",
+    "Las 4 opciones: 2 son de la malla derecha (−V2 − V3 …) y 2 de la izquierda (−V1 …)."], F:[], R:[]},
+  {c:"grande", malla:"der", ir:0, t:"Malla derecha · Empezamos", l:[
+    "Empezamos en el nudo de arriba.",
+    "Damos la vuelta como va I3: hacia la derecha por arriba ↻.",
+    "Vamos a pasar por: R2 → V3 → R5 → R4 → V2."], F:[], R:[]},
+  {c:"grande", malla:"der", ir:1, hl:"R2", t:"Malla derecha · R2", l:[
+    "Por R2 va I3 hacia la derecha.",
+    "Nosotros también vamos hacia la derecha.",
+    "<span class='cuenta'>a favor → +I3·R2</span>"], F:[], R:["+I3·R2"]},
+  {c:"grande", malla:"der", ir:3, hl:"V3", t:"Malla derecha · V3", l:[
+    "Bajamos por V3.",
+    "Arriba está el + (raya larga y fina), abajo el −.",
+    "Entramos por + y salimos por −.",
+    "<span class='cuenta'>+ → − → −V3</span>"], F:["−V3"], R:["+I3·R2"]},
+  {c:"grande", malla:"der", ir:4, hl:"R5", t:"Malla derecha · R5", l:[
+    "Seguimos bajando por R5.",
+    "I3 también baja por ahí.",
+    "<span class='cuenta'>a favor → +I3·R5</span>"], F:["−V3"], R:["+I3·R2","+I3·R5"]},
+  {c:"grande", malla:"der", ir:7, hl:"R4", t:"Malla derecha · R4 (¡la trampa!)", l:[
+    "Volvemos por abajo y SUBIMOS por la rama del medio.",
+    "Por R4 va I2, que BAJA.",
+    "Nosotros subimos: vamos contra I2.",
+    "<span class='cuenta'>contra → −I2·R4</span>",
+    "<span class='mal'>Aquí falla mucha gente: pone +I2·R4.</span>"], F:["−V3"], R:["+I3·R2","+I3·R5","−I2·R4"]},
+  {c:"grande", malla:"der", ir:9, hl:"V2", t:"Malla derecha · V2", l:[
+    "Seguimos subiendo por V2 hasta el nudo de arriba.",
+    "V2 tiene el + abajo y el − arriba.",
+    "Entramos por + y salimos por −.",
+    "<span class='cuenta'>+ → − → −V2</span>",
+    "¡Vuelta completa!"], F:["−V2","−V3"], R:["+I3·R2","+I3·R5","−I2·R4"]},
+  {c:"grande", malla:"der", ir:9, t:"Malla derecha · Resultado", l:[
+    "<span class='cuenta'>−V2 − V3 = I3·R2 + I3·R5 − I2·R4</span>",
+    "<span class='ok'>✓ Es la opción correcta.</span>",
+    "La otra de la malla derecha pone «+ I2·R4».",
+    "Se equivoca solo en el signo de R4: no ve que vamos contra I2."], F:["−V2","−V3"], R:["+I3·R2","+I3·R5","−I2·R4"]},
+  {c:"grande", malla:"izq", ir:9, t:"¿Y la malla izquierda?", l:[
+    "Damos la vuelta como va I1 ↻: R1 → V2 → R4 → R3 → V1.",
+    "R1: a favor de I1 → <span class='cuenta'>+I1·R1</span>",
+    "V2: bajamos, entramos por − y salimos por + → <span class='cuenta'>+V2</span>",
+    "R4: bajamos, igual que I2 → <span class='cuenta'>+I2·R4</span>",
+    "R3: a favor de I1 → <span class='cuenta'>+I1·R3</span>",
+    "V1: subimos, entramos por + y salimos por − → <span class='cuenta'>−V1</span>"], F:["−V1","+V2"], R:["+I1·R1","+I1·R3","+I2·R4"]},
+  {c:"grande", malla:"izq", ir:9, t:"Por qué fallan las de V1", l:[
+    "La buena de la izquierda sería:",
+    "<span class='cuenta'>−V1 + V2 = I1·R1 + I1·R3 + I2·R4</span>",
+    "«−V1 − V2 = …»: se equivoca en el signo de V2.",
+    "«−V1 + V2 = … − I2·R4»: se equivoca en el signo de R4.",
+    "<span class='mal'>Esta es la trampa: aquí bajamos COMO I2, así que es +I2·R4.</span>",
+    "Ninguna de las dos está bien, así que la única correcta es la de la malla derecha."], F:["−V1","+V2"], R:["+I1·R1","+I1·R3","+I2·R4"]},
+  {c:"grande", t:"Resumen para el examen", l:[
+    "1. Elige la malla y da la vuelta en un sentido.",
+    "2. Pila: − → + es +V. + → − es −V.",
+    "3. Resistencia: como su flecha es +I·R. Contra su flecha es −I·R.",
+    "4. La rama del medio cambia de signo según la malla: en una vas como I2 y en la otra contra I2.",
+    "🎯 En los registros hay 11 preguntas oficiales de mallas y Kirchhoff, en 7 exámenes distintos de FFE."], F:[], R:[]}
+];
+
+let i = 0, auto = null, pos = {mini:0, der:0, izq:0}, anim = null;
+const $ = (id) => document.getElementById(id);
+
+function moverPunto(cual, hasta, punto) {
+  cancelAnimationFrame(anim);
+  const pts = P[cual];
+  let desde = pos[cual];
+  if (hasta < desde) desde = 0;
+  const tramo = pts.slice(desde, hasta + 1);
+  if (tramo.length < 2) { punto.setAttribute("cx", pts[hasta][0]); punto.setAttribute("cy", pts[hasta][1]); pos[cual] = hasta; return; }
+  const lens = []; let tot = 0;
+  for (let k = 1; k < tramo.length; k++) { const d = Math.hypot(tramo[k][0]-tramo[k-1][0], tramo[k][1]-tramo[k-1][1]); lens.push(d); tot += d; }
+  const dur = Math.min(2600, 500 + tot * 2.2), t0 = performance.now();
+  const reducir = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  function frame(t) {
+    let s = reducir ? 1 : Math.min(1, (t - t0) / dur), dist = s * tot, k = 0;
+    while (k < lens.length - 1 && dist > lens[k]) { dist -= lens[k]; k++; }
+    const f = lens[k] ? Math.min(1, dist / lens[k]) : 1;
+    punto.setAttribute("cx", tramo[k][0] + (tramo[k+1][0]-tramo[k][0]) * f);
+    punto.setAttribute("cy", tramo[k][1] + (tramo[k+1][1]-tramo[k][1]) * f);
+    if (s < 1) anim = requestAnimationFrame(frame);
+  }
+  anim = requestAnimationFrame(frame);
+  pos[cual] = hasta;
+}
+
+function pintar() {
+  const p = PASOS[i];
+  $("pasoN").textContent = `Paso ${i + 1} de ${PASOS.length}`;
+  $("titulo").textContent = p.t;
+  $("lineas").innerHTML = p.l.map((x) => `<div>${x}</div>`).join("");
+  $("ecuF").innerHTML = p.F.map((x) => `<span class="term f">${x}</span>`).join("");
+  $("ecuR").innerHTML = p.R.map((x) => `<span class="term r">${x}</span>`).join("");
+  $("ecuCaja").style.display = (p.F.length || p.R.length) ? "" : "none";
+  document.querySelectorAll(".hl").forEach((e) => e.classList.remove("hl"));
+  if (p.hl) $(p.hl).classList.add("hl");
+  const mini = p.c === "mini";
+  $("svgMini").style.display = mini ? "" : "none";
+  $("svgGrande").style.display = mini ? "none" : "";
+  if (mini) {
+    // Pila normal (− abajo) o dada la vuelta (− arriba)
+    const giro = !!p.giro;
+    $("m-placaA").setAttribute("stroke-width", giro ? 7 : 2.5);
+    $("m-placaA").setAttribute("x1", giro ? 66 : 56); $("m-placaA").setAttribute("x2", giro ? 94 : 104);
+    $("m-placaB").setAttribute("stroke-width", giro ? 2.5 : 7);
+    $("m-placaB").setAttribute("x1", giro ? 56 : 66); $("m-placaB").setAttribute("x2", giro ? 104 : 94);
+    $("m-sigA").textContent = giro ? "−" : "+";
+    $("m-sigB").textContent = giro ? "+" : "−";
+    // Flecha de corriente normal o al revés
+    $("m-punta").setAttribute("points", p.contra ? "170,34 158,40 170,46" : "230,34 242,40 230,46");
+    if (p.ir !== undefined) moverPunto("mini", p.ir, $("puntoMini"));
+    else { pos.mini = 0; $("puntoMini").setAttribute("cx", 80); $("puntoMini").setAttribute("cy", 240); }
+  } else {
+    $("flujoR").style.display = p.malla === "der" ? "" : "none";
+    $("flujoL").style.display = p.malla === "izq" ? "" : "none";
+    const pg = $("puntoG");
+    pg.style.display = p.malla ? "" : "none";
+    if (p.malla) moverPunto(p.malla, p.ir, pg);
+  }
+  $("bAnt").disabled = i === 0;
+  $("bSig").disabled = i === PASOS.length - 1;
+  document.querySelectorAll("#puntos span").forEach((s, k) => s.classList.toggle("act", k === i));
+}
+
+function ir(n) { i = Math.max(0, Math.min(PASOS.length - 1, n)); pintar(); }
+
+function textoVoz(p) {
+  const tmp = document.createElement("div");
+  tmp.innerHTML = [p.t].concat(p.l).join(". ");
+  return tmp.textContent
+    .replace(/([IRV])(\d)/g, "$1 $2").replace(/−/g, " menos ").replace(/·/g, " por ")
+    .replace(/÷/g, " entre ").replace(/=/g, " igual a ").replace(/\+/g, " más ").replace(/→/g, ", ")
+    .replace(/Ω/g, " ohmios").replace(/[↻✓🎯]/g, "");
+}
+function hablar() {
+  try {
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(textoVoz(PASOS[i]));
+    u.lang = "es-ES"; u.rate = 0.9;
+    const v = speechSynthesis.getVoices().find((x) => x.lang && x.lang.startsWith("es"));
+    if (v) u.voice = v;
+    speechSynthesis.speak(u);
+  } catch (e) { /* sin voz en este navegador */ }
+}
+
+$("bAnt").onclick = () => { pararAuto(); ir(i - 1); };
+$("bSig").onclick = () => { pararAuto(); ir(i + 1); };
+$("bVoz").onclick = hablar;
+function pararAuto() { if (auto) { clearInterval(auto); auto = null; $("bAuto").textContent = "▶ Automático"; } }
+$("bAuto").onclick = () => {
+  if (auto) return pararAuto();
+  $("bAuto").textContent = "⏸ Parar";
+  auto = setInterval(() => { if (i >= PASOS.length - 1) return pararAuto(); ir(i + 1); }, 7000);
+};
+$("puntos").innerHTML = PASOS.map((_, k) => `<span title="Paso ${k + 1}"></span>`).join("");
+document.querySelectorAll("#puntos span").forEach((s, k) => s.onclick = () => { pararAuto(); ir(k); });
+document.addEventListener("keydown", (e) => { if (e.key === "ArrowRight") $("bSig").click(); if (e.key === "ArrowLeft") $("bAnt").click(); });
+// Se puede abrir en un paso concreto: kirchhoff.html#paso-7 (malla derecha) o #paso-14 (malla izquierda).
+function pasoDelEnlace() { const m = (location.hash || "").match(/^#paso-(\d+)$/); return m ? Math.max(0, Math.min(PASOS.length - 1, Number(m[1]) - 1)) : 0; }
+window.addEventListener("hashchange", () => { pararAuto(); ir(pasoDelEnlace()); });
+i = pasoDelEnlace();
+pintar();
+</script>
+</body>
+</html>
