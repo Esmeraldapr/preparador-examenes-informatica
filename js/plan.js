@@ -7,7 +7,13 @@ const PLAN_ASIGNATURAS = [1, 6, 24]; // Cálculo, FFE, Interfaces (Interfaces: 1
 const PLAN_INTERFACES = 24;
 const PLAN_REPASOS = [1, 3, 7, 14, 30]; // curva del olvido; después, cada 21 días hasta el examen
 const PLAN_REPASO_LUEGO = 21;
-const PLAN_EXAMEN = "2026-12-12"; // examen de las tres asignaturas
+const PLAN_EXAMEN = "2026-12-12"; // primer día de exámenes (el plan se intensifica antes de esta fecha)
+// Exámenes del primer trimestre (hora peninsular), según el calendario de la universidad.
+const PLAN_EXAMENES = [
+  { asig: 1, nombre: "Cálculo y Análisis Matemático", fecha: "2026-12-12", hora: "11:00 - 12:30" },
+  { asig: 6, nombre: "Fundamentos Físicos y Electrónica", fecha: "2026-12-12", hora: "19:30 - 21:00" },
+  { asig: 24, nombre: "Interfaces de Usuario", fecha: "2026-12-13", hora: "11:00 - 12:30" },
+];
 // 6 unidades por asignatura; entra una nueva cada dos semanas (la UD3 empezó el 21-oct).
 const PLAN_UNIDADES_FECHAS = [[4, "2026-11-04"], [5, "2026-11-18"], [6, "2026-12-02"]];
 /** Días en que toca repasar algo terminado el día `dia`: 1, 3, 7, 14, 30 y luego cada 21 hasta el examen. */
@@ -746,7 +752,12 @@ function planTiempoTxt(seg) {
         <div class="pl-respuesta" id="pl-resp" hidden></div>
       </div>
 
-      <div class="pl-aviso" style="text-align:center"><b>📅 Faltan ${Math.max(0, planDiasHasta(hoy, PLAN_EXAMEN))} días para el examen</b> (12 de diciembre)
+      <div class="pl-aviso" style="text-align:center"><b>📅 Faltan ${Math.max(0, planDiasHasta(hoy, PLAN_EXAMEN))} días para los exámenes</b>
+        ${PLAN_EXAMENES.map((e) => {
+          const fecha = new Date(e.fecha + "T12:00:00Z").toLocaleDateString("es-ES", { weekday: "long", day: "numeric", month: "long" });
+          const d = planDiasHasta(hoy, e.fecha);
+          return `<br><span class="pl-mini">${planEsc(e.nombre)}: ${fecha}, ${e.hora} (${d < 0 ? "ya pasó" : d === 0 ? "hoy" : d === 1 ? "mañana" : "en " + d + " días"})</span>`;
+        }).join("")}
         ${(() => {
           const sig = PLAN_UNIDADES_FECHAS.find(([, f]) => f >= hoy);
           if (!sig) return `<br><span class="pl-mini">Ya están las 6 unidades: ahora toca repasar y hacer simulacros.</span>`;
