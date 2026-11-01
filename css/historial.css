@@ -12,7 +12,7 @@
 .hi-cabecera button:hover{border-color:var(--morado)}
 
 .hi-grid{
-  display:grid; grid-template-columns:repeat(7,1fr); gap:6px;
+  display:grid; grid-template-columns:repeat(7,1fr) 1.15fr; gap:6px;
   margin-bottom:22px;
 }
 .hi-dia-semana{
@@ -39,3 +39,15 @@
 
 .hi-dia-detalle h3{margin:0 0 4px}
 .hi-dia-detalle .pl-mini{margin:0 0 14px}
+
+/* Colores por tiempo (1-nov-2026) y Σ semanal */
+body .hi-grid{max-width:600px;}
+body .hi-punto.hi-rojo{background:#ef4444; box-shadow:0 0 6px rgba(239,68,68,.8);}
+body .hi-punto.hi-naranja{background:#f59e0b; box-shadow:0 0 6px rgba(245,158,11,.8);}
+body .hi-punto.hi-verde{background:#16a34a; box-shadow:0 0 6px rgba(22,163,74,.8);}
+body .hi-punto.hi-azul{background:#3b82f6; box-shadow:0 0 6px rgba(59,130,246,.8);}
+body .hi-celda.hi-suma{background:#ede9fe; border-color:#c4b5fd; color:#4c1d95; cursor:default;}
+body .hi-celda.hi-suma .hi-num{color:#7c3aed;}
+.hi-suma-t{display:block; font-size:.78rem; font-weight:800;}
+.hi-leyenda{display:flex; flex-wrap:wrap; gap:6px 14px; font-size:.8rem; color:var(--texto-suave); margin:-10px 0 18px;}
+.hi-leyenda .hi-punto{display:inline-block; vertical-align:middle; margin-right:3px;}
