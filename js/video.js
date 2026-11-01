@@ -96,7 +96,7 @@ function vdApiYoutube() {
     </div>
     <div class="cl-vd-sub" id="vd-sub" hidden></div>
     <div class="cl-vd-aviso" id="vd-aviso-voz" hidden>🔇 El vídeo va sin sonido: lo lee la voz de la web en español. Si pausas el vídeo, la voz también para.</div>
-    <p class="pl-mini vd-nota">Mientras el vídeo está en marcha, el tiempo cuenta en Mi plan aunque no toques nada. Al llegar al final se marca hecho solo.</p>`;
+    <p class="pl-mini vd-nota">Mientras el vídeo está en marcha, el tiempo cuenta en Mi plan aunque no toques nada. Al llegar al final (o al 90 %) se marca hecho solo: el botón se pone verde y no hace falta pulsarlo.</p>`;
 
   await vdApiYoutube();
   let vistos = 0, total = 0, marcado = false, conVoz = false, ultima = -1;
@@ -105,7 +105,35 @@ function vdApiYoutube() {
     if (marcado) return;
     marcado = true;
     await yaHecho();
-    if (btnHecho) { btnHecho.textContent = "✅ Hecho en Mi plan"; btnHecho.disabled = true; }
+    // Que se vea claro que YA está hecho (antes el botón se quedaba gris y parecía roto).
+    if (btnHecho) {
+      btnHecho.textContent = "✅ Ya está marcado como hecho";
+      btnHecho.disabled = true;
+      btnHecho.style.cssText = "background:#16a34a;border-color:#16a34a;color:#fff;opacity:1;cursor:default";
+    }
+    vdSiguiente();
+  };
+  // ▶ Siguiente vídeo pendiente de hoy en Mi plan (si lo hay).
+  const vdSiguiente = async () => {
+    if (!clavePlan || document.getElementById("vd-siguiente")) return;
+    try {
+      const hoy = new Date().toLocaleDateString("sv-SE", { timeZone: "Europe/Madrid" });
+      const [{ data: dia }, { data: hh }] = await Promise.all([
+        sb.from("plan_dia").select("tareas").eq("fecha", hoy).maybeSingle(),
+        sb.from("plan_hecho").select("clave"),
+      ]);
+      const hechos = new Set((hh || []).map((x) => x.clave));
+      hechos.add(clavePlan);
+      const sig = ((dia && dia.tareas) || []).find((t) => t.sub === "video" && !hechos.has(t.clave) && t.url);
+      const caja = document.querySelector(".vd-botones");
+      if (!caja) return;
+      const a = document.createElement("a");
+      a.id = "vd-siguiente";
+      a.className = "btn btn-primario";
+      if (sig) { a.href = sig.url; a.textContent = "▶ Siguiente vídeo"; a.title = sig.titulo || ""; }
+      else { a.href = "plan.html"; a.textContent = "🎉 No quedan vídeos hoy · Volver a Mi plan"; }
+      caja.prepend(a);
+    } catch (e) {}
   };
   btnHecho?.addEventListener("click", marcar);
 
