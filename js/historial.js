@@ -24,6 +24,22 @@ const PLAN_GRUPOS_HI = [
   ["trabajo", "💼", "trabajo"],
 ];
 const hiGrupo = (sub) => PLAN_GRUPOS_HI.find((g) => g[0] === sub) || ["otros", "📌", "tarea"];
+// Tiempo que toca cada día (igual que planMetaMin de plan.js): fin de semana 5 h,
+// teletrabajo (lunes, jueves y viernes) 4 h, resto 3 h. En minutos.
+const HI_TELETRABAJO = [1, 4, 5];
+function hiMetaMin(f) {
+  const d = new Date(f + "T12:00:00Z").getUTCDay();
+  return [0, 6].includes(d) ? 300 : HI_TELETRABAJO.includes(d) ? 240 : 180;
+}
+// Color de cada día según el tiempo:
+// 🔴 rojo: no se hizo nada · 🟠 naranja: no llegó al tiempo que tocaba
+// 🟢 verde: llegó · 🔵 azul: pasó de 6 horas.
+const HI_AZUL_SEG = 6 * 3600;
+function hiSumarDias(f, n) {
+  const d = new Date(f + "T12:00:00Z");
+  d.setUTCDate(d.getUTCDate() + n);
+  return d.toISOString().slice(0, 10);
+}
 
 (async function iniciar() {
   const sesion = await exigirSesion();
@@ -48,6 +64,24 @@ const hiGrupo = (sub) => PLAN_GRUPOS_HI.find((g) => g[0] === sub) || ["otros", "
   const { data: pausas } = await sb.from("plan_pausa").select("desde, hasta");
   const enPausa = (f) => (pausas || []).some((p) => f >= p.desde && f <= p.hasta);
   const tiempoDe = new Map((tiempos || []).map((x) => [x.fecha, x.segundos]));
+  // Primer día con plan: desde ahí, un día sin nada sale en rojo.
+  const inicioPlan = (dias || []).length ? dias[0].fecha : null;
+  // El cronómetro empezó más tarde que el plan: antes de su primer día, el color sale de las tareas hechas.
+  const inicioCrono = (tiempos || []).map((x) => x.fecha).sort()[0] || null;
+  const colorDe = (f) => {
+    if (!inicioCrono || f < inicioCrono) {
+      const ts = (dias || []).find((d) => d.fecha === f)?.tareas || [];
+      if (!ts.length) return "";
+      const n = ts.filter((t) => hechos.has(t.clave)).length;
+      return n === ts.length ? "hi-verde" : n ? "hi-naranja" : "hi-rojo";
+    }
+    const s = tiempoDe.get(f) || 0;
+    if (s > HI_AZUL_SEG) return "hi-azul";
+    if (s >= hiMetaMin(f) * 60) return "hi-verde";
+    if (s >= 60) return "hi-naranja";
+    if (inicioPlan && f >= inicioPlan && f < hoy) return "hi-rojo";
+    return "";
+  };
   /** 4500 s -> «1 h 15 min»; corto: «1h15». */
   const hiTiempo = (seg, corto) => {
     const m = Math.floor((seg || 0) / 60), h = Math.floor(m / 60);
@@ -69,6 +103,17 @@ const hiGrupo = (sub) => PLAN_GRUPOS_HI.find((g) => g[0] === sub) || ["otros", "
     const totalDias = ultimoDia.getUTCDate();
 
     const celdas = [];
+    // Σ de la semana (lunes a domingo, aunque la semana empiece o acabe en otro mes).
+    const sumaSemana = (lunes) => {
+      let s = 0, meta = 0;
+      for (let i = 0; i < 7; i++) {
+        const f = hiSumarDias(lunes, i);
+        s += tiempoDe.get(f) || 0;
+        meta += hiMetaMin(f) * 60;
+      }
+      return `<div class="hi-celda hi-suma" title="Total de la semana (toca ${hiTiempo(meta)})"><span class="hi-num">Σ</span><span class="hi-suma-t">${s >= 60 ? hiTiempo(s, true) : "—"}</span></div>`;
+    };
+    const fechaDe = (d) => `${visto.anio}-${String(visto.mes + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
     for (let i = 0; i < offset; i++) celdas.push(`<div class="hi-celda hi-vacia"></div>`);
     for (let d = 1; d <= totalDias; d++) {
       const fecha = `${visto.anio}-${String(visto.mes + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
@@ -76,18 +121,23 @@ const hiGrupo = (sub) => PLAN_GRUPOS_HI.find((g) => g[0] === sub) || ["otros", "
       const esHoy = fecha === hoy;
       const esSel = fecha === seleccionada;
       let punto = "";
-      if (tareas && enPausa(fecha)) {
+      const color = colorDe(fecha);
+      if (enPausa(fecha) && (tareas || tiempoDe.get(fecha))) {
         punto = `<span style="display:block;font-size:.75rem">⏸</span>`;
-      } else if (tareas && tareas.length) {
-        const n = tareas.filter((t) => hechos.has(t.clave)).length;
-        const cls = n === tareas.length ? "hi-todo" : n === 0 ? "hi-nada" : "hi-parcial";
-        punto = `<span class="hi-punto ${cls}"></span>`;
+      } else if (color) {
+        punto = `<span class="hi-punto ${color}"></span>`;
       }
       celdas.push(
         `<div class="hi-celda ${tareas ? "hi-con-plan" : ""} ${esHoy ? "hi-hoy" : ""} ${esSel ? "hi-seleccionada" : ""}" ${tareas ? `data-fecha="${fecha}"` : ""}>
           <span class="hi-num">${d}</span>${punto}${tiempoDe.get(fecha) >= 60 ? `<span style="display:block;font-size:.7rem;color:#16a34a;font-weight:700">⏱${hiTiempo(tiempoDe.get(fecha), true)}</span>` : ""}
         </div>`
       );
+      // Al llegar al domingo (o al último día del mes), la casilla con el total de la semana.
+      if ((offset + d) % 7 === 0) celdas.push(sumaSemana(hiSumarDias(fecha, -6)));
+      else if (d === totalDias) {
+        for (let i = (offset + d) % 7; i < 7; i++) celdas.push(`<div class="hi-celda hi-vacia"></div>`);
+        celdas.push(sumaSemana(hiSumarDias(fecha, -(((offset + d) % 7) - 1))));
+      }
     }
 
     const puedeAvanzar = !(visto.anio === hoyPartes[0] && visto.mes === hoyPartes[1] - 1);
@@ -99,8 +149,15 @@ const hiGrupo = (sub) => PLAN_GRUPOS_HI.find((g) => g[0] === sub) || ["otros", "
         <button type="button" id="hi-sig" aria-label="Mes siguiente" ${puedeAvanzar ? "" : "disabled style=\"opacity:.3;cursor:default\""}>→</button>
       </div>
       <div class="hi-grid">
-        ${HI_DIAS_SEMANA.map((d) => `<div class="hi-dia-semana">${d}</div>`).join("")}
+        ${HI_DIAS_SEMANA.map((d) => `<div class="hi-dia-semana">${d}</div>`).join("")}<div class="hi-dia-semana">Σ</div>
         ${celdas.join("")}
+      </div>
+      <div class="hi-leyenda">
+        <span><span class="hi-punto hi-rojo"></span> no hiciste nada</span>
+        <span><span class="hi-punto hi-naranja"></span> no llegaste al tiempo</span>
+        <span><span class="hi-punto hi-verde"></span> llegaste</span>
+        <span><span class="hi-punto hi-azul"></span> más de 6 h</span>
+        <span>⏸ pausa por trabajos</span>
       </div>
       <div id="hi-detalle" class="hi-dia-detalle"></div>
     `;
@@ -141,7 +198,7 @@ const hiGrupo = (sub) => PLAN_GRUPOS_HI.find((g) => g[0] === sub) || ["otros", "
     det.innerHTML = `
       <h3>${hiEsc(fechaTxt)}</h3>
       ${enPausa(seleccionada) ? `<p class="pl-mini">⏸ Plan en pausa por trabajos. Lo que tocaba este día pasó al siguiente día sin pausa.</p>` : `<p class="pl-mini">${hechas.length} de ${tareas.length} tareas hechas · ${minHechos} min previstos</p>`}
-      <p style="font-size:1.05rem;margin:4px 0 10px">⏱ Tiempo de estudio: <b>${tiempoDe.get(seleccionada) ? hiTiempo(tiempoDe.get(seleccionada)) : "sin registrar"}</b>${enPausa(seleccionada) ? "" : (() => { const s = tiempoDe.get(seleccionada) || 0; const dia = new Date(seleccionada + "T12:00:00Z").getUTCDay(); const meta = ([0, 6].includes(dia) ? 300 : 180) * 60; return s > meta + 59 ? ` · te pasaste ${hiTiempo(s - meta)} 💪` : s ? ` · faltó ${hiTiempo(meta - s)}` : ""; })()}</p>
+      <p style="font-size:1.05rem;margin:4px 0 10px">⏱ Tiempo de estudio: <b>${tiempoDe.get(seleccionada) ? hiTiempo(tiempoDe.get(seleccionada)) : "sin registrar"}</b>${enPausa(seleccionada) ? "" : (() => { const s = tiempoDe.get(seleccionada) || 0; const meta = hiMetaMin(seleccionada) * 60; return s > meta + 59 ? ` · te pasaste ${hiTiempo(s - meta)} 💪` : s ? ` · faltó ${hiTiempo(meta - s)}` : ""; })()}</p>
       ${
         hechas.length
           ? hechas.map((t) => {
