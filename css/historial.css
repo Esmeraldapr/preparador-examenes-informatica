@@ -51,3 +51,16 @@ body .hi-celda.hi-suma .hi-num{color:#7c3aed;}
 .hi-suma-t{display:block; font-size:.78rem; font-weight:800;}
 .hi-leyenda{display:flex; flex-wrap:wrap; gap:6px 14px; font-size:.8rem; color:var(--texto-suave); margin:-10px 0 18px;}
 .hi-leyenda .hi-punto{display:inline-block; vertical-align:middle; margin-right:3px;}
+
+/* Móvil: que el calendario no se salga ni se monte con la leyenda (2-nov-2026) */
+.hi-grid{grid-template-columns:repeat(7,minmax(0,1fr)) minmax(0,1.15fr);}
+.hi-celda{min-width:0; overflow:hidden;}
+.hi-leyenda{margin:0 0 18px;}
+@media (max-width:600px){
+  .hi-grid{gap:3px;}
+  .hi-celda{aspect-ratio:auto; min-height:56px; padding:4px 0; border-radius:8px; font-size:.75rem;}
+  .hi-celda span[style]{font-size:.58rem !important; letter-spacing:-.02em; white-space:nowrap;}
+  .hi-suma-t{font-size:.6rem; white-space:nowrap;}
+  .hi-dia-semana{font-size:.68rem;}
+  .hi-leyenda{font-size:.75rem; gap:4px 10px;}
+}
