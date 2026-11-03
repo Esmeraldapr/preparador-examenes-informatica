@@ -36,6 +36,18 @@ let terminadoAntes = null; // { hechas, total } si se pulsó "Terminar ahora"
 let hechasSet = new Set(); // preguntas que ya has contestado alguna vez
 let trucosPorTarea = {}; // "asignatura|tipo_tarea" -> lista de trucos para el botón 💡
 
+/** ¿Esta pregunta ya tiene una opción elegida? (null / undefined = aún sin contestar) */
+function contestada(i) {
+  return !!(respuestas[i] && typeof respuestas[i] === "object");
+}
+
+/** Índices de las preguntas que se han pasado sin contestar (se pueden hacer luego). */
+function pendientes() {
+  const lista = [];
+  for (let i = 0; i < preguntasSet.length; i++) if (!contestada(i)) lista.push(i);
+  return lista;
+}
+
 /** Pone primero las preguntas que aún no has contestado (mantiene el orden dentro de cada grupo). */
 function noHechasPrimero(arr) {
   if (!hechasSet.size) return arr;
@@ -205,7 +217,7 @@ function leerProgresoGuardado() {
       vista = indice;
       document.getElementById("titulo-modo").textContent = tituloModoActual;
       if (indice >= preguntasSet.length) {
-        pintarResultado();
+        llegarAlFinal();
       } else {
         pintarPregunta();
       }
@@ -439,11 +451,11 @@ function pintarPregunta() {
   const esFav = favoritosSet.has(p.id);
   const letras = ["A", "B", "C", "D", "E", "F"];
   const esUltima = vista + 1 >= preguntasSet.length;
-  const yaRespondida = respuestas[vista] !== undefined && respuestas[vista] !== null;
-  const enBlancoGuardado = respuestas[vista] === null;
-  // Ya contestada (o dejada en blanco) = no se puede volver a puntuar, aunque se llegue
-  // a ella otra vez con "Anterior" → "Siguiente".
-  respondida = yaRespondida || enBlancoGuardado;
+  const yaRespondida = contestada(vista);
+  // Ya contestada = no se puede volver a puntuar. Si se pasó sin contestar,
+  // sigue abierta: se puede volver a ella y contestarla cuando quieras.
+  respondida = yaRespondida;
+  const quedan = pendientes().length;
 
   document.getElementById("zona-quiz").innerHTML = `
     <div class="quiz-barra"><div style="width:${pct}%"></div></div>
@@ -489,7 +501,7 @@ function pintarPregunta() {
     </div>
     <div class="acciones-quiz qz-nav">
       ${vista > 0 ? `<button id="btn-anterior" class="btn btn-secundario">← Anterior</button>` : `<span></span>`}
-      <button id="btn-siguiente" class="btn btn-primario">${vista >= indice && esUltima ? "Ver resultado →" : "Siguiente →"}</button>
+      <button id="btn-siguiente" class="btn btn-primario">${esUltima ? (quedan > (yaRespondida ? 0 : 1) ? "Terminar →" : "Ver resultado →") : (yaRespondida ? "Siguiente →" : "Saltar por ahora →")}</button>
     </div>
     <div class="qz-salir">
       <a href="${urlVolver()}" class="btn btn-secundario">← Salir</a>
@@ -506,6 +518,10 @@ function pintarPregunta() {
   const btnAnterior = document.getElementById("btn-anterior");
   if (btnAnterior) btnAnterior.addEventListener("click", irAnterior);
   document.getElementById("btn-siguiente").addEventListener("click", vista < indice ? avanzarVista : siguientePregunta);
+  // Aviso: esta pregunta la saltaste antes y aún la puedes contestar.
+  if (!yaRespondida && vista < indice) {
+    document.getElementById("zona-explicacion").innerHTML = `<p class="subtitulo" style="margin-top:10px">⏳ Esta la saltaste. Puedes contestarla ahora.</p>`;
+  }
 
   document.getElementById("btn-altavoz-pregunta").addEventListener("click", (e) => {
     const enunciadoEl = document.querySelector("#zona-quiz .enunciado");
@@ -515,7 +531,7 @@ function pintarPregunta() {
 
   // Si esta pregunta ya se respondió antes (venimos de "Anterior", o se recuperó
   // un test a medias), la mostramos ya resuelta: solo para consultarla, sin poder cambiar la respuesta.
-  if (vista < indice || yaRespondida || enBlancoGuardado) {
+  if (yaRespondida) {
     pintarComoRespondida(p, respuestas[vista]);
   } else {
     document.querySelectorAll(".opcion").forEach((el) => el.addEventListener("click", () => elegirOpcion(el, p)));
@@ -598,6 +614,18 @@ function irAnterior() {
 
 /** Avanza la vista (sin re-puntuar) cuando se está repasando una pregunta ya respondida. */
 function avanzarVista() {
+  // Si ya se ha llegado al final, "Siguiente" lleva a la siguiente que falta por hacer.
+  if (indice >= preguntasSet.length) {
+    const sig = pendientes().find((i) => i > vista);
+    if (sig === undefined) { llegarAlFinal(); return; }
+    vista = sig;
+    pintarPregunta();
+    return;
+  }
+  if (vista + 1 >= preguntasSet.length) {
+    llegarAlFinal();
+    return;
+  }
   if (vista < indice) {
     vista++;
     pintarPregunta();
@@ -605,7 +633,7 @@ function avanzarVista() {
 }
 
 async function elegirOpcion(el, pregunta) {
-  if (respondida) return;
+  if (respondida || contestada(vista)) return;
   respondida = true;
 
   const opcionIdx = parseInt(el.dataset.opcion, 10);
@@ -723,7 +751,7 @@ async function alternarFavorito(preguntaId) {
  */
 function terminarAhora() {
   // La pregunta que se está viendo cuenta si ya la has contestado (aunque no hayas pulsado "Siguiente").
-  if (vista === indice && respuestas[indice] !== undefined && respuestas[indice] !== null) indice++;
+  if (vista === indice && contestada(indice)) indice++;
   if (indice === 0) {
     const b = document.getElementById("btn-terminar");
     if (b) b.textContent = "Contesta al menos una pregunta antes de terminar";
@@ -732,26 +760,70 @@ function terminarAhora() {
   terminadoAntes = { hechas: indice, total: preguntasSet.length };
   preguntasSet = preguntasSet.slice(0, indice);
   vista = indice;
+  cerrarBlancos();
   guardarProgreso();
   pintarResultado();
 }
 
 function siguientePregunta() {
-  // Si se pulsa "Siguiente" sin haber elegido ninguna opción, la pregunta
-  // queda en blanco: no cuenta como acierto ni como error, y no se guarda intento.
-  if (respuestas[indice] === undefined) {
-    blancos++;
-    respuestas[indice] = null;
-  }
+  // Si se pulsa sin haber elegido ninguna opción, la pregunta se SALTA:
+  // no se marca nada y se puede volver a ella con "Anterior" o desde el final.
+  if (!contestada(indice)) respuestas[indice] = null;
 
   indice++;
   vista = indice;
   guardarProgreso();
   if (indice >= preguntasSet.length) {
-    pintarResultado();
+    llegarAlFinal();
   } else {
     pintarPregunta();
   }
+}
+
+/** Solo al terminar del todo, las que siguen sin contestar cuentan como "en blanco". */
+function cerrarBlancos() {
+  blancos = pendientes().length;
+}
+
+/**
+ * Al llegar al final: si quedan preguntas saltadas, NO se corrige nada todavía.
+ * Se enseña la lista para ir a hacerlas, o terminar dejándolas en blanco.
+ */
+function llegarAlFinal() {
+  detenerLectura();
+  indice = preguntasSet.length;
+  const faltan = pendientes();
+  if (!faltan.length) {
+    cerrarBlancos();
+    pintarResultado();
+    return;
+  }
+  const botones = faltan
+    .map((i) => `<button type="button" class="btn btn-secundario qz-ir" data-i="${i}">Pregunta ${i + 1}</button>`)
+    .join("");
+  document.getElementById("zona-quiz").innerHTML = `
+    <div class="quiz-barra"><div style="width:100%"></div></div>
+    <div class="pregunta-caja">
+      <p style="font-size:1.1rem;font-weight:800;margin:0 0 6px">⏳ Te ${faltan.length === 1 ? "falta 1 pregunta" : `faltan ${faltan.length} preguntas`} sin contestar</p>
+      <p class="subtitulo" style="margin-bottom:12px">Las saltaste. No se ha corregido nada todavía. Pulsa una para hacerla ahora:</p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px">${botones}</div>
+      <p class="subtitulo" style="margin-bottom:8px">Si prefieres terminar ya, esas ${faltan.length === 1 ? "cuenta" : "cuentan"} como en blanco${MODO === "racha" ? " y la tarea de la racha no contará" : ""}.</p>
+      <button type="button" id="btn-fin-igual" class="btn btn-primario">Ver resultado igualmente</button>
+    </div>
+    <div class="qz-salir">
+      <a href="${urlVolver()}" class="btn btn-secundario">← Salir (se guarda por dónde vas)</a>
+    </div>
+  `;
+  document.querySelectorAll(".qz-ir").forEach((b) =>
+    b.addEventListener("click", () => {
+      vista = parseInt(b.dataset.i, 10);
+      pintarPregunta();
+    })
+  );
+  document.getElementById("btn-fin-igual").addEventListener("click", () => {
+    cerrarBlancos();
+    pintarResultado();
+  });
 }
 
 async function pintarResultado() {
