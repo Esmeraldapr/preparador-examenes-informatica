@@ -66,13 +66,14 @@ function clEnlacesBajo(lista) {
   return lista
     .map((e) => {
       const yt = clYoutubeId(e.url);
-      const icono = e.tipo === "video" || yt ? "🎬 Vídeo de esta diapositiva" : "🔗 Enlace de esta diapositiva";
+      const icono = e.tipo === "video" || yt ? "🎬 Vídeo de esta diapositiva" : e.tipo === "simulacion" ? "🧪 Simulación de esta diapositiva" : "🔗 Enlace de esta diapositiva";
       return `<div class="cl-vd">
         <div class="cl-vd-tit">${icono}: <b>${clEsc(e.titulo || "")}</b></div>
         ${e.para_que ? `<div class="cl-vd-para">${clEsc(e.para_que)}</div>` : ""}
         <div class="cl-vd-botones">
           ${yt ? `<button type="button" class="btn btn-primario cl-vd-ver" data-yt="${clEsc(yt)}" data-desde="${clYoutubeDesde(e.url)}">▶ Verlo aquí${clYoutubeDesde(e.url) ? ` (desde el ${Math.floor(clYoutubeDesde(e.url) / 60)}:${String(clYoutubeDesde(e.url) % 60).padStart(2, "0")})` : ""}</button>` : ""}
           ${yt && CL_VOZ.has(yt) ? `<button type="button" class="btn btn-primario cl-vd-voz" data-yt="${clEsc(yt)}" data-desde="${clYoutubeDesde(e.url)}">🔊 Verlo con voz en español</button>` : ""}
+          ${e.incrustar ? `<button type="button" class="btn btn-primario cl-vd-sim" data-src="${clEsc(e.incrustar)}">▶ Abrirla aquí</button>` : ""}
           <a class="btn btn-secundario" href="${clEsc(e.url)}" target="_blank" rel="noopener">${yt ? "Abrir en YouTube ↗" : "Abrir enlace ↗"}</a>
         </div>
         <div class="cl-vd-player"></div>
@@ -190,6 +191,23 @@ document.addEventListener("click", (ev) => {
   b.dataset.texto = b.textContent;
   caja.innerHTML = `<iframe src="https://www.youtube-nocookie.com/embed/${encodeURIComponent(b.dataset.yt)}?autoplay=1&rel=0${Number(b.dataset.desde) ? `&start=${Number(b.dataset.desde)}` : ""}" title="Vídeo" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe>`;
   b.textContent = "✖ Cerrar el vídeo";
+});
+
+// Pulsar «▶ Abrirla aquí» mete la simulación (PhET en español…) debajo de la diapositiva.
+document.addEventListener("click", (ev) => {
+  const b = ev.target.closest(".cl-vd-sim");
+  if (!b) return;
+  clPararVoz();
+  const caja = b.closest(".cl-vd").querySelector(".cl-vd-player");
+  if (caja.innerHTML) {
+    caja.innerHTML = "";
+    caja.classList.remove("cl-vd-con-sim");
+    b.textContent = "▶ Abrirla aquí";
+    return;
+  }
+  caja.classList.add("cl-vd-con-sim");
+  caja.innerHTML = `<iframe src="${clEsc(b.dataset.src)}" title="Simulación" allow="fullscreen" allowfullscreen></iframe>`;
+  b.textContent = "✖ Cerrar la simulación";
 });
 
 /** Convierte el texto del tema en HTML. Devuelve { html, indice }. */
