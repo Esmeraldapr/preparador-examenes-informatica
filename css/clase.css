@@ -46,3 +46,6 @@
 .vd-nota{margin-top:10px;}
 .cl-vd-sub{margin:8px 0 4px;padding:8px 12px;border-radius:10px;background:#1e1b4b;color:#fff;font-size:1.02rem;line-height:1.45;min-height:2.9em;}
 .cl-vd-sub:empty{display:none;}
+
+.cl-vd-player.cl-vd-con-sim{aspect-ratio:4/3;max-height:80vh;}
+@media (max-width:600px){.cl-vd-player.cl-vd-con-sim{aspect-ratio:3/4;}}
