@@ -311,20 +311,33 @@ function planGenerar(hoy, catalogos, hechos, arrastre = []) {
     }
   });
 
-  // 🎓 Un test de la universidad entero cada día (rotando asignatura y test): son los que mejor
-  // enseñan cómo pregunta el examen. Solo de unidades ya dadas.
+  // 🎓 Tests de la universidad enteros: son los que mejor enseñan cómo pregunta el examen.
+  // Solo de unidades ya dadas. Primero los que nunca se han hecho desde el plan (los más nuevos
+  // antes), hasta 2 al día y de cualquier asignatura; cuando no quede ninguno nuevo, uno al día
+  // rotando asignatura y test. Después cada test vuelve con la curva del olvido de sus preguntas.
   {
+    const yaHecho = (a, ex) => [...hechos.keys()].some((k) => k.startsWith(`tuni:${a}:${ex.id}:`));
+    const enArr = (a, ex) => arrastre.some((t) => t.clave.startsWith(`tuni:${a}:${ex.id}:`));
+    const arrastrados = arrastre.filter((t) => /^tuni:/.test(t.clave)).length;
+    const nuevos = [];
+    PLAN_ASIGNATURAS.forEach((a) => (((catalogos[a] || {}).testsUni) || []).forEach((ex) => {
+      if (!yaHecho(a, ex) && !enArr(a, ex)) nuevos.push({ a, ex });
+    }));
+    nuevos.sort((x, y) => y.ex.id - x.ex.id);
+    const elegidos = nuevos.slice(0, Math.max(0, 2 - arrastrados));
     const conTests = activas.filter((a) => ((catalogos[a] || {}).testsUni || []).length);
-    if (conTests.length && !arrastre.some((t) => /^tuni:/.test(t.clave))) {
+    if (!nuevos.length && conTests.length && !arrastrados) {
       const a = conTests[planDiaDelAnio(hoy) % conTests.length];
       const lista = catalogos[a].testsUni;
-      const ex = lista[Math.floor(planDiaDelAnio(hoy) / conTests.length) % lista.length];
+      elegidos.push({ a, ex: lista[Math.floor(planDiaDelAnio(hoy) / conTests.length) % lista.length] });
+    }
+    elegidos.forEach(({ a, ex }) => {
       const clave = `tuni:${a}:${ex.id}:${hoy}`;
       tareas.push({ clave, tipo: "test", sub: "test", asig: catalogos[a][0]?.asig || "", asigId: a,
-        titulo: `Test de la universidad entero: ${ex.nombre}`, min: Math.max(8, Math.round(ex.n * 1.2)),
+        titulo: `${nuevos.length ? "🆕 " : ""}Test de la universidad entero: ${ex.nombre}`, min: Math.max(8, Math.round(ex.n * 1.2)),
         url: `quiz.html?asignatura=${a}&modo=examen&examen_id=${ex.id}&desde=plan&claveplan=${encodeURIComponent(clave)}` });
       usado += Math.max(8, Math.round(ex.n * 1.2));
-    }
+    });
   }
 
   // 🧮 Calculadora: 3 preguntas de Cálculo para resolver con la calculadora (con la guía impresa).
