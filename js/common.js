@@ -343,6 +343,16 @@ async function avisarRespuestasNuevas() {
     if (error || !data || !data.length) return;
     const esc = (t) => String(t).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
     const ids = data.map((d) => d.id);
+    // El enlace tiene que abrir LA pregunta del comentario, no el examen desde el principio.
+    const preguntaDe = {};
+    try {
+      const { data: cs } = await sb.from("comentarios_pregunta").select("id, pregunta_id").in("id", ids);
+      (cs || []).forEach((c) => (preguntaDe[c.id] = c.pregunta_id));
+    } catch (e) {}
+    const enlacePregunta = (d) =>
+      preguntaDe[d.id]
+        ? enlaceAsignatura("quiz.html", d.asignatura_id, "modo=ids&ids=" + preguntaDe[d.id] + "&titulo=" + encodeURIComponent("💬 Pregunta " + d.orden + " · " + d.examen))
+        : enlaceAsignatura("quiz.html", d.asignatura_id, "modo=examen&examen_id=" + d.examen_id);
     const caja = document.createElement("div");
     caja.className = "aviso-respuestas";
     caja.style.maxHeight = "85vh";
@@ -355,7 +365,7 @@ async function avisarRespuestasNuevas() {
         .map((d) => `<li style="margin-bottom:10px">
           <div><b>Tu mensaje:</b> ${esc(d.texto).slice(0, 140)}</div>
           <div class="parrafo-leible" style="white-space:pre-line;max-height:40vh;overflow:auto;margin:6px 0;padding:8px;border-radius:8px;background:rgba(124,58,237,.08)"><b>Respuesta:</b> ${esc(d.respuesta || "")}</div>
-          <a href="${enlaceAsignatura("quiz.html", d.asignatura_id, "modo=examen&examen_id=" + d.examen_id)}" data-id="${d.id}">Ver la pregunta (${esc(d.asignatura)} · ${esc(d.examen)} · pregunta ${d.orden})</a></li>`)
+          <a href="${enlacePregunta(d)}" data-id="${d.id}">Ver la pregunta (${esc(d.asignatura)} · ${esc(d.examen)} · pregunta ${d.orden})</a></li>`)
         .join("")}</ul>
       <div class="aviso-resp-pie">Pulsa en el texto de la respuesta para escucharla 🔊</div>
       <button type="button" class="aviso-resp-vale">✓ Ya lo he visto, no me lo vuelvas a enseñar</button>`;
