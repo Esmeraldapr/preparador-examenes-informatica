@@ -305,6 +305,7 @@ function leerProgresoGuardado() {
     // Lo que más cae: la base de datos elige los conceptos más repetidos en
     // exámenes oficiales y test de la universidad, empezando por los fallados.
     tituloModo = "🎯 Lo que más cae";
+    examenOficialActual = true; // mismo criterio que un examen: cada error resta 0,33
     const cuantas = parseInt(params.get("n") || "10", 10);
     const { data } = await sb.rpc("plan_lo_que_mas_cae", { p_asignatura: ASIGNATURA_ID, p_n: cuantas });
     preguntas = data || [];
@@ -314,7 +315,8 @@ function leerProgresoGuardado() {
     const ud = parseInt(params.get("ud") || "0", 10);
     const cuantas = parseInt(params.get("n") || "15", 10);
     tituloModo = `✍️ Test de la UD${ud}`;
-    const { data } = await sb.rpc("plan_preguntas_unidad", { p_asignatura: ASIGNATURA_ID, p_ud: ud, p_n: cuantas });
+    examenOficialActual = true; // mismo criterio que un examen: cada error resta 0,33
+    const { data } = await sb.rpc("plan_preguntas_unidad",{ p_asignatura: ASIGNATURA_ID, p_ud: ud, p_n: cuantas });
     preguntas = data || [];
   } else if (modo === "pexamen") {
     // Mi plan: preguntas de examen oficial y de test de la universidad con repetición
