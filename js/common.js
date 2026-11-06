@@ -832,7 +832,7 @@ const ASIGNATURAS_CON_FRACCIONES = [1, 8]; // 1 = Cálculo, 8 = Matemática Disc
 
 (function () {
   const GRUPO = "\\((?:[^()]|\\([^()]*\\))*\\)";
-  const PALABRA = "(?:[0-9]+(?:[.,][0-9]+)?|[A-Za-zπ]+|[⁰¹²³⁴⁵⁶⁷⁸⁹ⁿ⁻⁺]+)";
+  const PALABRA = "(?:[0-9]+(?:[.,][0-9]+)?|[A-Za-zπ]+|[⁰¹²³⁴⁵⁶⁷⁸⁹ⁿ⁻⁺]+|\u0001[0-9]+\u0002)";
   const TERMINO = "(?:" + GRUPO + "|" + PALABRA + ")+";
   const PATRON = new RegExp("(^|[^\\w/.:])(" + TERMINO + ")[ ]?/[ ]?(" + TERMINO + ")(?![/(0-9A-Za-zπ⁰¹²³⁴⁵⁶⁷⁸⁹ⁿ⁻⁺])", "g");
 
@@ -872,15 +872,34 @@ const ASIGNATURAS_CON_FRACCIONES = [1, 8]; // 1 = Cálculo, 8 = Matemática Disc
     });
   }
 
+  // Exponentes: e^(1/x) o x^2 se ven como exponente pequeño arriba (para todas las asignaturas).
+  const EXP_GRUPO = /\^\(((?:[^()]|\([^()]*\))*)\)/g;
+  const EXP_SIMPLE = /\^([−\-+]?[0-9A-Za-zπ]+)/g;
+  function sacarExponentes(t, guardados) {
+    function guardar(m, dentro) { guardados.push(dentro); return "\u0001" + (guardados.length - 1) + "\u0002"; }
+    return t.replace(EXP_GRUPO, guardar).replace(EXP_SIMPLE, guardar);
+  }
+  function ponerExponentes(t, guardados) {
+    return t.replace(/\u0001([0-9]+)\u0002/g, function (m, i) {
+      return '<span class="sr" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap"> elevado a </span><sup>' + guardados[Number(i)] + "</sup>";
+    });
+  }
+
   window.fraccionesApiladas = function (html, asignaturaId) {
     if (html === null || html === undefined) return html;
     const s = String(html);
-    if (s.indexOf("/") === -1) return s;
-    if (!ASIGNATURAS_CON_FRACCIONES.includes(Number(asignaturaId))) return s;
+    const conFracciones = s.indexOf("/") !== -1 && ASIGNATURAS_CON_FRACCIONES.includes(Number(asignaturaId));
+    if (!conFracciones && s.indexOf("^") === -1) return s;
     // el texto se convierte; las etiquetas HTML y los dibujos SVG se dejan intactos
     return s
       .split(/(<svg[\s\S]*?<\/svg>|<[^>]+>)/i)
-      .map(function (parte, i) { return i % 2 === 1 ? parte : convertir(parte); })
+      .map(function (parte, i) {
+        if (i % 2 === 1) return parte;
+        const guardados = [];
+        let t = sacarExponentes(parte, guardados);
+        if (conFracciones) t = convertir(t);
+        return ponerExponentes(t, guardados);
+      })
       .join("");
   };
 })();
