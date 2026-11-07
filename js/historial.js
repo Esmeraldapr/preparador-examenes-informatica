@@ -27,9 +27,10 @@ const hiGrupo = (sub) => PLAN_GRUPOS_HI.find((g) => g[0] === sub) || ["otros", "
 // Tiempo que toca cada día (igual que planMetaMin de plan.js): fin de semana 5 h,
 // teletrabajo (lunes, jueves y viernes) 4 h, resto 3 h. En minutos.
 const HI_TELETRABAJO = [1, 4, 5];
+const HI_FESTIVOS = ["2026-11-09", "2026-12-08", "2026-12-25", "2027-01-01", "2027-01-06"];
 function hiMetaMin(f) {
   const d = new Date(f + "T12:00:00Z").getUTCDay();
-  return [0, 6].includes(d) ? 300 : HI_TELETRABAJO.includes(d) ? 240 : 180;
+  return [0, 6].includes(d) || HI_FESTIVOS.includes(f) ? 300 : HI_TELETRABAJO.includes(d) ? 240 : 180;
 }
 // Color de cada día según el tiempo:
 // 🔴 rojo: no se hizo nada · 🟠 naranja: no llegó al tiempo que tocaba
