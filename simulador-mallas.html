@@ -1,0 +1,724 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulador Interactivo de Circuito - Leyes de Kirchhoff (2 Mallas)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Fira+Code:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .code-font {
+            font-family: 'Fira Code', monospace;
+        }
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+    </style>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col">
+
+    <!-- Header -->
+    <header class="bg-slate-800/80 border-b border-slate-700/60 backdrop-blur sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-4">
+            <div class="flex items-center gap-3">
+                <div class="bg-indigo-600 p-2 rounded-lg text-white">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                    </svg>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold text-white tracking-tight">Simulador de Circuito con 2 Generadores</h1>
+                    <p class="text-xs text-slate-400">Análisis por Método de Mallas (Leyes de Kirchhoff)</p>
+                </div>
+            </div>
+            
+            <div class="flex items-center gap-3">
+                <button id="reset-btn" class="px-3 py-1.5 text-xs font-medium bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-lg transition-colors flex items-center gap-1.5">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                    </svg>
+                    Restablecer Valores
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-1 max-w-7xl w-full mx-auto p-4 md:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+        <!-- Visual Circuit & Controls Section (8 cols) -->
+        <div class="lg:col-span-7 flex flex-col gap-6">
+            
+            <!-- Canvas Container -->
+            <div class="bg-slate-800 border border-slate-700/70 rounded-2xl p-4 shadow-xl flex flex-col relative overflow-hidden min-h-[420px]">
+                <div class="flex justify-between items-center mb-2 px-2">
+                    <span class="text-xs font-semibold uppercase tracking-wider text-slate-400 flex items-center gap-2">
+                        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                        Diagrama de Circuito en Tiempo Real
+                    </span>
+                    <span class="text-xs text-slate-400 bg-slate-900/60 px-2 py-1 rounded-md border border-slate-700/50">
+                        ⚡ Partículas = Sentido Real del Flujo
+                    </span>
+                </div>
+
+                <div class="relative flex-1 rounded-xl bg-slate-950/80 border border-slate-800/80 overflow-hidden">
+                    <canvas id="circuitCanvas"></canvas>
+                </div>
+            </div>
+
+            <!-- Interactive Sliders / Controls -->
+            <div class="bg-slate-800 border border-slate-700/70 rounded-2xl p-5 shadow-xl">
+                <h2 class="text-sm font-semibold uppercase tracking-wider text-slate-300 mb-4 flex items-center gap-2">
+                    <svg class="w-4 h-4 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/>
+                    </svg>
+                    Ajuste de Parámetros del Circuito
+                </h2>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                    
+                    <!-- V1 Control -->
+                    <div class="bg-slate-900/50 p-3.5 rounded-xl border border-slate-700/50">
+                        <div class="flex justify-between items-center mb-1">
+                            <label class="text-xs font-medium text-emerald-400">Generador 1 (V₁ - Izquierda)</label>
+                            <span id="v1-val" class="text-sm font-bold code-font text-emerald-400">20 V</span>
+                        </div>
+                        <input type="range" id="v1-slider" min="0" max="50" step="1" value="20" class="w-full h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-emerald-400">
+                    </div>
+
+                    <!-- V2 Control -->
+                    <div class="bg-slate-900/50 p-3.5 rounded-xl border border-slate-700/50">
+                        <div class="flex justify-between items-center mb-1">
+                            <label class="text-xs font-medium text-purple-400">Generador 2 (V₂ - Derecha)</label>
+                            <span id="v2-val" class="text-sm font-bold code-font text-purple-400">10 V</span>
+                        </div>
+                        <input type="range" id="v2-slider" min="0" max="50" step="1" value="10" class="w-full h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-purple-400">
+                    </div>
+
+                    <!-- R1 Control -->
+                    <div class="bg-slate-900/50 p-3.5 rounded-xl border border-slate-700/50">
+                        <div class="flex justify-between items-center mb-1">
+                            <label class="text-xs font-medium text-cyan-400">Resistencia R₁ (Malla 1)</label>
+                            <span id="r1-val" class="text-sm font-bold code-font text-cyan-400">2 Ω</span>
+                        </div>
+                        <input type="range" id="r1-slider" min="1" max="20" step="0.5" value="2" class="w-full h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-cyan-400">
+                    </div>
+
+                    <!-- R2 Control (Central) -->
+                    <div class="bg-slate-900/50 p-3.5 rounded-xl border border-slate-700/50">
+                        <div class="flex justify-between items-center mb-1">
+                            <label class="text-xs font-medium text-amber-400">Resistencia R₂ (Rama Central)</label>
+                            <span id="r2-val" class="text-sm font-bold code-font text-amber-400">4 Ω</span>
+                        </div>
+                        <input type="range" id="r2-slider" min="1" max="20" step="0.5" value="4" class="w-full h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-amber-400">
+                    </div>
+
+                    <!-- R3 Control -->
+                    <div class="bg-slate-900/50 p-3.5 rounded-xl border border-slate-700/50 sm:col-span-2">
+                        <div class="flex justify-between items-center mb-1">
+                            <label class="text-xs font-medium text-rose-400">Resistencia R₃ (Malla 2 - Derecha)</label>
+                            <span id="r3-val" class="text-sm font-bold code-font text-rose-400">8 Ω</span>
+                        </div>
+                        <input type="range" id="r3-slider" min="1" max="30" step="0.5" value="8" class="w-full h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-rose-400">
+                        <span class="text-[10px] text-slate-400 mt-1 block">(Representa la suma de resistencias en la rama derecha, p.ej. 3Ω + 5Ω = 8Ω)</span>
+                    </div>
+
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Calculations & Step-by-Step Explanation Section (5 cols) -->
+        <div class="lg:col-span-5 flex flex-col gap-6">
+
+            <!-- Real-time Results Cards -->
+            <div class="bg-slate-800 border border-slate-700/70 rounded-2xl p-5 shadow-xl">
+                <h2 class="text-sm font-semibold uppercase tracking-wider text-slate-300 mb-4 flex items-center gap-2">
+                    <svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+                    </svg>
+                    Resultados Calculados por Ramas
+                </h2>
+
+                <div class="grid grid-cols-1 gap-3">
+                    
+                    <!-- Left Branch Result -->
+                    <div class="bg-slate-900/80 p-3.5 rounded-xl border border-slate-700/50 flex justify-between items-center">
+                        <div>
+                            <div class="text-xs font-semibold text-slate-300">Corriente Rama Izquierda ($I_{izq}$)</div>
+                            <div id="dir-left" class="text-[11px] text-slate-400">Dirección: Sube por el generador V₁</div>
+                        </div>
+                        <div id="res-left" class="text-base font-bold code-font text-emerald-400">0.00 A</div>
+                    </div>
+
+                    <!-- Middle Branch Result -->
+                    <div class="bg-slate-900/80 p-3.5 rounded-xl border border-slate-700/50 flex justify-between items-center">
+                        <div>
+                            <div class="text-xs font-semibold text-slate-300">Corriente Rama Central ($I_{centro}$)</div>
+                            <div id="dir-mid" class="text-[11px] text-slate-400">Dirección: Baja de Nudo A a Nudo B</div>
+                        </div>
+                        <div id="res-mid" class="text-base font-bold code-font text-amber-400">0.00 A</div>
+                    </div>
+
+                    <!-- Right Branch Result -->
+                    <div class="bg-slate-900/80 p-3.5 rounded-xl border border-slate-700/50 flex justify-between items-center">
+                        <div>
+                            <div class="text-xs font-semibold text-slate-300">Corriente Rama Derecha ($I_{der}$)</div>
+                            <div id="dir-right" class="text-[11px] text-slate-400">Dirección: Sube/Baja</div>
+                        </div>
+                        <div id="res-right" class="text-base font-bold code-font text-purple-400">0.00 A</div>
+                    </div>
+
+                    <!-- Node Voltage Result -->
+                    <div class="bg-slate-900/80 p-3.5 rounded-xl border border-slate-700/50 flex justify-between items-center">
+                        <div>
+                            <div class="text-xs font-semibold text-slate-300">Tensión en Nudo Superior ($V_A$)</div>
+                            <div class="text-[11px] text-slate-400">Referencia: Nudo B = 0 V</div>
+                        </div>
+                        <div id="res-va" class="text-base font-bold code-font text-indigo-400">0.00 V</div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- Mathematical Step-by-Step Guide -->
+            <div class="bg-slate-800 border border-slate-700/70 rounded-2xl p-5 shadow-xl flex-1 flex flex-col">
+                <h2 class="text-sm font-semibold uppercase tracking-wider text-slate-300 mb-4 flex items-center gap-2">
+                    <svg class="w-4 h-4 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+                    </svg>
+                    Ecuaciones de Malla (Paso a Paso)
+                </h2>
+
+                <div class="space-y-4 text-xs text-slate-300 flex-1 overflow-y-auto pr-1">
+                    
+                    <!-- Step 1 -->
+                    <div class="border-l-2 border-indigo-500 pl-3 space-y-1">
+                        <div class="font-bold text-slate-200">Paso 1: Plantear corrientes ficticias de Malla</div>
+                        <p class="text-slate-400 leading-relaxed">
+                            Asumimos dos corrientes circulando en sentido horario: <span class="text-cyan-400 font-semibold">$I_1$</span> (Malla 1 - Izquierda) e <span class="text-rose-400 font-semibold">$I_2$</span> (Malla 2 - Derecha).
+                        </p>
+                    </div>
+
+                    <!-- Step 2 -->
+                    <div class="border-l-2 border-indigo-500 pl-3 space-y-1.5">
+                        <div class="font-bold text-slate-200">Paso 2: Ecuaciones de Kirchhoff (KVL)</div>
+                        
+                        <div class="bg-slate-900/90 p-2.5 rounded-lg border border-slate-700/60 code-font space-y-1">
+                            <div class="text-slate-400 text-[11px]">// Malla 1 (Izquierda):</div>
+                            <div id="eq-mesh1" class="text-cyan-300 font-semibold">--</div>
+
+                            <div class="text-slate-400 text-[11px] mt-2">// Malla 2 (Derecha):</div>
+                            <div id="eq-mesh2" class="text-rose-300 font-semibold">--</div>
+                        </div>
+                    </div>
+
+                    <!-- Step 3 -->
+                    <div class="border-l-2 border-indigo-500 pl-3 space-y-1.5">
+                        <div class="font-bold text-slate-200">Paso 3: Sistema Matricial Resuelto</div>
+                        
+                        <div id="matrix-box" class="bg-slate-900/90 p-2.5 rounded-lg border border-slate-700/60 code-font leading-relaxed text-indigo-200">
+                            --
+                        </div>
+                    </div>
+
+                    <!-- Step 4 -->
+                    <div class="border-l-2 border-emerald-500 pl-3 space-y-1">
+                        <div class="font-bold text-slate-200">Paso 4: Relación con las Ramas Reales</div>
+                        <p id="branch-expl" class="text-slate-400 leading-relaxed">
+                            --
+                        </p>
+                    </div>
+
+                </div>
+            </div>
+
+        </div>
+
+    </main>
+
+    <!-- Script de Simulación y Cálculo -->
+    <script>
+        // Circuit State Variables
+        let state = {
+            V1: 20,
+            V2: 10,
+            R1: 2,
+            R2: 4,
+            R3: 8,
+            I1: 0,
+            I2: 0,
+            I_left: 0,
+            I_mid: 0,
+            I_right: 0,
+            VA: 0
+        };
+
+        // Canvas & Animation Setup
+        const canvas = document.getElementById('circuitCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Particles for Visual Current Flow
+        let particles = [];
+        const NUM_PARTICLES = 40;
+
+        for (let i = 0; i < NUM_PARTICLES; i++) {
+            particles.push({
+                branch: Math.floor(Math.random() * 3), // 0: Left, 1: Middle, 2: Right
+                progress: Math.random(),
+                speed: 0.005
+            });
+        }
+
+        // Setup Sliders & Listeners
+        const sliders = {
+            v1: document.getElementById('v1-slider'),
+            v2: document.getElementById('v2-slider'),
+            r1: document.getElementById('r1-slider'),
+            r2: document.getElementById('r2-slider'),
+            r3: document.getElementById('r3-slider'),
+        };
+
+        function updateFromInputs() {
+            state.V1 = parseFloat(sliders.v1.value);
+            state.V2 = parseFloat(sliders.v2.value);
+            state.R1 = parseFloat(sliders.r1.value);
+            state.R2 = parseFloat(sliders.r2.value);
+            state.R3 = parseFloat(sliders.r3.value);
+
+            document.getElementById('v1-val').innerText = `${state.V1} V`;
+            document.getElementById('v2-val').innerText = `${state.V2} V`;
+            document.getElementById('r1-val').innerText = `${state.R1} Ω`;
+            document.getElementById('r2-val').innerText = `${state.R2} Ω`;
+            document.getElementById('r3-val').innerText = `${state.R3} Ω`;
+
+            calculateCircuit();
+            updateUI();
+        }
+
+        Object.values(sliders).forEach(s => s.addEventListener('input', updateFromInputs));
+
+        document.getElementById('reset-btn').addEventListener('click', () => {
+            sliders.v1.value = 20;
+            sliders.v2.value = 10;
+            sliders.r1.value = 2;
+            sliders.r2.value = 4;
+            sliders.r3.value = 8;
+            updateFromInputs();
+        });
+
+        // Solve 2-Mesh Circuit Matrix
+        function calculateCircuit() {
+            // Equations:
+            // (R1 + R2) * I1 - R2 * I2 = V1
+            // -R2 * I1 + (R2 + R3) * I2 = -V2  (Assuming V2 polarity has + on top)
+
+            const A = state.R1 + state.R2;
+            const B = -state.R2;
+            const C = -state.R2;
+            const D = state.R2 + state.R3;
+
+            const E1 = state.V1;
+            const E2 = -state.V2; // Generador V2 sube potencia o se opone según polaridad
+
+            // Determinant
+            const det = A * D - B * C;
+
+            if (det !== 0) {
+                state.I1 = (E1 * D - E2 * B) / det;
+                state.I2 = (A * E2 - C * E1) / det;
+            } else {
+                state.I1 = 0;
+                state.I2 = 0;
+            }
+
+            // Real Branch Currents
+            state.I_left = state.I1;               // Sube por la izquierda si I1 > 0
+            state.I_mid = state.I1 - state.I2;     // Baja por el centro si I1 > I2
+            state.I_right = state.I2;              // Baja por la derecha si I2 > 0 (sentido horario)
+
+            // Node Voltage VA (Node B = 0V reference)
+            // VA = I_mid * R2
+            state.VA = state.I_mid * state.R2;
+        }
+
+        // Update Textual Explanations & Equations
+        function updateUI() {
+            // Update Results Cards
+            document.getElementById('res-left').innerText = `${Math.abs(state.I_left).toFixed(2)} A`;
+            document.getElementById('res-mid').innerText = `${Math.abs(state.I_mid).toFixed(2)} A`;
+            document.getElementById('res-right').innerText = `${Math.abs(state.I_right).toFixed(2)} A`;
+            document.getElementById('res-va').innerText = `${state.VA.toFixed(2)} V`;
+
+            // Directions text
+            document.getElementById('dir-left').innerText = state.I_left >= 0 
+                ? "Dirección: ↑ Sube por la fuente V₁" 
+                : "Dirección: ↓ Baja hacia la fuente V₁";
+
+            document.getElementById('dir-mid').innerText = state.I_mid >= 0 
+                ? "Dirección: ↓ Baja del Nudo A al Nudo B" 
+                : "Dirección: ↑ Sube del Nudo B al Nudo A";
+
+            document.getElementById('dir-right').innerText = state.I_right >= 0 
+                ? "Dirección: ↓ Baja por la rama derecha" 
+                : "Dirección: ↑ Sube por la rama derecha";
+
+            // Equations Step 2
+            const r12 = state.R1 + state.R2;
+            const r23 = state.R2 + state.R3;
+
+            document.getElementById('eq-mesh1').innerHTML = 
+                `(${state.R1} + ${state.R2})·I₁ - ${state.R2}·I₂ = ${state.V1} <br><span class="text-slate-400">➔</span> <span class="text-cyan-400">${r12}·I₁ - ${state.R2}·I₂ = ${state.V1}</span>`;
+
+            document.getElementById('eq-mesh2').innerHTML = 
+                `-${state.R2}·I₁ + (${state.R2} + ${state.R3})·I₂ = -${state.V2} <br><span class="text-slate-400">➔</span> <span class="text-rose-400">-${state.R2}·I₁ + ${r23}·I₂ = -${state.V2}</span>`;
+
+            // Matrix Step 3
+            document.getElementById('matrix-box').innerHTML = `
+                | ${r12.toString().padStart(3, ' ')}  ${(-state.R2).toString().padStart(3, ' ')} |   | I₁ |   | ${state.V1.toString().padStart(3, ' ')} |<br>
+                | ${(-state.R2).toString().padStart(3, ' ')}  ${r23.toString().padStart(3, ' ')} | x | I₂ | = | ${(-state.V2).toString().padStart(3, ' ')} |<br><br>
+                <span class="text-cyan-300">I₁ (Malla 1) = ${state.I1.toFixed(3)} A</span><br>
+                <span class="text-rose-300">I₂ (Malla 2) = ${state.I2.toFixed(3)} A</span>
+            `;
+
+            // Step 4 Branch explanation
+            document.getElementById('branch-expl').innerHTML = `
+                • <b>Rama Izquierda:</b> $I_{izq} = I_1 = ${state.I1.toFixed(2)} A$<br>
+                • <b>Rama Central:</b> $I_{centro} = I_1 - I_2 = ${state.I1.toFixed(2)} - (${state.I2.toFixed(2)}) = \\mathbf{${state.I_mid.toFixed(2)} A}$<br>
+                • <b>Rama Derecha:</b> $I_{der} = I_2 = ${state.I2.toFixed(2)} A$
+            `;
+        }
+
+        // Canvas Responsive Resizing
+        function resizeCanvas() {
+            const rect = canvas.parentElement.getBoundingClientRect();
+            canvas.width = rect.width;
+            canvas.height = rect.height;
+        }
+
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        // Draw Circuit Component Functions
+        function drawResistor(ctx, x1, y1, x2, y2, label, value) {
+            ctx.save();
+            ctx.strokeStyle = '#f59e0b'; // Amber-500
+            ctx.lineWidth = 3;
+
+            const dx = x2 - x1;
+            const dy = y2 - y1;
+            const len = Math.hypot(dx, dy);
+            const angle = Math.atan2(dy, dx);
+
+            ctx.translate(x1, y1);
+            ctx.rotate(angle);
+
+            // Lead line 1
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.lineTo(len / 2 - 20, 0);
+            ctx.stroke();
+
+            // Zig zag
+            ctx.beginPath();
+            const startX = len / 2 - 20;
+            const zigWidth = 40;
+            const numZig = 6;
+            const step = zigWidth / numZig;
+
+            ctx.moveTo(startX, 0);
+            for (let i = 0; i < numZig; i++) {
+                const x = startX + (i + 0.5) * step;
+                const y = (i % 2 === 0 ? -1 : 1) * 8;
+                ctx.lineTo(x, y);
+            }
+            ctx.lineTo(startX + zigWidth, 0);
+            ctx.stroke();
+
+            // Lead line 2
+            ctx.beginPath();
+            ctx.moveTo(startX + zigWidth, 0);
+            ctx.lineTo(len, 0);
+            ctx.stroke();
+
+            // Text Label
+            ctx.rotate(-angle);
+            ctx.fillStyle = '#fef08a'; // Yellow-200
+            ctx.font = '600 12px Inter';
+            ctx.textAlign = 'center';
+
+            const midX = len / 2;
+            const textY = angle === 0 ? -16 : 0;
+            const textX = angle !== 0 ? 30 : midX;
+
+            ctx.fillText(`${label} = ${value}Ω`, angle !== 0 ? 35 : midX, angle === 0 ? -14 : 4);
+
+            ctx.restore();
+        }
+
+        function drawVoltageSource(ctx, x, y, label, value, isLeft) {
+            ctx.save();
+            const radius = 18;
+
+            // Wires connecting to circle
+            ctx.strokeStyle = '#94a3b8';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(x, y - 35);
+            ctx.lineTo(x, y - radius);
+            ctx.moveTo(x, y + radius);
+            ctx.lineTo(x, y + 35);
+            ctx.stroke();
+
+            // Circle Body
+            ctx.beginPath();
+            ctx.arc(x, y, radius, 0, Math.PI * 2);
+            ctx.fillStyle = isLeft ? '#065f46' : '#581c87'; // Emerald/Purple background
+            ctx.fill();
+            ctx.strokeStyle = isLeft ? '#34d399' : '#c084fc';
+            ctx.lineWidth = 2.5;
+            ctx.stroke();
+
+            // Polarity (+ / -)
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 14px Inter';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('+', x, y - 7);
+            ctx.fillText('-', x, y + 8);
+
+            // Label Text
+            ctx.fillStyle = isLeft ? '#a7f3d0' : '#e9d5ff';
+            ctx.font = '600 12px Inter';
+            ctx.fillText(`${label} = ${value}V`, isLeft ? x - 45 : x + 45, y);
+
+            ctx.restore();
+        }
+
+        function drawNode(ctx, x, y, label) {
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(x, y, 6, 0, Math.PI * 2);
+            ctx.fillStyle = '#6366f1'; // Indigo-500
+            ctx.fill();
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            ctx.fillStyle = '#e0e7ff';
+            ctx.font = 'bold 12px Inter';
+            ctx.textAlign = 'center';
+            ctx.fillText(label, x, y === 50 ? y - 12 : y + 20);
+            ctx.restore();
+        }
+
+        // Animation Loop
+        function animate() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            const w = canvas.width;
+            const h = canvas.height;
+
+            const padX = Math.max(60, w * 0.12);
+            const padY = 50;
+
+            const leftX = padX;
+            const midX = w / 2;
+            const rightX = w - padX;
+
+            const topY = padY;
+            const botY = h - padY;
+
+            // Draw Wire Frame
+            ctx.strokeStyle = '#475569'; // Slate-600 wire color
+            ctx.lineWidth = 3;
+            ctx.lineCap = 'round';
+
+            // Top Wires
+            ctx.beginPath();
+            ctx.moveTo(leftX, topY);
+            ctx.lineTo(midX, topY);
+            ctx.lineTo(rightX, topY);
+            
+            // Bottom Wires
+            ctx.moveTo(leftX, botY);
+            ctx.lineTo(midX, botY);
+            ctx.lineTo(rightX, botY);
+
+            // Vertical Wires
+            ctx.moveTo(leftX, topY); ctx.lineTo(leftX, botY);
+            ctx.moveTo(midX, topY); ctx.lineTo(midX, botY);
+            ctx.moveTo(rightX, topY); ctx.lineTo(rightX, botY);
+            ctx.stroke();
+
+            // Draw Components
+            // V1 on Left vertical branch
+            drawVoltageSource(ctx, leftX, (topY + botY) / 2, 'V₁', state.V1, true);
+
+            // R1 on Left-top branch
+            drawResistor(ctx, leftX + 20, topY, midX - 20, topY, 'R₁', state.R1);
+
+            // R2 on Middle vertical branch
+            drawResistor(ctx, midX, topY + 30, midX, botY - 30, 'R₂', state.R2);
+
+            // R3 on Right vertical branch
+            drawResistor(ctx, rightX, topY + 40, rightX, botY - 40, 'R₃', state.R3);
+
+            // V2 on Right top branch
+            drawVoltageSource(ctx, (midX + rightX) / 2, topY, 'V₂', state.V2, false);
+
+            // Draw Nodes A & B
+            drawNode(ctx, midX, topY, 'Nudo A');
+            drawNode(ctx, midX, botY, 'Nudo B (0V)');
+
+            // Mesh Direction Loops Indicators
+            drawMeshLoop(ctx, (leftX + midX) / 2, (topY + botY) / 2, 35, 'Malla 1', state.I1, '#22d3ee');
+            drawMeshLoop(ctx, (midX + rightX) / 2, (topY + botY) / 2, 35, 'Malla 2', state.I2, '#f43f5e');
+
+            // Draw Particles (Current Flow)
+            updateAndDrawParticles(ctx, leftX, midX, rightX, topY, botY);
+
+            requestAnimationFrame(animate);
+        }
+
+        function drawMeshLoop(ctx, cx, cy, radius, label, currentVal, color) {
+            ctx.save();
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 1.5;
+            ctx.setLineDash([4, 4]);
+
+            ctx.beginPath();
+            ctx.arc(cx, cy, radius, 0, Math.PI * 1.7);
+            ctx.stroke();
+
+            // Arrow head
+            const arrowAngle = Math.PI * 1.7;
+            const ax = cx + radius * Math.cos(arrowAngle);
+            const ay = cy + radius * Math.sin(arrowAngle);
+
+            ctx.fillStyle = color;
+            ctx.beginPath();
+            ctx.arc(ax, ay, 3.5, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Text
+            ctx.fillStyle = color;
+            ctx.font = '600 11px Inter';
+            ctx.textAlign = 'center';
+            ctx.fillText(label, cx, cy - 5);
+            ctx.font = '500 10px Fira Code';
+            ctx.fillText(`${currentVal.toFixed(2)}A`, cx, cy + 10);
+
+            ctx.restore();
+        }
+
+        function updateAndDrawParticles(ctx, leftX, midX, rightX, topY, botY) {
+            ctx.save();
+
+            particles.forEach(p => {
+                let speedFactor = 0;
+                let dir = 1;
+
+                // Branch 0: Left Branch (Sube si I_left > 0)
+                if (p.branch === 0) {
+                    speedFactor = Math.abs(state.I_left);
+                    dir = state.I_left >= 0 ? 1 : -1;
+                    p.progress += p.speed * speedFactor * dir * 0.5;
+
+                    if (p.progress > 1) p.progress = 0;
+                    if (p.progress < 0) p.progress = 1;
+
+                    // Path: Bottom-Left -> Top-Left -> Middle-Top (Node A)
+                    const pathLen1 = (botY - topY);
+                    const pathLen2 = (midX - leftX);
+                    const totalLen = pathLen1 + pathLen2;
+
+                    const curDist = p.progress * totalLen;
+                    let px, py;
+
+                    if (curDist < pathLen1) {
+                        px = leftX;
+                        py = botY - curDist;
+                    } else {
+                        px = leftX + (curDist - pathLen1);
+                        py = topY;
+                    }
+
+                    drawParticleDot(ctx, px, py, '#34d399');
+                }
+
+                // Branch 1: Middle Branch (Baja si I_mid > 0)
+                else if (p.branch === 1) {
+                    speedFactor = Math.abs(state.I_mid);
+                    dir = state.I_mid >= 0 ? 1 : -1;
+                    p.progress += p.speed * speedFactor * dir * 0.5;
+
+                    if (p.progress > 1) p.progress = 0;
+                    if (p.progress < 0) p.progress = 1;
+
+                    const px = midX;
+                    const py = topY + p.progress * (botY - topY);
+
+                    drawParticleDot(ctx, px, py, '#fbbf24');
+                }
+
+                // Branch 2: Right Branch (Baja por la derecha si I_right > 0)
+                else if (p.branch === 2) {
+                    speedFactor = Math.abs(state.I_right);
+                    dir = state.I_right >= 0 ? 1 : -1;
+                    p.progress += p.speed * speedFactor * dir * 0.5;
+
+                    if (p.progress > 1) p.progress = 0;
+                    if (p.progress < 0) p.progress = 1;
+
+                    // Path: Node A -> Top-Right -> Bottom-Right -> Node B
+                    const leg1 = (rightX - midX);
+                    const leg2 = (botY - topY);
+                    const leg3 = (rightX - midX);
+                    const totalLen = leg1 + leg2 + leg3;
+
+                    const curDist = p.progress * totalLen;
+                    let px, py;
+
+                    if (curDist < leg1) {
+                        px = midX + curDist;
+                        py = topY;
+                    } else if (curDist < leg1 + leg2) {
+                        px = rightX;
+                        py = topY + (curDist - leg1);
+                    } else {
+                        px = rightX - (curDist - leg1 - leg2);
+                        py = botY;
+                    }
+
+                    drawParticleDot(ctx, px, py, '#c084fc');
+                }
+            });
+
+            ctx.restore();
+        }
+
+        function drawParticleDot(ctx, x, y, color) {
+            ctx.beginPath();
+            ctx.arc(x, y, 4, 0, Math.PI * 2);
+            ctx.fillStyle = color;
+            ctx.shadowColor = color;
+            ctx.shadowBlur = 8;
+            ctx.fill();
+            ctx.shadowBlur = 0; // reset
+        }
+
+        // Initialize App
+        updateFromInputs();
+        animate();
+
+    </script>
+</body>
+</html>
