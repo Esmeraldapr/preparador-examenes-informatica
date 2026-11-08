@@ -20,6 +20,8 @@ const PLAN_GRUPOS_HI = [
   ["repaso", "🔁", "repaso"],
   ["cae", "🎯", "lo que más cae"],
   ["examen", "📝", "preguntas de examen"],
+  ["calc", "🧮", "calculadora"],
+  ["mano", "✏️", "ejercicio a mano"],
   ["simulacro", "🏁", "simulacro"],
   ["trabajo", "💼", "trabajo"],
 ];

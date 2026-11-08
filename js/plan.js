@@ -363,7 +363,7 @@ function planGenerar(hoy, catalogos, hechos, arrastre = []) {
     if (cls.length) {
       const c = cls[Math.floor(planDiaDelAnio(hoy) / 7) % cls.length];
       const clave = `func:${hoy}`;
-      tareas.push({ clave, tipo: "test", sub: "calc", asig: catalogos[1][0]?.asig || "Cálculo", asigId: 1,
+      tareas.push({ clave, tipo: "test", sub: "mano", asig: catalogos[1][0]?.asig || "Cálculo", asigId: 1,
         titulo: `Estudio completo como en clase: rehaz tú sola el ejercicio de la Clase ${c.numero} (${c.titulo}) con papel y calculadora, y luego compara`,
         min: 45, url: `clase.html?asignatura=1&clase=${c.numero}&claveplan=${encodeURIComponent(clave)}` });
       usado += 45;
@@ -558,6 +558,7 @@ const PLAN_GRUPOS = [
   ["examen", "📝", "preguntas de examen", "preguntas de examen"],
   ["practica", "🧪", "práctica", "prácticas"],
   ["calc", "🧮", "calculadora", "calculadora"],
+  ["mano", "✏️", "ejercicio a mano", "ejercicios a mano"],
   ["simulacro", "🏁", "simulacro", "simulacros"],
   ["trabajo", "💼", "trabajo", "trabajos"],
 ];
