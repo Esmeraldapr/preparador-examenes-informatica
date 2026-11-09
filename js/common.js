@@ -421,6 +421,27 @@ function formatoDiaMes(iso) {
   return `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}`;
 }
 
+/**
+ * Trae TODOS los intentos de una usuaria, en tandas de 1000.
+ * Supabase devuelve como máximo 1000 filas por consulta: sin esto,
+ * a partir del intento 1000 la web dejaba de ver lo más reciente.
+ * Devuelve { data } para poder usarlo igual que una consulta normal.
+ */
+async function todosLosIntentos(usuarioId, columnas = "pregunta_id, acierto, fecha") {
+  const TANDA = 1000;
+  const todos = [];
+  for (let desde = 0; ; desde += TANDA) {
+    const { data, error } = await sb.from("intentos").select(columnas)
+      .eq("usuario_id", usuarioId)
+      .order("fecha", { ascending: true }).order("id", { ascending: true })
+      .range(desde, desde + TANDA - 1);
+    if (error) { console.error("intentos:", error); break; }
+    todos.push(...(data || []));
+    if (!data || data.length < TANDA) break;
+  }
+  return { data: todos };
+}
+
 /** Clave YYYY-MM-DD en horario local, usada para agrupar por día. */
 function claveDia(iso) {
   const d = new Date(iso);

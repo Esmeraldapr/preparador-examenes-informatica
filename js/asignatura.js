@@ -25,7 +25,7 @@ let ASIGNATURA_ID = null;
 
   const [{ data: intentos }, { data: favoritos }, { count: totalPreguntas }, { data: examenesAsig }, { count: totalTrucos }, { count: totalEntregables }, { data: videosAsig }] =
     await Promise.all([
-      sb.from("intentos").select("id, pregunta_id, acierto, fecha").eq("usuario_id", usuario.id).order("fecha", { ascending: true }),
+      todosLosIntentos(usuario.id, "id, pregunta_id, acierto, fecha"),
       sb.from("favoritos").select("id").eq("usuario_id", usuario.id),
       sb.from("preguntas").select("id", { count: "exact", head: true }).eq("asignatura_id", ASIGNATURA_ID),
       sb.from("examenes").select("id, tipo").eq("asignatura_id", ASIGNATURA_ID),

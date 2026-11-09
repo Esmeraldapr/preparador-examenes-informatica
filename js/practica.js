@@ -46,7 +46,7 @@ let ASIGNATURA_ID = null;
 async function contarFallos(usuarioId, asignaturaId) {
   const { data: preguntasAsignatura } = await sb.from("preguntas").select("id").eq("asignatura_id", asignaturaId);
   const idsAsignatura = new Set((preguntasAsignatura || []).map((p) => p.id));
-  const { data: intentos } = await sb.from("intentos").select("pregunta_id, acierto, fecha").eq("usuario_id", usuarioId).order("fecha", { ascending: true });
+  const { data: intentos } = await todosLosIntentos(usuarioId);
   const ultimo = new Map();
   for (const i of intentos || []) {
     if (idsAsignatura.has(i.pregunta_id)) ultimo.set(i.pregunta_id, i.acierto);

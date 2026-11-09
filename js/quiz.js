@@ -230,7 +230,7 @@ function leerProgresoGuardado() {
   // Preguntas que ya has contestado alguna vez: en tema / examen / práctica rápida
   // salen primero las que aún no has hecho, para no repetir siempre las mismas.
   if (["tema", "examen", "aleatorio"].includes(modo)) {
-    const { data: hechas } = await sb.from("intentos").select("pregunta_id").eq("usuario_id", usuarioActual.id).limit(5000);
+    const { data: hechas } = await todosLosIntentos(usuarioActual.id, "pregunta_id, fecha");
     hechasSet = new Set((hechas || []).map((h) => h.pregunta_id));
   }
 
@@ -291,7 +291,7 @@ function leerProgresoGuardado() {
     tituloModo = "🔁 Repaso de fallos";
     const { data: preguntasAsignatura } = await sb.from("preguntas").select("id").eq("asignatura_id", ASIGNATURA_ID);
     const idsAsignatura = new Set((preguntasAsignatura || []).map((p) => p.id));
-    const { data: intentos } = await sb.from("intentos").select("pregunta_id, acierto, fecha").eq("usuario_id", usuarioActual.id).order("fecha", { ascending: true });
+    const { data: intentos } = await todosLosIntentos(usuarioActual.id);
     const ultimoPorPregunta = new Map();
     for (const i of intentos || []) {
       if (idsAsignatura.has(i.pregunta_id)) ultimoPorPregunta.set(i.pregunta_id, i.acierto);

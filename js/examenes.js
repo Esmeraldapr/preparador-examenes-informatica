@@ -18,7 +18,7 @@
   const [{ data: examenes }, { data: preguntas }, { data: intentos }] = await Promise.all([
     sb.from("examenes").select("id, nombre, tipo, anio, convocatoria").eq("asignatura_id", ASIGNATURA_ID).order("id"),
     sb.from("preguntas").select("id, examen_id").eq("asignatura_id", ASIGNATURA_ID),
-    sb.from("intentos").select("pregunta_id, acierto").eq("usuario_id", usuario.id),
+    todosLosIntentos(usuario.id),
   ]);
 
   const ultimoPorPregunta = new Map();
