@@ -388,6 +388,22 @@ function planGenerar(hoy, catalogos, hechos, arrastre = []) {
       url: `quiz.html?asignatura=1&modo=ids&ids=${f.ids}&titulo=${encodeURIComponent("📈 Estudio de " + f.fx)}&desde=plan&claveplan=${encodeURIComponent(clave)}` });
     usado += 20;
   }
+  // 🧮 Las 12 funciones del profe (examen 100): una función al día, sus 6 preguntas seguidas
+  // (dominio, par/impar, cortes, asíntotas, máximos y mínimos, recorrido). Van en orden y solo
+  // se pasa a la siguiente cuando se ha hecho la anterior; acabadas las 12, vuelven a empezar.
+  if (!arrastre.some((t) => /^f12:/.test(t.clave))) {
+    const FX12 = ["x³/(x² − 4)", "(x² − 1)/(x² + 2x)", "√(x² − 4)/x", "(x² + 1)/(x² − 1)", "(x³ − 4x)/(x² − 4)", "x/√(x² − 9)",
+      "ln((x + 1)/(x − 1))", "ln(x²/(x² − 4))", "e^(1/x)", "e^(−1/x²)", "e^(1/x)/x", "x·e^(1/x)"];
+    let n = FX12.findIndex((f, i) => !hechos.has(`f12:${i + 1}`)) + 1;
+    let clave = `f12:${n}`;
+    if (!n) { n = (planDiaDelAnio(hoy) % 12) + 1; clave = `f12:${n}:${hoy}`; }
+    const ids = [0, 1, 2, 3, 4, 5].map((k) => 2577 + 6 * (n - 1) + k).join(",");
+    tareas.push({ clave, tipo: "test", sub: "calc", asig: "Cálculo", asigId: 1, unidadNum: 1,
+      titulo: `Función ${n} de las 12 del profe: f(x) = ${FX12[n - 1]} (6 preguntas seguidas, como en el examen)`,
+      min: 15,
+      url: `quiz.html?asignatura=1&modo=ids&ids=${ids}&titulo=${encodeURIComponent("🧮 Función " + n + " del profe: f(x) = " + FX12[n - 1])}&desde=plan&claveplan=${encodeURIComponent(clave)}` });
+    usado += 15;
+  }
   // 🏁 Simulacro de examen oficial completo: los sábados; en las 3 últimas semanas, todos los días.
   if (faltan >= 0 && (planDiaSemana(hoy) === 6 || faltan <= 21)) {
     const asigSim = activas[(planDiaDelAnio(hoy) + 1) % activas.length];
