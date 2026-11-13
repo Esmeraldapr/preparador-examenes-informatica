@@ -126,7 +126,8 @@ function resumenRepaso(texto) {
     sb.from("asignaturas").select("id, nombre").eq("id", asigId).maybeSingle(),
     sb.from("tema_completo").select("*").eq("asignatura_id", asigId).eq("unidad_num", num).maybeSingle(),
     // Si el profesor dio una clase en directo de esta unidad, se enlaza (vive en la pestaña Clases).
-    sb.from("clases").select("numero, titulo").eq("asignatura_id", asigId).eq("unidad_num", num).maybeSingle(),
+    // Puede haber varias clases de la misma unidad (p. ej. Cálculo UD3: clases 3, 4 y 5).
+    sb.from("clases").select("numero, titulo, contenido").eq("asignatura_id", asigId).eq("unidad_num", num).order("numero"),
   ]);
   pintarNavbar("temas.html", usuario, asig.data || null);
 
@@ -156,6 +157,21 @@ function resumenRepaso(texto) {
     textoPintar = resumenRepaso(t.contenido);
     document.getElementById("tm-titulo").textContent = `🔁 Repaso UD${num}. ${t.titulo}`;
     document.getElementById("tm-subtitulo").textContent = "Pulsa ▶ para escucharlo o léelo.";
+  }
+
+  // En el repaso, al final: lo que dijo el profe en clase sobre el examen (sin repetir la clase entera).
+  const clasesUD = clase.data || [];
+  if (modoRepaso && clasesUD.length) {
+    const dichos = [];
+    clasesUD.forEach((c) => {
+      String(c.contenido || "").split(/\n\s*\n/).map((b) => b.trim())
+        .filter((b) => /^> [^:\n]*(examen|no entra|profesor|dijo)[^:\n]*:/i.test(b))
+        .forEach((b) => { if (!dichos.includes(b)) dichos.push(b); });
+    });
+    if (dichos.length) {
+      const nums = clasesUD.map((c) => c.numero);
+      textoPintar += `\n\n## 🎓 Lo que dijo el profe en clase (${nums.length > 1 ? "clases " + nums.slice(0, -1).join(", ") + " y " + nums[nums.length - 1] : "clase " + nums[0]})\n\n` + dichos.join("\n\n");
+    }
   }
 
   const { html, indice } = tmPintar(textoPintar);
@@ -193,7 +209,7 @@ function resumenRepaso(texto) {
       ${clavePlan ? `<button type="button" class="btn btn-primario tm-plan-btn">${modoRepaso ? "✅ Ya lo repasé" : "✅ Ya lo leí"} · Volver a Mi plan</button>` : ""}
       ${t.examen_practica_id ? `<a class="btn btn-secundario" href="${enlaceAsignatura("quiz.html", asigId, "modo=examen&examen_id=" + t.examen_practica_id)}">📝 Hacer el test de práctica del tema</a>` : ""}
       ${t.unidad ? `<a class="btn btn-secundario" href="${enlaceAsignatura("quiz.html", asigId, "modo=tema&unidad=" + encodeURIComponent(t.unidad))}">🎯 Todas las preguntas de este tema</a>` : ""}
-      ${clase.data ? `<a class="btn btn-secundario" href="${enlaceAsignatura("clase.html", asigId, "clase=" + clase.data.numero)}">🎓 La clase ${clase.data.numero} del profesor</a>` : ""}
+      ${clasesUD.map((c) => `<a class="btn btn-secundario" href="${enlaceAsignatura("clase.html", asigId, "clase=" + c.numero)}">🎓 La clase ${c.numero} del profesor</a>`).join("")}
       <a class="btn btn-secundario" href="${enlaceAsignatura("temas.html", asigId)}">← Volver a los temas</a>
     </div>`;
 

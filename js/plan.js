@@ -218,7 +218,11 @@ function planGenerar(hoy, catalogos, hechos, arrastre = []) {
     return venc.length ? venc[venc.length - 1] : 0;
   };
   const repasos = [];
+  // Un solo repaso por unidad: si la UD tiene tema completo, se repasa el tema
+  // (que ya lleva dentro lo que dijo el profe en clase) y la clase no sale aparte.
+  const udConTema = new Set(Object.values(catalogos).flat().filter((i) => i.sub === "tema" && (i.apartados || []).length).map((i) => `${i.asigId}:${i.unidadNum}`));
   Object.values(catalogos).flat().filter((i) => i.repasable).forEach((i) => {
+    if (i.sub === "clase" && udConTema.has(`${i.asigId}:${i.unidadNum}`)) return;
     const h = hechos.get(i.clave);
     // Si su repaso viene arrastrado de otro día, no se le pone otro encima.
     if (basesArrastre.has(i.sub === "tema" ? `apg:${i.asigId}:UD${i.unidadNum}` : i.clave)) return;
