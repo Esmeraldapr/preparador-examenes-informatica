@@ -179,6 +179,11 @@ function planGenerar(hoy, catalogos, hechos, arrastre = []) {
   const enArrastre = new Set(arrastre.map((t) => t.clave));
   const basesArrastre = new Set(arrastre.map((t) => baseDe(t.clave)));
   arrastre.forEach((t) => { tareas.push(t); usado += t.min || 0; });
+  // 🚫 Nada repetido el mismo día: de cada unidad, como mucho UNA cosa para leer o escuchar
+  // (el tema, una clase o el repaso de uno de ellos). Lo demás de esa unidad espera a otro día.
+  // Los tests y las preguntas de examen sí pueden ir el mismo día.
+  const udLectura = (t) => (["tema", "clase", "repaso"].includes(t.sub) && t.asigId && t.unidadNum ? `${t.asigId}:${t.unidadNum}` : "");
+  const udHoy = new Set(tareas.map(udLectura).filter(Boolean));
   const faltan = planDiasHasta(hoy, PLAN_EXAMEN);
   // Cuanto más cerca del examen, más tiempo para repasar.
   const parteRepaso = faltan <= 21 ? 0.6 : 0.4;
@@ -189,8 +194,9 @@ function planGenerar(hoy, catalogos, hechos, arrastre = []) {
   const garantizadas = new Set();
   PLAN_ASIGNATURAS.filter((a) => a !== PLAN_INTERFACES || hayInterfaces0).forEach((a) => {
     const cat = catalogos[a] || [];
-    const sig = cat.find((i) => i.unidadNum === cat.unidadActual && i.carril !== "video" && i.sub !== "video" && !hechos.has(i.clave) && !enArrastre.has(i.clave));
+    const sig = cat.find((i) => i.unidadNum === cat.unidadActual && i.carril !== "video" && i.sub !== "video" && !hechos.has(i.clave) && !enArrastre.has(i.clave) && !(udLectura(i) && udHoy.has(udLectura(i))));
     if (!sig) return;
+    if (udLectura(sig)) udHoy.add(udLectura(sig));
     garantizadas.add(sig.clave);
     tareas.push({ clave: sig.clave, tipo: sig.tipo, sub: sig.sub, asig: sig.asig, asigId: sig.asigId, unidadNum: sig.unidadNum, unidadTexto: sig.unidadTexto, titulo: `🆕 UD${sig.unidadNum} · ${sig.titulo}`, min: sig.min, url: sig.url, externo: !!sig.externo });
     usado += sig.min;
@@ -218,11 +224,7 @@ function planGenerar(hoy, catalogos, hechos, arrastre = []) {
     return venc.length ? venc[venc.length - 1] : 0;
   };
   const repasos = [];
-  // Un solo repaso por unidad: si la UD tiene tema completo, se repasa el tema
-  // (que ya lleva dentro lo que dijo el profe en clase) y la clase no sale aparte.
-  const udConTema = new Set(Object.values(catalogos).flat().filter((i) => i.sub === "tema" && (i.apartados || []).length).map((i) => `${i.asigId}:${i.unidadNum}`));
   Object.values(catalogos).flat().filter((i) => i.repasable).forEach((i) => {
-    if (i.sub === "clase" && udConTema.has(`${i.asigId}:${i.unidadNum}`)) return;
     const h = hechos.get(i.clave);
     // Si su repaso viene arrastrado de otro día, no se le pone otro encima.
     if (basesArrastre.has(i.sub === "tema" ? `apg:${i.asigId}:UD${i.unidadNum}` : i.clave)) return;
@@ -275,12 +277,15 @@ function planGenerar(hoy, catalogos, hechos, arrastre = []) {
   const atrasados = repasos.filter((r) => planDiasHasta(r.vence, hoy) > 2).reduce((m, r) => m + r.tarea.min, 0);
   const extraAtraso = Math.min(atrasados, finde || tele ? 60 : 30);
   for (const r of repasos) {
+    const ud = udLectura(r.tarea);
+    if (ud && udHoy.has(ud)) continue;
     // Como mucho su parte del día; pero si lo nuevo ya ocupa mucho, al menos 2 repasos.
     const nRep = tareas.filter((t) => t.tipo === "repaso").length;
     if (usado + r.tarea.min > presupuesto * parteRepaso + (garantizadas.size ? 60 : 0) + extraAtraso && nRep >= 2) break;
     if (nRep >= 2 && usado + r.tarea.min > presupuesto + extraAtraso) break;
     tareas.push(r.tarea);
     usado += r.tarea.min;
+    if (ud) udHoy.add(ud);
   }
 
   // 📝 Preguntas de examen (oficiales y tests de la universidad): todos los días, de cada asignatura.
@@ -443,9 +448,12 @@ function planGenerar(hoy, catalogos, hechos, arrastre = []) {
     avanzo = false;
     for (const c of colas) {
       if (usado >= presupuesto) break;
+      // Lo que choca con algo de la misma unidad que ya sale hoy, se aparta para otro día.
+      while (c.pend.length && udLectura(c.pend[0]) && udHoy.has(udLectura(c.pend[0]))) c.pend.shift();
       const sig = c.pend[0];
       if (!sig || c.gastado + sig.min > c.tope) continue;
       c.pend.shift();
+      if (udLectura(sig)) udHoy.add(udLectura(sig));
       tareas.push({ clave: sig.clave, tipo: sig.tipo, sub: sig.sub, asig: sig.asig, asigId: sig.asigId, unidadNum: sig.unidadNum, unidadTexto: sig.unidadTexto, titulo: sig.titulo, min: sig.min, sinDuracion: sig.sinDuracion, url: sig.url, externo: !!sig.externo });
       usado += sig.min; c.gastado += sig.min; avanzo = true;
     }
