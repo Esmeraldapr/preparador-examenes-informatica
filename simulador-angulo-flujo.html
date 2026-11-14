@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Explicador Interactivo: Ángulo del Flujo Magnético</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        canvas { touch-action: none; }
+    </style>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col">
+
+    <!-- Header -->
+    <header class="bg-slate-800/80 backdrop-blur border-b border-slate-700 px-6 py-4 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+            <div>
+                <h1 class="text-xl font-bold bg-gradient-to-r from-sky-400 to-indigo-400 bg-clip-text text-transparent">
+                    🧭 ¿Por qué el ángulo θ es 0° cuando la espira está de frente?
+                </h1>
+                <p class="text-xs text-slate-400">Simulador Interactivo • Φ = B · S · cos θ</p>
+            </div>
+            <!-- Quick preset buttons -->
+            <div class="flex items-center gap-2">
+                <button onclick="setAngle(0)" id="btn0" class="px-3 py-1.5 rounded-lg text-xs font-medium bg-sky-600 hover:bg-sky-500 text-white transition shadow">
+                    De frente (0°)
+                </button>
+                <button onclick="setAngle(60)" id="btn60" class="px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-700 hover:bg-slate-600 text-slate-300 transition shadow">
+                    Inclinada (60°)
+                </button>
+                <button onclick="setAngle(90)" id="btn90" class="px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-700 hover:bg-slate-600 text-slate-300 transition shadow">
+                    De canto (90°)
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="flex-1 max-w-7xl w-full mx-auto p-4 md:p-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        <!-- Canvas Visualizer (2 cols) -->
+        <div class="lg:col-span-2 flex flex-col gap-4">
+            <div class="bg-slate-800/60 border border-slate-700/80 rounded-2xl p-4 shadow-xl backdrop-blur relative overflow-hidden flex flex-col flex-1 min-h-[440px]">
+                
+                <!-- Legend -->
+                <div class="flex items-center justify-between mb-2 text-xs text-slate-400 px-2 flex-wrap gap-2">
+                    <div class="flex items-center gap-4">
+                        <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-blue-500 inline-block"></span> Campo B</span>
+                        <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-rose-500 inline-block"></span> Normal n (θ se mide con ESTA flecha)</span>
+                        <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-purple-500 inline-block"></span> Espira (superficie S)</span>
+                    </div>
+                    <span class="italic text-slate-400">💡 Arrastra el deslizador o gira la espira</span>
+                </div>
+
+                <!-- Canvas -->
+                <div class="relative flex-1 rounded-xl bg-slate-950/80 border border-slate-800 overflow-hidden flex items-center justify-center">
+                    <canvas id="simCanvas" class="w-full h-full cursor-grab active:cursor-grabbing"></canvas>
+                </div>
+
+                <!-- Angle Slider Control -->
+                <div class="mt-4 pt-4 border-t border-slate-700/60">
+                    <div class="flex justify-between items-center mb-1 text-sm">
+                        <label class="text-slate-300 font-medium">Ángulo θ (entre B y la normal):</label>
+                        <span id="valAngle" class="text-sky-400 font-bold font-mono text-base">0°</span>
+                    </div>
+                    <input type="range" id="sliderAngle" min="0" max="90" step="1" value="0" class="w-full accent-sky-500 bg-slate-700 rounded-lg h-2 cursor-pointer">
+                </div>
+            </div>
+        </div>
+
+        <!-- Explanation & Telemetry Panel (1 col) -->
+        <div class="flex flex-col gap-4">
+            
+            <!-- Calculation Card -->
+            <div class="bg-slate-800/60 border border-slate-700/80 rounded-2xl p-5 shadow-xl backdrop-blur flex flex-col gap-4">
+                <h2 class="text-sm font-semibold text-slate-300 uppercase tracking-wider border-b border-slate-700 pb-2">📊 Cálculo en Tiempo Real</h2>
+                
+                <div class="bg-slate-900/60 p-3.5 rounded-xl border border-slate-800 flex justify-between items-center">
+                    <div>
+                        <span class="text-xs text-slate-400 block">Campo Magnético (B)</span>
+                        <span class="text-base font-mono font-bold text-blue-400">0.2 T</span>
+                    </div>
+                    <div>
+                        <span class="text-xs text-slate-400 block">Superficie (S)</span>
+                        <span class="text-base font-mono font-bold text-purple-400">0.5 m²</span>
+                    </div>
+                </div>
+
+                <div class="bg-slate-900/60 p-3.5 rounded-xl border border-slate-800 flex justify-between items-center gap-3">
+                    <div>
+                        <span class="text-xs text-slate-400 block">Ángulo con la ESPIRA (α, el que «se ve»)</span>
+                        <span id="txtAlfa" class="text-lg font-mono font-bold text-purple-400">90°</span>
+                    </div>
+                    <div class="text-right">
+                        <span class="text-xs text-slate-400 block">Ángulo con la NORMAL (θ, el de la fórmula)</span>
+                        <span id="txtTheta" class="text-lg font-mono font-bold text-rose-400">0°</span>
+                    </div>
+                </div>
+                <p id="txtSuma" class="text-xs text-slate-400 -mt-2 text-center font-mono">α + θ = 90° + 0° = 90° (siempre suman 90°)</p>
+
+                <div class="bg-slate-900/60 p-3.5 rounded-xl border border-slate-800 flex justify-between items-center">
+                    <div>
+                        <span class="text-xs text-slate-400 block">Coseno del ángulo (cos θ)</span>
+                        <span id="txtCos" class="text-lg font-mono font-bold text-amber-400">1.000</span>
+                    </div>
+                    <div class="w-10 h-10 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 font-bold">cos</div>
+                </div>
+
+                <div class="bg-slate-900/60 p-3.5 rounded-xl border border-slate-800 flex justify-between items-center">
+                    <div>
+                        <span class="text-xs text-slate-400 block">Flujo (Φ = 0,2 · 0,5 · cos θ)</span>
+                        <span id="txtFlux" class="text-lg font-mono font-bold text-emerald-400">0.10 Wb</span>
+                    </div>
+                    <div class="w-10 h-10 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 font-bold">Φ</div>
+                </div>
+            </div>
+
+            <!-- Conceptual Resolution Box -->
+            <div class="bg-sky-950/30 border border-sky-500/30 rounded-2xl p-5 shadow-xl backdrop-blur flex flex-col gap-2">
+                <h3 class="text-sm font-bold text-sky-300 flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    <span>¿Qué ángulo es θ?</span>
+                </h3>
+                <p id="explanationText" class="text-xs text-slate-300 leading-relaxed">Mueve el deslizador para ver los dos ángulos.</p>
+            </div>
+
+            <div class="bg-amber-950/30 border border-amber-500/30 rounded-2xl p-5 shadow-xl flex flex-col gap-2 text-xs text-slate-300 leading-relaxed">
+                <h3 class="text-sm font-bold text-amber-300">⚠️ Donde falla mucha gente</h3>
+                <p>Mucha gente mide el ángulo entre las líneas de B y <b>la espira</b> (el morado). De frente, eso parece 90°.</p>
+                <p>Pero la fórmula NO usa ese ángulo. Usa el ángulo entre B y <b>la normal</b> (la flecha roja que sale recta de la espira, como un palo clavado en el centro).</p>
+                <p><b>Truco:</b> la normal es la dirección hacia la que «mira» la espira. Si la espira mira de frente al campo, la normal y B van juntas → θ = 0°.</p>
+                <p><b>¿Por qué así?</b> El flujo cuenta cuántas líneas de B pasan POR DENTRO de la espira, como el aire por una ventana:</p>
+                <p>• De frente (θ = 0°): pasan todas → cos 0° = 1 → flujo máximo.<br>• De canto (θ = 90°): las líneas resbalan por el borde, no entra ninguna → cos 90° = 0 → flujo 0.</p>
+            </div>
+
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="text-center py-4 text-xs text-slate-500 border-t border-slate-800 mt-auto">
+        Simulador Interactivo ClassWiz • Física y Química • Explicación del Vector Normal y Ángulo de Flujo
+    </footer>
+
+    <!-- Interactive Simulation Script -->
+    <script>
+        const canvas = document.getElementById('simCanvas');
+        const ctx = canvas.getContext('2d');
+
+        const sliderAngle = document.getElementById('sliderAngle');
+        const valAngle = document.getElementById('valAngle');
+        const txtCos = document.getElementById('txtCos');
+        const txtFlux = document.getElementById('txtFlux');
+        const explanationText = document.getElementById('explanationText');
+
+        const btn0 = document.getElementById('btn0');
+        const btn60 = document.getElementById('btn60');
+        const btn90 = document.getElementById('btn90');
+
+        let currentAngleDeg = 0;
+        let isDragging = false;
+
+        function setAngle(deg) {
+            currentAngleDeg = deg;
+            sliderAngle.value = deg;
+            updateUI();
+        }
+
+        sliderAngle.addEventListener('input', (e) => {
+            currentAngleDeg = parseInt(e.target.value);
+            updateUI();
+        });
+
+        // Mouse & Touch interaction on canvas to rotate
+        canvas.addEventListener('mousedown', () => { isDragging = true; });
+        window.addEventListener('mousemove', (e) => {
+            if (!isDragging) return;
+            currentAngleDeg = Math.max(0, Math.min(90, currentAngleDeg + e.movementX * 0.5));
+            sliderAngle.value = Math.round(currentAngleDeg);
+            updateUI();
+        });
+        window.addEventListener('mouseup', () => { isDragging = false; });
+
+        let lastTouchX = null;
+        canvas.addEventListener('touchstart', (e) => { isDragging = true; lastTouchX = e.touches[0].clientX; });
+        window.addEventListener('touchmove', (e) => {
+            if (!isDragging) return;
+            const tx = e.touches[0].clientX;
+            currentAngleDeg = Math.max(0, Math.min(90, currentAngleDeg + (tx - lastTouchX) * 0.5));
+            lastTouchX = tx;
+            sliderAngle.value = Math.round(currentAngleDeg);
+            updateUI();
+        });
+        window.addEventListener('touchend', () => { isDragging = false; });
+
+        function updateUI() {
+            valAngle.textContent = Math.round(currentAngleDeg) + '°';
+
+            // Active preset button styles
+            btn0.className = Math.abs(currentAngleDeg - 0) < 2 ? 'px-3 py-1.5 rounded-lg text-xs font-medium bg-sky-600 text-white shadow' : 'px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-700 text-slate-300 hover:bg-slate-600 shadow';
+            btn60.className = Math.abs(currentAngleDeg - 60) < 2 ? 'px-3 py-1.5 rounded-lg text-xs font-medium bg-sky-600 text-white shadow' : 'px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-700 text-slate-300 hover:bg-slate-600 shadow';
+            btn90.className = Math.abs(currentAngleDeg - 90) < 2 ? 'px-3 py-1.5 rounded-lg text-xs font-medium bg-sky-600 text-white shadow' : 'px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-700 text-slate-300 hover:bg-slate-600 shadow';
+
+            const rad = currentAngleDeg * Math.PI / 180;
+            const cosVal = Math.cos(rad);
+            const flux = 0.2 * 0.5 * cosVal;
+
+            txtCos.textContent = cosVal.toFixed(3);
+            const gg = Math.round(currentAngleDeg);
+            document.getElementById('txtTheta').textContent = gg + '°';
+            document.getElementById('txtAlfa').textContent = (90 - gg) + '°';
+            document.getElementById('txtSuma').textContent = `α + θ = ${90 - gg}° + ${gg}° = 90° (siempre suman 90°)`;
+            txtFlux.textContent = flux.toFixed(3) + ' Wb';
+
+            if (currentAngleDeg < 5) {
+                explanationText.innerHTML = `<b>Espira de frente:</b><br>• La espira (morado) forma 90° con B. Ese NO es el ángulo de la fórmula.<br>• La normal (roja) va en la MISMA dirección que B → θ = 0°.<br>• cos 0° = 1<br>• Φ = 0,2 · 0,5 · 1 = 0,1 Wb → flujo MÁXIMO: pasan todas las líneas.`;
+            } else if (currentAngleDeg > 85) {
+                explanationText.innerHTML = `<b>Espira de canto:</b><br>• La espira (morado) va paralela a B: forma 0° con las líneas.<br>• La normal (roja) apunta hacia arriba: forma 90° con B → θ = 90°.<br>• cos 90° = 0<br>• Φ = 0,2 · 0,5 · 0 = 0 Wb → flujo NULO: ninguna línea entra, todas resbalan por el borde.`;
+            } else {
+                const g = Math.round(currentAngleDeg);
+                explanationText.innerHTML = `<b>Espira inclinada:</b><br>• Con la espira (morado): α = 90° − ${g}° = ${90 - g}°.<br>• Con la normal (roja): θ = ${g}° ← este es el de la fórmula.<br>• cos ${g}° = ${cosVal.toFixed(2).replace('.', ',')}<br>• Φ = 0,2 · 0,5 · ${cosVal.toFixed(2).replace('.', ',')} = ${flux.toFixed(3).replace('.', ',')} Wb → pasan menos líneas que de frente.`;
+            }
+        }
+
+        function resizeCanvas() {
+            const rect = canvas.parentElement.getBoundingClientRect();
+            canvas.width = rect.width * window.devicePixelRatio;
+            canvas.height = rect.height * window.devicePixelRatio;
+            ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        function drawScene() {
+            const currentW = canvas.width / window.devicePixelRatio;
+            const currentH = canvas.height / window.devicePixelRatio;
+            ctx.clearRect(0, 0, currentW, currentH);
+
+            const cx = currentW / 2 - 40;
+            const cy = currentH / 2;
+
+            // 1. Draw Magnetic Field Lines (Blue arrows pointing right)
+            ctx.strokeStyle = '#38bdf8';
+            ctx.lineWidth = 2;
+            const lineYOffsets = [-70, -35, 0, 35, 70];
+            lineYOffsets.forEach(dy => {
+                ctx.beginPath();
+                ctx.moveTo(cx - 220, cy + dy);
+                ctx.lineTo(cx + 220, cy + dy);
+                ctx.stroke();
+
+                // Arrow head
+                ctx.fillStyle = '#38bdf8';
+                ctx.beginPath();
+                ctx.moveTo(cx + 220, cy + dy);
+                ctx.lineTo(cx + 210, cy + dy - 5);
+                ctx.lineTo(cx + 210, cy + dy + 5);
+                ctx.fill();
+            });
+
+            // Field label B
+            ctx.fillStyle = '#38bdf8';
+            ctx.font = 'bold 14px Inter';
+            ctx.fillText('Campo B →', cx - 210, cy - 85);
+
+            // 2. Draw Loop (Espira) rotated by currentAngleDeg
+            ctx.save();
+            ctx.translate(cx, cy);
+            
+            const rad = currentAngleDeg * Math.PI / 180;
+            // Rotation of the loop in 2D perspective (ellipse height changes)
+            // At 0 deg: tall ellipse. At 90 deg: flat horizontal line.
+            const ellipseWidth = 24;
+            const ellipseHeight = 110;
+
+            ctx.save();
+            ctx.rotate(-rad); // Rotate loop
+
+            // Loop shadow & body
+            ctx.strokeStyle = '#a855f7';
+            ctx.lineWidth = 6;
+            ctx.fillStyle = 'rgba(168, 85, 247, 0.1)';
+            ctx.beginPath();
+            ctx.ellipse(0, 0, ellipseWidth, ellipseHeight, 0, 0, 2 * Math.PI);
+            ctx.fill();
+            ctx.stroke();
+            ctx.restore();
+
+            // 3. Draw Normal Vector (n) in Rose/Red perpendicular to the loop surface
+            // The normal vector points in direction of rotation angle rad relative to horizontal (x-axis)
+            const normalLength = 100;
+            const nx = Math.cos(rad) * normalLength;
+            const ny = -Math.sin(rad) * normalLength;
+
+            ctx.strokeStyle = '#f43f5e';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.lineTo(nx, ny);
+            ctx.stroke();
+
+            // Normal Arrow head
+            ctx.fillStyle = '#f43f5e';
+            ctx.save();
+            ctx.translate(nx, ny);
+            ctx.rotate(-rad);
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.lineTo(-8, -5);
+            ctx.lineTo(-8, 5);
+            ctx.fill();
+            ctx.restore();
+
+            // Label Normal Vector n
+            ctx.fillStyle = '#f43f5e';
+            ctx.font = 'bold 14px Inter';
+            ctx.fillText('Normal n', nx + 10, ny);
+
+            // 4a. Ángulo con la ESPIRA (α = 90° − θ), en morado, por debajo de B
+            const alfa = (90 - currentAngleDeg) * Math.PI / 180;
+            // prolongación de la espira (línea morada discontinua), para ver contra qué se mide α
+            ctx.strokeStyle = '#c084fc';
+            ctx.lineWidth = 2;
+            ctx.setLineDash([5, 5]);
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.lineTo(Math.sin(rad) * 150, Math.cos(rad) * 150);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.lineTo(150, 0); // la línea de B por el centro
+            ctx.stroke();
+            if (alfa > 0.03) {
+                ctx.beginPath();
+                ctx.arc(0, 0, 135, 0, alfa, false);
+                ctx.stroke();
+            }
+            ctx.setLineDash([]);
+            ctx.fillStyle = '#c084fc';
+            ctx.font = 'bold 12px Inter';
+            ctx.textAlign = 'left';
+            ctx.fillText(`α = ${Math.round(90 - currentAngleDeg)}° (con la espira: NO es el de la fórmula)`, 40, 165);
+
+            // 4b. Ángulo con la NORMAL (θ), en amarillo: ESTE es el de la fórmula
+            if (currentAngleDeg > 2) {
+                ctx.strokeStyle = '#fbbf24';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.arc(0, 0, 45, 0, -rad, true);
+                ctx.stroke();
+
+                ctx.fillStyle = '#fbbf24';
+                ctx.font = 'bold 12px Inter';
+                ctx.fillText(`θ = ${Math.round(currentAngleDeg)}° (con la normal: el de la fórmula)`, 50, -20);
+            } else {
+                ctx.fillStyle = '#fbbf24';
+                ctx.font = 'bold 12px Inter';
+                ctx.fillText('θ = 0° (normal y B van juntas)', 30, -40);
+            }
+
+            ctx.restore();
+
+            requestAnimationFrame(drawScene);
+        }
+
+        requestAnimationFrame(drawScene);
+        updateUI();
+    </script>
+</body>
+</html>
