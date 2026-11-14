@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulador Interactivo: Ley de Gauss y Cubeta de Faraday</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        canvas { touch-action: none; }
+    </style>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col">
+
+    <!-- Header -->
+    <header class="bg-slate-800/80 backdrop-blur border-b border-slate-700 px-6 py-4 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+            <div>
+                <h1 class="text-xl font-bold bg-gradient-to-r from-amber-400 to-rose-400 bg-clip-text text-transparent">
+                    ⚡ Simulador: Ley de Gauss y Cubeta de Faraday
+                </h1>
+                <p class="text-xs text-slate-400">Electromagnetismo • Φ = ∮ E · dS = Q interior / ε₀</p>
+            </div>
+            <!-- Tab Switcher -->
+            <div class="flex items-center bg-slate-900 p-1 rounded-xl border border-slate-700">
+                <button id="tabGauss" class="px-4 py-2 rounded-lg text-xs font-semibold bg-blue-600 text-white transition shadow">
+                    Superficie Gaussiana
+                </button>
+                <button id="tabFaraday" class="px-4 py-2 rounded-lg text-xs font-semibold text-slate-400 hover:text-white transition">
+                    Cubeta de Faraday
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="flex-1 max-w-7xl w-full mx-auto p-4 md:p-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        <!-- Simulation Canvas Area (2 cols) -->
+        <div class="lg:col-span-2 flex flex-col gap-4">
+            <div class="bg-slate-800/60 border border-slate-700/80 rounded-2xl p-4 shadow-xl backdrop-blur relative overflow-hidden flex flex-col flex-1 min-h-[420px]">
+                
+                <!-- Canvas Top Bar / Legend -->
+                <div class="flex items-center justify-between mb-2 text-xs text-slate-400 px-2">
+                    <div id="canvasLegend" class="flex items-center gap-4">
+                        <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-rose-500 inline-block"></span> Carga Positiva (+q)</span>
+                        <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-blue-500 inline-block"></span> Superficie Cerrada (S)</span>
+                    </div>
+                    <span class="italic text-slate-400">💡 Arrastra la carga libremente por el espacio</span>
+                </div>
+
+                <!-- Interactive Canvas -->
+                <div class="relative flex-1 rounded-xl bg-slate-950/80 border border-slate-800 overflow-hidden flex items-center justify-center">
+                    <canvas id="simCanvas" class="w-full h-full cursor-grab active:cursor-grabbing"></canvas>
+                </div>
+
+                <!-- Mode Specific Controls -->
+                <div id="controlsGauss" class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 pt-4 border-t border-slate-700/60 text-sm">
+                    <div>
+                        <label class="block text-slate-300 font-medium mb-1">Valor de la Carga (Q): <span id="valCharge" class="text-rose-400 font-bold">+2.0</span> µC</label>
+                        <input type="range" id="sliderCharge" min="-5" max="5" step="0.5" value="2.0" class="w-full accent-rose-500 bg-slate-700 rounded-lg h-2 cursor-pointer">
+                    </div>
+                    <div>
+                        <label class="block text-slate-300 font-medium mb-1">Radio Esfera Gaussiana (R): <span id="valRadius" class="text-blue-400 font-bold">120</span> px</label>
+                        <input type="range" id="sliderRadius" min="80" max="180" step="5" value="120" class="w-full accent-blue-500 bg-slate-700 rounded-lg h-2 cursor-pointer">
+                    </div>
+                </div>
+
+                <div id="controlsFaraday" class="hidden flex items-center justify-between mt-4 pt-4 border-t border-slate-700/60 text-sm">
+                    <div class="text-slate-300">
+                        <span class="font-semibold text-amber-400">Experimento de Inducción:</span> Acerca o introduce la esfera cargada dentro del cubo metálico hueco.
+                    </div>
+                    <button id="btnInsertBall" class="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-lg text-xs font-medium transition shadow">
+                        Introducir / Sacar Esfera
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Telemetry & Educational Panel (1 col) -->
+        <div class="flex flex-col gap-4">
+            
+            <!-- Real-time Meters -->
+            <div class="bg-slate-800/60 border border-slate-700/80 rounded-2xl p-5 shadow-xl backdrop-blur flex flex-col gap-4">
+                <h2 class="text-sm font-semibold text-slate-300 uppercase tracking-wider border-b border-slate-700 pb-2">📊 Telemetría y Ecuaciones</h2>
+                
+                <!-- Charge Card -->
+                <div class="bg-slate-900/60 p-3.5 rounded-xl border border-slate-800 flex justify-between items-center">
+                    <div>
+                        <span class="text-xs text-slate-400 block">Carga Encerrada (Q interior)</span>
+                        <span id="txtQint" class="text-lg font-mono font-bold text-rose-400">+2.00 µC</span>
+                    </div>
+                    <div class="w-10 h-10 rounded-lg bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-400 font-bold">Q</div>
+                </div>
+
+                <!-- Electric Flux Card -->
+                <div class="bg-slate-900/60 p-3.5 rounded-xl border border-slate-800 flex justify-between items-center">
+                    <div>
+                        <span class="text-xs text-slate-400 block">Flujo Eléctrico (Φ = Q interior / ε₀), en N·m²/C</span>
+                        <span id="txtFluxE" class="text-lg font-mono font-bold text-blue-400">2.26×10⁵</span>
+                    </div>
+                    <div class="w-10 h-10 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400 font-bold">Φₑ</div>
+                </div>
+
+                <!-- Electric Field on Surface Card -->
+                <div class="bg-slate-900/60 p-3.5 rounded-xl border border-slate-800 flex justify-between items-center">
+                    <div>
+                        <span class="text-xs text-slate-400 block">Campo a distancia R (E = K · Q / R², 1 px = 1 cm)</span>
+                        <span id="txtFieldE" class="text-lg font-mono font-bold text-amber-400">1.25 N/C</span>
+                    </div>
+                    <div class="w-10 h-10 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 font-bold">E</div>
+                </div>
+
+                <!-- Inside Conductor Status -->
+                <div class="mt-2 pt-3 border-t border-slate-700/60 flex flex-col">
+                    <span class="text-xs text-slate-400 mb-1">Estado de la Superficie / Conductor</span>
+                    <div id="txtStatusBox" class="p-3 bg-slate-950 rounded-xl border border-slate-800 text-xs text-slate-300 leading-relaxed">
+                        La carga se encuentra <b>dentro</b> de la superficie cerrada. Las líneas de campo atraviesan la superficie hacia fuera (Flujo positivo).
+                    </div>
+                </div>
+            </div>
+
+            <!-- Theory Insight Card -->
+            <div class="bg-blue-950/30 border border-blue-500/30 rounded-2xl p-5 shadow-xl backdrop-blur flex flex-col gap-2">
+                <h3 class="text-sm font-bold text-blue-300 flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    <span id="theoryTitle">Principio de Gauss</span>
+                </h3>
+                <p id="theoryDescription" class="text-xs text-slate-300 leading-relaxed">
+                    El flujo eléctrico total a través de cualquier superficie cerrada es directamente proporcional a la carga neta eléctrica encerrada en su interior, independientemente de la forma de la superficie.
+                </p>
+            </div>
+
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="text-center py-4 text-xs text-slate-500 border-t border-slate-800 mt-auto">
+        Simulador interactivo ClassWiz • Física y Química • Ley de Gauss y Electrostática
+    </footer>
+
+    <!-- Simulation Script -->
+    <script>
+        const canvas = document.getElementById('simCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // UI Elements
+        const tabGauss = document.getElementById('tabGauss');
+        const tabFaraday = document.getElementById('tabFaraday');
+        const controlsGauss = document.getElementById('controlsGauss');
+        const controlsFaraday = document.getElementById('controlsFaraday');
+        const canvasLegend = document.getElementById('canvasLegend');
+        const sliderCharge = document.getElementById('sliderCharge');
+        const sliderRadius = document.getElementById('sliderRadius');
+        const valCharge = document.getElementById('valCharge');
+        const valRadius = document.getElementById('valRadius');
+        const btnInsertBall = document.getElementById('btnInsertBall');
+
+        const txtQint = document.getElementById('txtQint');
+        const txtFluxE = document.getElementById('txtFluxE');
+        const txtFieldE = document.getElementById('txtFieldE');
+        const txtStatusBox = document.getElementById('txtStatusBox');
+        const theoryTitle = document.getElementById('theoryTitle');
+        const theoryDescription = document.getElementById('theoryDescription');
+
+        // Application State
+        let currentMode = 'gauss'; // 'gauss' or 'faraday'
+        
+        let gaussState = {
+            chargeX: 0,
+            chargeY: 0,
+            radius: 120,
+            qValue: 2.0,
+            isDragging: false
+        };
+
+        let faradayState = {
+            ballX: 100,
+            ballY: 0,
+            isInside: false,
+            isDragging: false,
+            animationProgress: 0 // 0 to 1 for smooth insert
+        };
+
+        function resizeCanvas() {
+            const rect = canvas.parentElement.getBoundingClientRect();
+            canvas.width = rect.width * window.devicePixelRatio;
+            canvas.height = rect.height * window.devicePixelRatio;
+            ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+
+            const cx = rect.width / 2;
+            const cy = rect.height / 2;
+            if (gaussState.chargeX === 0) {
+                gaussState.chargeX = cx;
+                gaussState.chargeY = cy;
+            }
+            if (faradayState.ballX === 100) {
+                faradayState.ballX = cx - 200;
+                faradayState.ballY = cy;
+            }
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        // Tab Switching Listeners
+        tabGauss.addEventListener('click', () => {
+            currentMode = 'gauss';
+            tabGauss.className = "px-4 py-2 rounded-lg text-xs font-semibold bg-blue-600 text-white transition shadow";
+            tabFaraday.className = "px-4 py-2 rounded-lg text-xs font-semibold text-slate-400 hover:text-white transition";
+            controlsGauss.classList.remove('hidden');
+            controlsFaraday.classList.add('hidden');
+            canvasLegend.innerHTML = `
+                <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-rose-500 inline-block"></span> Carga Positiva (+q)</span>
+                <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-blue-500 inline-block"></span> Superficie Cerrada (S)</span>
+            `;
+            theoryTitle.textContent = "Principio de Gauss";
+            theoryDescription.textContent = "El flujo eléctrico total a través de cualquier superficie cerrada es directamente proporcional a la carga neta eléctrica encerrada en su interior.";
+        });
+
+        tabFaraday.addEventListener('click', () => {
+            currentMode = 'faraday';
+            tabFaraday.className = "px-4 py-2 rounded-lg text-xs font-semibold bg-indigo-600 text-white transition shadow";
+            tabGauss.className = "px-4 py-2 rounded-lg text-xs font-semibold text-slate-400 hover:text-white transition";
+            controlsFaraday.classList.remove('hidden');
+            controlsGauss.classList.add('hidden');
+            canvasLegend.innerHTML = `
+                <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-rose-500 inline-block"></span> Carga Inductora</span>
+                <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-amber-400 inline-block"></span> Cubo Metálico Conductor</span>
+            `;
+            theoryTitle.textContent = "Cubeta de Faraday";
+            theoryDescription.textContent = "Al introducir una carga en el cubo, el campo en el interior del metal es cero. Por inducción electrostática, aparece carga negativa en la superficie interior y positiva idéntica en la exterior.";
+        });
+
+        // Sliders Listeners
+        sliderCharge.addEventListener('input', (e) => {
+            gaussState.qValue = parseFloat(e.target.value);
+            valCharge.textContent = (gaussState.qValue >= 0 ? '+' : '') + gaussState.qValue.toFixed(1);
+        });
+
+        sliderRadius.addEventListener('input', (e) => {
+            gaussState.radius = parseInt(e.target.value);
+            valRadius.textContent = gaussState.radius;
+        });
+
+        btnInsertBall.addEventListener('click', () => {
+            faradayState.isInside = !faradayState.isInside;
+            faradayState.volver = !faradayState.isInside;
+            btnInsertBall.textContent = faradayState.isInside ? "Sacar Esfera" : "Introducir Esfera";
+        });
+
+        // Mouse & Touch Interaction
+        canvas.addEventListener('mousedown', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
+
+            if (currentMode === 'gauss') {
+                const dx = mouseX - gaussState.chargeX;
+                const dy = mouseY - gaussState.chargeY;
+                if (Math.sqrt(dx*dx + dy*dy) < 30) {
+                    gaussState.isDragging = true; gaussState.movida = true;
+                }
+            } else {
+                const dx = mouseX - faradayState.ballX;
+                const dy = mouseY - faradayState.ballY;
+                if (Math.sqrt(dx*dx + dy*dy) < 35) {
+                    faradayState.isDragging = true; faradayState.movida = true;
+                }
+            }
+        });
+
+        window.addEventListener('mousemove', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
+            const currentW = canvas.width / window.devicePixelRatio;
+            const currentH = canvas.height / window.devicePixelRatio;
+
+            if (currentMode === 'gauss' && gaussState.isDragging) {
+                gaussState.chargeX = Math.max(50, Math.min(currentW - 50, mouseX));
+                gaussState.chargeY = Math.max(50, Math.min(currentH - 50, mouseY));
+            } else if (currentMode === 'faraday' && faradayState.isDragging) {
+                faradayState.ballX = Math.max(50, Math.min(currentW - 50, mouseX));
+                faradayState.ballY = Math.max(50, Math.min(currentH - 50, mouseY));
+                
+                // Detect if inside cavity of bucket (approx center)
+                const bucketX = currentW / 2;
+                const bucketY = currentH / 2;
+                if (Math.abs(faradayState.ballX - bucketX) < 40 && Math.abs(faradayState.ballY - bucketY) < 50) {
+                    faradayState.isInside = true;
+                    btnInsertBall.textContent = "Sacar Esfera";
+                } else {
+                    faradayState.isInside = false;
+                    btnInsertBall.textContent = "Introducir Esfera";
+                }
+            }
+        });
+
+        window.addEventListener('mouseup', () => {
+            gaussState.isDragging = false;
+            faradayState.isDragging = false;
+        });
+
+        // Touch support
+        canvas.addEventListener('touchstart', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const touch = e.touches[0];
+            const touchX = touch.clientX - rect.left;
+            const touchY = touch.clientY - rect.top;
+
+            if (currentMode === 'gauss') {
+                const dx = touchX - gaussState.chargeX;
+                const dy = touchY - gaussState.chargeY;
+                if (Math.sqrt(dx*dx + dy*dy) < 40) { gaussState.isDragging = true; gaussState.movida = true; } gaussState.movida = true;
+            } else {
+                const dx = touchX - faradayState.ballX;
+                const dy = touchY - faradayState.ballY;
+                if (Math.sqrt(dx*dx + dy*dy) < 40) { faradayState.isDragging = true; faradayState.movida = true; } faradayState.movida = true;
+            }
+        });
+
+        window.addEventListener('touchmove', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const touch = e.touches[0];
+            const touchX = touch.clientX - rect.left;
+            const touchY = touch.clientY - rect.top;
+            const currentW = canvas.width / window.devicePixelRatio;
+            const currentH = canvas.height / window.devicePixelRatio;
+
+            if (currentMode === 'gauss' && gaussState.isDragging) {
+                gaussState.chargeX = Math.max(50, Math.min(currentW - 50, touchX));
+                gaussState.chargeY = Math.max(50, Math.min(currentH - 50, touchY));
+            } else if (currentMode === 'faraday' && faradayState.isDragging) {
+                faradayState.ballX = Math.max(50, Math.min(currentW - 50, touchX));
+                faradayState.ballY = Math.max(50, Math.min(currentH - 50, touchY));
+                
+                const bucketX = currentW / 2;
+                const bucketY = currentH / 2;
+                if (Math.abs(faradayState.ballX - bucketX) < 40 && Math.abs(faradayState.ballY - bucketY) < 50) {
+                    faradayState.isInside = true;
+                    btnInsertBall.textContent = "Sacar Esfera";
+                } else {
+                    faradayState.isInside = false;
+                    btnInsertBall.textContent = "Introducir Esfera";
+                }
+            }
+        });
+
+        window.addEventListener('touchend', () => {
+            gaussState.isDragging = false;
+            faradayState.isDragging = false;
+        });
+
+        // Draw Simulation Scenes
+        function drawGaussScene() {
+            const currentW = canvas.width / window.devicePixelRatio;
+            const currentH = canvas.height / window.devicePixelRatio;
+            const cx = currentW / 2;
+            const cy = currentH / 2;
+
+            ctx.clearRect(0, 0, currentW, currentH);
+            // Hasta que la muevas, la carga se queda en el centro (aunque la página tarde en colocarse)
+            if (!gaussState.movida) { gaussState.chargeX = cx; gaussState.chargeY = cy; }
+
+            // 1. Draw Electric Field Lines radiating from charge
+            if (gaussState.qValue !== 0) {
+                ctx.save();
+                ctx.strokeStyle = gaussState.qValue > 0 ? 'rgba(244, 63, 94, 0.4)' : 'rgba(59, 130, 246, 0.4)';
+                ctx.lineWidth = 1.5;
+                const numRays = 16;
+                for (let i = 0; i < numRays; i++) {
+                    const angle = (i * 2 * Math.PI) / numRays;
+                    ctx.beginPath();
+                    ctx.moveTo(gaussState.chargeX, gaussState.chargeY);
+                    const endX = gaussState.chargeX + Math.cos(angle) * 350;
+                    const endY = gaussState.chargeY + Math.sin(angle) * 350;
+                    ctx.lineTo(endX, endY);
+                    ctx.stroke();
+                    // flecha a 90 px de la carga: hacia fuera si es +, hacia dentro si es −
+                    const sgn = gaussState.qValue > 0 ? 1 : -1;
+                    const ax = gaussState.chargeX + Math.cos(angle) * 90, ay = gaussState.chargeY + Math.sin(angle) * 90;
+                    const a = angle + (sgn > 0 ? 0 : Math.PI);
+                    ctx.beginPath();
+                    ctx.moveTo(ax + Math.cos(a) * 7, ay + Math.sin(a) * 7);
+                    ctx.lineTo(ax + Math.cos(a + 2.5) * 7, ay + Math.sin(a + 2.5) * 7);
+                    ctx.lineTo(ax + Math.cos(a - 2.5) * 7, ay + Math.sin(a - 2.5) * 7);
+                    ctx.closePath();
+                    ctx.fillStyle = ctx.strokeStyle;
+                    ctx.fill();
+                }
+                ctx.restore();
+            }
+
+            // 2. Draw Gaussian Spherical Surface centered at canvas center (cx, cy)
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(cx, cy, gaussState.radius, 0, 2 * Math.PI);
+            ctx.strokeStyle = '#3b82f6';
+            ctx.lineWidth = 3;
+            ctx.setLineDash([8, 6]);
+            ctx.fillStyle = 'rgba(59, 130, 246, 0.05)';
+            ctx.fill();
+            ctx.stroke();
+            ctx.restore();
+
+            // Label Gaussian Surface
+            ctx.fillStyle = '#93c5fd';
+            ctx.font = '12px Inter';
+            ctx.fillText('Superficie Gaussiana (S)', cx + gaussState.radius + 10, cy);
+
+            // 3. Draw Point Charge
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(gaussState.chargeX, gaussState.chargeY, 20, 0, 2 * Math.PI);
+            ctx.fillStyle = gaussState.qValue > 0 ? '#f43f5e' : '#3b82f6';
+            ctx.shadowColor = gaussState.qValue > 0 ? 'rgba(244, 63, 94, 0.6)' : 'rgba(59, 130, 246, 0.6)';
+            ctx.shadowBlur = 12;
+            ctx.fill();
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 14px Inter';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(gaussState.qValue > 0 ? '+' : (gaussState.qValue < 0 ? '−' : '0'), gaussState.chargeX, gaussState.chargeY);
+            ctx.restore();
+
+            // Check if charge is inside the Gaussian sphere
+            const distFromCenter = Math.sqrt(Math.pow(gaussState.chargeX - cx, 2) + Math.pow(gaussState.chargeY - cy, 2));
+            const isInside = distFromCenter <= gaussState.radius;
+
+            // Update Telemetry
+            const qShow = isInside ? gaussState.qValue : 0;
+            txtQint.textContent = (qShow > 0 ? '+' : '') + qShow.toFixed(1) + ' µC';
+            const effectiveQ = isInside ? gaussState.qValue * 1e-6 : 0;
+            const epsilon0 = 8.854e-12;
+            const flux = effectiveQ / epsilon0;
+            txtFluxE.textContent = flux === 0 ? '0' : flux.toExponential(2).replace('e+', ' ×10^').replace('e-', ' ×10^-');
+            
+            const fieldAtSurface = isInside ? (8.99e9 * Math.abs(effectiveQ)) / (gaussState.radius * gaussState.radius * 0.01 * 0.01) : 0;
+            const centrada = distFromCenter < 25;
+            txtFieldE.textContent = !isInside ? '—' : (centrada ? Math.round(fieldAtSurface).toLocaleString('es-ES') + ' N/C' : 'varía (no centrada)');
+
+            if (isInside) {
+                txtStatusBox.innerHTML = "La carga está <b>dentro</b> de la superficie cerrada. Las líneas de campo la atraviesan, generando un flujo eléctrico neto proporcional a Q interior. ¡Da igual en qué punto de dentro la pongas: el flujo es el mismo!";
+            } else {
+                txtStatusBox.innerHTML = "La carga está <b>fuera</b> de la superficie gaussiana. Entran tantas líneas como salen, por lo que el flujo neto es exactamente <b>cero</b> (Φ = 0). El campo NO es cero, pero el flujo sí.";
+            }
+        }
+
+        function drawFaradayScene() {
+            const currentW = canvas.width / window.devicePixelRatio;
+            const currentH = canvas.height / window.devicePixelRatio;
+            const cx = currentW / 2;
+            const cy = currentH / 2;
+
+            ctx.clearRect(0, 0, currentW, currentH);
+
+            if (!faradayState.movida && !faradayState.isInside && !faradayState.volver) { faradayState.ballX = cx - 200; faradayState.ballY = cy; }
+            // Smooth animation when button clicked
+            if (faradayState.isInside && !faradayState.isDragging) {
+                faradayState.ballX += (cx - faradayState.ballX) * 0.1;
+                faradayState.ballY += (cy - faradayState.ballY) * 0.1;
+            } else if (faradayState.volver && !faradayState.isDragging) {
+                faradayState.ballX += (cx - 200 - faradayState.ballX) * 0.1;
+                faradayState.ballY += (cy - faradayState.ballY) * 0.1;
+                if (Math.abs(cx - 200 - faradayState.ballX) < 1) faradayState.volver = false;
+            }
+
+            // 1. Draw Metal Bucket (Conductor Hueco)
+            ctx.save();
+            ctx.strokeStyle = '#f59e0b';
+            ctx.lineWidth = 6;
+            ctx.fillStyle = 'rgba(245, 158, 11, 0.15)';
+            
+            // Bucket shape path
+            ctx.beginPath();
+            ctx.moveTo(cx - 70, cy - 80);
+            ctx.lineTo(cx - 50, cy + 90);
+            ctx.lineTo(cx + 50, cy + 90);
+            ctx.lineTo(cx + 70, cy - 80);
+            ctx.fill();
+            ctx.stroke(); // sin cerrar: la cubeta está ABIERTA por arriba
+            ctx.restore();
+            ctx.fillStyle = '#fcd34d';
+            ctx.font = '12px Inter';
+            ctx.textAlign = 'center';
+            ctx.fillText('Cubeta de metal (abierta arriba)', cx, cy + 112);
+
+            // Draw negative induced charges on inner wall if inside, positive on outer wall
+            if (faradayState.isInside) {
+                ctx.font = 'bold 15px Inter';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                for (let k = 0; k < 5; k++) {
+                    const t = (k + 0.5) / 5;
+                    const yy = cy - 80 + t * 170;
+                    const xw = 70 - t * 20; // media anchura de la pared a esa altura
+                    // − en la cara de DENTRO (atraídas por la esfera +)
+                    ctx.fillStyle = '#60a5fa';
+                    ctx.fillText('−', cx - xw + 12, yy);
+                    ctx.fillText('−', cx + xw - 12, yy);
+                    // + en la cara de FUERA (empujadas lejos)
+                    ctx.fillStyle = '#fb7185';
+                    ctx.fillText('+', cx - xw - 14, yy);
+                    ctx.fillText('+', cx + xw + 14, yy);
+                }
+                for (let k = -1; k <= 1; k++) {
+                    ctx.fillStyle = '#60a5fa'; ctx.fillText('−', cx + k * 25, cy + 78);
+                    ctx.fillStyle = '#fb7185'; ctx.fillText('+', cx + k * 25, cy + 102);
+                }
+            }
+
+            // 2. Draw Charged Ball
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(faradayState.ballX, faradayState.ballY, 22, 0, 2 * Math.PI);
+            ctx.fillStyle = '#f43f5e';
+            ctx.shadowColor = 'rgba(244, 63, 94, 0.6)';
+            ctx.shadowBlur = 10;
+            ctx.fill();
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 14px Inter';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('+', faradayState.ballX, faradayState.ballY);
+            ctx.restore();
+
+            // Update Telemetry for Faraday
+            if (faradayState.isInside) {
+                txtQint.textContent = "+2.0 µC (esfera dentro)";
+                txtFluxE.textContent = "2.26×10⁵";
+                txtFieldE.textContent = "Cero dentro del metal";
+                txtStatusBox.innerHTML = "La esfera (+2 µC) está dentro de la cubeta. Dentro del metal el campo es cero. Por inducción aparecen −2 µC en la cara de dentro y +2 µC en la de fuera: la cubeta sigue siendo neutra (−2 + 2 = 0), pero desde fuera «se ve» la carga de la esfera.";
+            } else {
+                txtQint.textContent = "0.0 µC (Neutro)";
+                txtFluxE.textContent = "0.00";
+                txtFieldE.textContent = "0.00 N/C";
+                txtStatusBox.innerHTML = "La esfera está fuera. No hay inducción electrostática en el cubo metálico. Arrastra la esfera dentro del cubo para activar el experimento.";
+            }
+        }
+
+        function loop() {
+            if (currentMode === 'gauss') {
+                drawGaussScene();
+            } else {
+                drawFaradayScene();
+            }
+            requestAnimationFrame(loop);
+        }
+
+        requestAnimationFrame(loop);
+    </script>
+</body>
+</html>
