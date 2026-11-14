@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulación de Fuerza de Lorentz y Movimiento Circular</title>
+    <!-- Tailwind CSS for modern UI styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0f172a;
+            color: #f8fafc;
+        }
+        canvas {
+            touch-action: none;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between">
+
+    <!-- Header -->
+    <header class="bg-slate-900/80 backdrop-blur border-b border-slate-800 py-4 px-6 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-2">
+            <div>
+                <h1 class="text-xl font-bold bg-gradient-to-r from-blue-400 to-indigo-400 bg-clip-text text-transparent flex items-center gap-2">
+                    ⚡ Simulador de Fuerza de Lorentz (F = q · v × B)
+                </h1>
+                <p class="text-xs text-slate-400">Trayectoria circular de una carga en un campo magnético perpendicular</p>
+            </div>
+            <div class="flex items-center gap-3">
+                <span id="field-direction-badge" class="px-3 py-1 rounded-full text-xs font-medium bg-blue-500/20 text-blue-300 border border-blue-500/30">
+                    B: Saliendo del papel (⊙)
+                </span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Layout -->
+    <main class="max-w-7xl mx-auto w-full p-4 md:p-6 grid grid-cols-1 lg:grid-cols-4 gap-6 flex-grow">
+        
+        <!-- Controls Panel -->
+        <div class="lg:col-span-1 bg-slate-800/60 backdrop-blur border border-slate-700/60 rounded-2xl p-5 flex flex-col justify-between shadow-xl">
+            <div class="space-y-5">
+                <div class="flex items-center justify-between border-b border-slate-700 pb-3">
+                    <h2 class="text-sm font-semibold text-slate-200 uppercase tracking-wider">🎛️ Controles Físicos</h2>
+                    <button id="btn-reset" class="text-xs text-blue-400 hover:text-blue-300 transition font-medium">Reiniciar</button>
+                </div>
+
+                <!-- Velocity Slider (Extremely slow default) -->
+                <div class="space-y-1.5">
+                    <div class="flex justify-between text-xs font-medium">
+                        <label for="range-v" class="text-slate-300">Velocidad (v)</label>
+                        <span id="val-v" class="text-emerald-400 font-mono">0.3 m/s</span>
+                    </div>
+                    <input id="range-v" type="range" min="0.1" max="1.5" step="0.05" value="0.3" 
+                           class="w-full accent-emerald-500 bg-slate-700 rounded-lg h-2 cursor-pointer">
+                    <p class="text-[11px] text-slate-400">Velocidad inicial ultra lenta para apreciar cada detalle.</p>
+                </div>
+
+                <!-- Time Scale / Slow-motion Slider -->
+                <div class="space-y-1.5">
+                    <div class="flex justify-between text-xs font-medium">
+                        <label for="range-timescale" class="text-slate-300">Cámara Lenta / Escala</label>
+                        <span id="val-timescale" class="text-indigo-400 font-mono">0.5x</span>
+                    </div>
+                    <input id="range-timescale" type="range" min="0.05" max="2.0" step="0.05" value="0.5" 
+                           class="w-full accent-indigo-500 bg-slate-700 rounded-lg h-2 cursor-pointer">
+                    <p class="text-[11px] text-slate-400">Reduce el factor temporal para un movimiento sumamente fluido y pausado.</p>
+                </div>
+
+                <!-- Magnetic Field Slider -->
+                <div class="space-y-1.5">
+                    <div class="flex justify-between text-xs font-medium">
+                        <label for="range-b" class="text-slate-300">Campo Magnético (B)</label>
+                        <span id="val-b" class="text-blue-400 font-mono">1.0 T</span>
+                    </div>
+                    <input id="range-b" type="range" min="0.2" max="3.0" step="0.1" value="1.0" 
+                           class="w-full accent-blue-500 bg-slate-700 rounded-lg h-2 cursor-pointer">
+                    <p class="text-[11px] text-slate-400">Intensidad del campo magnético uniforme.</p>
+                </div>
+
+                <!-- Charge Sign Toggle -->
+                <div class="space-y-1.5">
+                    <label class="text-xs font-medium text-slate-300 block">Tipo de Carga (q)</label>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button id="btn-charge-pos" onclick="setChargeType(1); initParticleState()" 
+                                class="py-2 px-3 text-xs font-semibold rounded-xl border transition flex items-center justify-center gap-1.5 bg-rose-500 text-white border-rose-600 shadow-lg shadow-rose-500/20">
+                            🔴 Positiva (+)
+                        </button>
+                        <button id="btn-charge-neg" onclick="setChargeType(-1); initParticleState()" 
+                                class="py-2 px-3 text-xs font-semibold rounded-xl border transition flex items-center justify-center gap-1.5 bg-slate-700 text-slate-300 border-slate-600">
+                            🔵 Negativa (-)
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Field Direction Toggle -->
+                <div class="space-y-1.5">
+                    <label class="text-xs font-medium text-slate-300 block">Dirección del Campo B</label>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button id="btn-field-out" onclick="setFieldDir(1); initParticleState()" 
+                                class="py-2 px-3 text-xs font-semibold rounded-xl border transition bg-blue-600 text-white border-blue-500">
+                            ⊙ Sale del papel
+                        </button>
+                        <button id="btn-field-in" onclick="setFieldDir(-1); initParticleState()" 
+                                class="py-2 px-3 text-xs font-semibold rounded-xl border transition bg-slate-700 text-slate-300 border-slate-600">
+                            ⊗ Entra al papel
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Play/Pause & Step Controls -->
+                <div class="pt-2 flex gap-2">
+                    <button id="btn-toggle-play" onclick="togglePlay()" class="flex-1 py-2.5 px-4 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-xl transition shadow-lg shadow-indigo-600/30 flex items-center justify-center gap-2">
+                        <span id="play-icon">⏸️ Pausar</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Legend Info -->
+            <div class="mt-6 pt-4 border-t border-slate-700 space-y-2 text-xs text-slate-300">
+                <div class="flex items-center gap-2">
+                    <span class="w-3 h-3 rounded-full bg-emerald-500 inline-block shadow-[0_0_8px_#10b981]"></span>
+                    <span>Velocidad (v)</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="w-3 h-3 rounded-full bg-rose-500 inline-block shadow-[0_0_8px_#f43f5e]"></span>
+                    <span>Fuerza Magnética (F)</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="w-3 h-3 rounded-full bg-purple-500 inline-block shadow-[0_0_8px_#a855f7]"></span>
+                    <span>Trayectoria circular</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Canvas and Real-time Telemetry -->
+        <div class="lg:col-span-3 flex flex-col gap-6">
+            
+            <!-- Canvas Container -->
+            <div class="bg-slate-900 border border-slate-700/80 rounded-2xl relative overflow-hidden shadow-2xl flex-grow flex items-center justify-center min-h-[420px] lg:min-h-[500px]">
+                
+                <!-- Overlay Title -->
+                <div class="absolute top-4 left-4 z-10 pointer-events-none bg-slate-800/80 backdrop-blur px-3 py-1.5 rounded-lg border border-slate-700 text-xs text-slate-300 flex items-center gap-2">
+                    <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                    <span>Simulación en vivo (Campo Uniforme)</span>
+                </div>
+
+                <!-- Canvas Element -->
+                <canvas id="simCanvas" class="w-full h-full cursor-grab active:cursor-grabbing"></canvas>
+
+                <!-- Floating Telemetry HUD -->
+                <div class="absolute bottom-4 right-4 z-10 bg-slate-900/90 backdrop-blur border border-slate-700/80 rounded-xl p-3 text-xs space-y-1 shadow-lg font-mono text-slate-300 min-w-[200px]">
+                    <div class="flex justify-between border-b border-slate-800 pb-1">
+                        <span class="text-slate-400">Radio (R):</span>
+                        <span id="hud-radius" class="text-purple-400 font-bold">0.00 m</span>
+                    </div>
+                    <div class="flex justify-between border-b border-slate-800 pb-1">
+                        <span class="text-slate-400">Fuerza (F):</span>
+                        <span id="hud-force" class="text-rose-400 font-bold">0.00 N</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-slate-400">Período (T):</span>
+                        <span id="hud-period" class="text-blue-400 font-bold">0.00 s</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Educational Step-by-Step Card -->
+            <div class="bg-slate-800/60 backdrop-blur border border-slate-700/60 rounded-2xl p-5 shadow-xl">
+                <h3 class="text-sm font-bold text-slate-200 mb-3 flex items-center gap-2">
+                    📖 ¿Qué está sucediendo físicamente? (Paso a paso)
+                </h3>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs text-slate-300">
+                    <div class="bg-slate-900/50 p-3.5 rounded-xl border border-slate-700/50 space-y-1">
+                        <span class="font-bold text-blue-400">1. Fuerza de Lorentz</span>
+                        <p class="text-slate-400 leading-relaxed">
+                            Una partícula con carga q que se mueve con velocidad v dentro de un campo B nota una fuerza F = q · (v × B).
+                        </p>
+                    </div>
+                    <div class="bg-slate-900/50 p-3.5 rounded-xl border border-slate-700/50 space-y-1">
+                        <span class="font-bold text-rose-400">2. Dirección hacia el Centro</span>
+                        <p class="text-slate-400 leading-relaxed">
+                            Como v es perpendicular a B, la fuerza apunta siempre hacia el centro del círculo: es la fuerza centrípeta.
+                        </p>
+                    </div>
+                    <div class="bg-slate-900/50 p-3.5 rounded-xl border border-slate-700/50 space-y-1">
+                        <span class="font-bold text-purple-400">3. Movimiento Circular Uniforme</span>
+                        <p class="text-slate-400 leading-relaxed">
+                            La rapidez v no cambia, porque la fuerza magnética no hace trabajo (W = 0). Por eso es circular UNIFORME.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="text-center py-4 text-xs text-slate-500 border-t border-slate-800/80">
+        Simulación interactiva de Física • Basada en la Ley de Lorentz y MCU.
+    </footer>
+
+    <!-- Simulation Logic Script -->
+    <script>
+        const canvas = document.getElementById('simCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        const rangeV = document.getElementById('range-v');
+        const rangeTimescale = document.getElementById('range-timescale');
+        const rangeB = document.getElementById('range-b');
+        const valV = document.getElementById('val-v');
+        const valTimescale = document.getElementById('val-timescale');
+        const valB = document.getElementById('val-b');
+        
+        const hudRadius = document.getElementById('hud-radius');
+        const hudForce = document.getElementById('hud-force');
+        const hudPeriod = document.getElementById('hud-period');
+        
+        const btnChargePos = document.getElementById('btn-charge-pos');
+        const btnChargeNeg = document.getElementById('btn-charge-neg');
+        const btnFieldOut = document.getElementById('btn-field-out');
+        const btnFieldIn = document.getElementById('btn-field-in');
+        const btnTogglePlay = document.getElementById('btn-toggle-play');
+        const playIcon = document.getElementById('play-icon');
+        const fieldDirectionBadge = document.getElementById('field-direction-badge');
+        const btnReset = document.getElementById('btn-reset');
+
+        let isRunning = true;
+        let chargeSign = 1; 
+        let fieldDir = 1;   
+        let vMagnitude = parseFloat(rangeV.value);
+        let timeScale = parseFloat(rangeTimescale.value);
+        let bMagnitude = parseFloat(rangeB.value);
+        const particleMass = 1.0; 
+        const particleChargeVal = 1.0; 
+
+        let particle = {
+            x: 0,
+            y: 0,
+            vx: 0,
+            vy: 0,
+            trail: []
+        };
+
+        let centerScreen = { x: 0, y: 0 };
+        const scaleFactor = 250; // píxeles por metro (círculo bien visible)
+
+        function initParticleState() {
+            centerScreen.x = canvas.width / 2;
+            centerScreen.y = canvas.height / 2;
+
+            // La carga empieza arriba del círculo, moviéndose a la derecha,
+            // para que el círculo quede en el centro de la pantalla.
+            const Rpx = (particleMass * vMagnitude) / (particleChargeVal * bMagnitude) * scaleFactor;
+            const lado = Math.sign(chargeSign * fieldDir); // +1 gira hacia abajo, -1 hacia arriba
+            particle.x = centerScreen.x;
+            particle.y = centerScreen.y - lado * Rpx;
+            particle.vx = vMagnitude * scaleFactor;
+            particle.vy = 0;
+            particle.trail = [];
+        }
+
+        function resizeCanvas() {
+            const parent = canvas.parentElement;
+            canvas.width = parent.clientWidth;
+            canvas.height = parent.clientHeight;
+            initParticleState();
+        }
+
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        rangeV.addEventListener('input', (e) => {
+            vMagnitude = parseFloat(e.target.value);
+            valV.textContent = vMagnitude.toFixed(2) + ' m/s';
+            initParticleState();
+        });
+
+        rangeTimescale.addEventListener('input', (e) => {
+            timeScale = parseFloat(e.target.value);
+            valTimescale.textContent = timeScale.toFixed(2) + 'x';
+        });
+
+        rangeB.addEventListener('input', (e) => {
+            bMagnitude = parseFloat(e.target.value);
+            valB.textContent = bMagnitude.toFixed(1) + ' T';
+            initParticleState();
+        });
+
+        function setChargeType(sign) {
+            chargeSign = sign;
+            if (sign === 1) {
+                btnChargePos.className = "py-2 px-3 text-xs font-semibold rounded-xl border transition flex items-center justify-center gap-1.5 bg-rose-500 text-white border-rose-600 shadow-lg shadow-rose-500/20";
+                btnChargeNeg.className = "py-2 px-3 text-xs font-semibold rounded-xl border transition flex items-center justify-center gap-1.5 bg-slate-700 text-slate-300 border-slate-600";
+            } else {
+                btnChargeNeg.className = "py-2 px-3 text-xs font-semibold rounded-xl border transition flex items-center justify-center gap-1.5 bg-sky-500 text-white border-sky-600 shadow-lg shadow-sky-500/20";
+                btnChargePos.className = "py-2 px-3 text-xs font-semibold rounded-xl border transition flex items-center justify-center gap-1.5 bg-slate-700 text-slate-300 border-slate-600";
+            }
+        }
+
+        function setFieldDir(dir) {
+            fieldDir = dir;
+            if (dir === 1) {
+                btnFieldOut.className = "py-2 px-3 text-xs font-semibold rounded-xl border transition bg-blue-600 text-white border-blue-500";
+                btnFieldIn.className = "py-2 px-3 text-xs font-semibold rounded-xl border transition bg-slate-700 text-slate-300 border-slate-600";
+                fieldDirectionBadge.textContent = "B: Saliendo del papel (⊙)";
+            } else {
+                btnFieldIn.className = "py-2 px-3 text-xs font-semibold rounded-xl border transition bg-blue-600 text-white border-blue-500";
+                btnFieldOut.className = "py-2 px-3 text-xs font-semibold rounded-xl border transition bg-slate-700 text-slate-300 border-slate-600";
+                fieldDirectionBadge.textContent = "B: Entrando al papel (⊗)";
+            }
+        }
+
+        function togglePlay() {
+            isRunning = !isRunning;
+            playIcon.textContent = isRunning ? "⏸️ Pausar" : "▶️ Reproducir";
+        }
+
+        btnReset.addEventListener('click', () => {
+            initParticleState();
+        });
+
+        function adjustVelocityMagnitude() {
+            let currentSpeed = Math.hypot(particle.vx, particle.vy);
+            if (currentSpeed > 0) {
+                let targetSpeedPx = vMagnitude * scaleFactor;
+                particle.vx = (particle.vx / currentSpeed) * targetSpeedPx;
+                particle.vy = (particle.vy / currentSpeed) * targetSpeedPx;
+            }
+        }
+
+        let lastTime = performance.now();
+
+        function updateSimulation(timestamp) {
+            let realDt = (timestamp - lastTime) / 1000;
+            if (realDt > 0.1) realDt = 0.1; 
+            lastTime = timestamp;
+
+            // Apply slow-motion time scaling factor
+            let dt = realDt * timeScale;
+
+            if (isRunning) {
+                let q_val = chargeSign * particleChargeVal;
+                let b_val = fieldDir * bMagnitude;
+
+                // F = q·v×B gira la velocidad sin cambiar su rapidez.
+                // En pantalla (y hacia abajo): con q·B > 0 (B sale del papel) gira en sentido horario.
+                let phi = (q_val * b_val / particleMass) * dt;
+                let c = Math.cos(phi), sn = Math.sin(phi);
+                let nvx = particle.vx * c - particle.vy * sn;
+                let nvy = particle.vx * sn + particle.vy * c;
+                particle.vx = nvx;
+                particle.vy = nvy;
+
+                let currentSpeedPx = Math.hypot(particle.vx, particle.vy);
+                let targetSpeedPx = vMagnitude * scaleFactor;
+                particle.vx = (particle.vx / currentSpeedPx) * targetSpeedPx;
+                particle.vy = (particle.vy / currentSpeedPx) * targetSpeedPx;
+
+                particle.x += particle.vx * dt;
+                particle.y += particle.vy * dt;
+
+                particle.trail.push({ x: particle.x, y: particle.y });
+                if (particle.trail.length > 2000) {
+                    particle.trail.shift();
+                }
+            }
+
+            render();
+            requestAnimationFrame(updateSimulation);
+        }
+
+        function render() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // 1. Draw Magnetic Field Background Pattern
+            ctx.fillStyle = 'rgba(148, 163, 184, 0.22)';
+            ctx.strokeStyle = 'rgba(148, 163, 184, 0.22)';
+            ctx.lineWidth = 1.5;
+
+            const spacing = 45;
+            const offsetX = (canvas.width % spacing) / 2;
+            const offsetY = (canvas.height % spacing) / 2;
+
+            for (let x = offsetX; x < canvas.width; x += spacing) {
+                for (let y = offsetY; y < canvas.height; y += spacing) {
+                    ctx.beginPath();
+                    if (fieldDir === 1) {
+                        ctx.arc(x, y, 2.5, 0, Math.PI * 2);
+                        ctx.fill();
+                    } else {
+                        const size = 4;
+                        ctx.moveTo(x - size, y - size);
+                        ctx.lineTo(x + size, y + size);
+                        ctx.moveTo(x + size, y - size);
+                        ctx.lineTo(x - size, y + size);
+                        ctx.stroke();
+                    }
+                }
+            }
+
+            // 2. Calculate Theoretical Circle Center & Radius
+            let q_val = chargeSign * particleChargeVal;
+            let b_val = fieldDir * bMagnitude;
+            let R_meters = (particleMass * vMagnitude) / (Math.abs(q_val) * Math.abs(b_val));
+            let R_pixels = R_meters * scaleFactor;
+
+            let speed = Math.hypot(particle.vx, particle.vy);
+            if (speed > 0) {
+                let unitVx = particle.vx / speed;
+                let unitVy = particle.vy / speed;
+                let dirFactor = Math.sign(q_val * b_val);
+                let perpX = -unitVy * dirFactor;
+                let perpY = unitVx * dirFactor;
+                
+                let cx = particle.x + perpX * R_pixels;
+                let cy = particle.y + perpY * R_pixels;
+
+                // Draw theoretical circle path
+                ctx.beginPath();
+                ctx.arc(cx, cy, R_pixels, 0, Math.PI * 2);
+                ctx.strokeStyle = 'rgba(168, 85, 247, 0.3)';
+                ctx.lineWidth = 2;
+                ctx.setLineDash([6, 6]);
+                ctx.stroke();
+                ctx.setLineDash([]);
+
+                // Circle center marker
+                ctx.beginPath();
+                ctx.arc(cx, cy, 3.5, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(168, 85, 247, 0.8)';
+                ctx.fill();
+            }
+
+            // 3. Draw Trail
+            if (particle.trail.length > 1) {
+                ctx.beginPath();
+                ctx.moveTo(particle.trail[0].x, particle.trail[0].y);
+                for (let i = 1; i < particle.trail.length; i++) {
+                    ctx.lineTo(particle.trail[i].x, particle.trail[i].y);
+                }
+                ctx.strokeStyle = '#a855f7';
+                ctx.lineWidth = 3;
+                ctx.stroke();
+            }
+
+            // 4. Draw Velocity Vector (Green) and Force Vector (Red)
+            let vLenNorm = 55;
+            let vTipX = particle.x + (particle.vx / speed) * vLenNorm;
+            let vTipY = particle.y + (particle.vy / speed) * vLenNorm;
+            drawArrow(particle.x, particle.y, vTipX, vTipY, '#10b981', 3, 'v');
+
+            if (speed > 0) {
+                let unitVx = particle.vx / speed;
+                let unitVy = particle.vy / speed;
+                let dirFactor = Math.sign(q_val * b_val);
+                let fxDirX = -unitVy * dirFactor;
+                let fxDirY = unitVx * dirFactor;
+                let fLenNorm = 65;
+                let fTipX = particle.x + fxDirX * fLenNorm;
+                let fTipY = particle.y + fxDirY * fLenNorm;
+                drawArrow(particle.x, particle.y, fTipX, fTipY, '#f43f5e', 3, 'F');
+            }
+
+            // 5. Draw Particle Body
+            ctx.beginPath();
+            ctx.arc(particle.x, particle.y, 13, 0, Math.PI * 2);
+            ctx.fillStyle = chargeSign === 1 ? '#f43f5e' : '#0ea5e9';
+            ctx.shadowColor = chargeSign === 1 ? '#f43f5e' : '#0ea5e9';
+            ctx.shadowBlur = 15;
+            ctx.fill();
+            ctx.shadowBlur = 0;
+
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 15px Inter';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(chargeSign === 1 ? '+' : '−', particle.x, particle.y);
+
+            // 6. Update HUD readings
+            let forceMagnitudeVal = particleMass * (vMagnitude * vMagnitude) / R_meters;
+            let periodVal = (2 * Math.PI * R_meters) / vMagnitude;
+
+            hudRadius.textContent = R_meters.toFixed(2) + ' m';
+            hudForce.textContent = forceMagnitudeVal.toFixed(2) + ' N';
+            hudPeriod.textContent = periodVal.toFixed(2) + ' s';
+        }
+
+        function drawArrow(fromX, fromY, toX, toY, color, width, label) {
+            ctx.strokeStyle = color;
+            ctx.fillStyle = color;
+            ctx.lineWidth = width;
+
+            ctx.beginPath();
+            ctx.moveTo(fromX, fromY);
+            ctx.lineTo(toX, toY);
+            ctx.stroke();
+
+            let angle = Math.atan2(toY - fromY, toX - fromX);
+            let headLength = 10;
+            ctx.beginPath();
+            ctx.moveTo(toX, toY);
+            ctx.lineTo(toX - headLength * Math.cos(angle - Math.PI / 6), toY - headLength * Math.sin(angle - Math.PI / 6));
+            ctx.lineTo(toX - headLength * Math.cos(angle + Math.PI / 6), toY - headLength * Math.sin(angle + Math.PI / 6));
+            ctx.lineTo(toX, toY);
+            ctx.fill();
+
+            ctx.font = 'bold 12px Inter';
+            ctx.fillText(label, toX + 13 * Math.cos(angle), toY + 13 * Math.sin(angle));
+        }
+
+        requestAnimationFrame(updateSimulation);
+    </script>
+</body>
+</html>
