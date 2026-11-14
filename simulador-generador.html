@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulador de Generador de Alterna (Ley de Faraday)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        canvas { width: 100%; height: auto; max-width: 750px; }
+    </style>
+</head>
+<body class="bg-slate-900 text-slate-100 font-sans min-h-screen p-4 md:p-6">
+    <div class="max-w-4xl mx-auto">
+        <header class="text-center mb-6">
+            <h1 class="text-2xl font-bold text-sky-400 mb-1">Generadores de Alterna: Posiciones de la Espira y Gráficas</h1>
+            <p class="text-slate-400 text-sm">Flujo magnético Φ = B · S · cos θ &nbsp;•&nbsp; Fuerza electromotriz ε = − dΦ/dt</p>
+        </header>
+
+        <!-- Controles de posición rápida -->
+        <div class="bg-slate-800 p-4 rounded-xl border border-slate-700 shadow-lg mb-6 flex flex-wrap justify-center gap-2">
+            <span class="text-sm font-semibold text-slate-300 self-center mr-2">Ir a posición:</span>
+            <button onclick="jumpToPos(0, this)" class="pos-btn px-3 py-1.5 bg-sky-600 hover:bg-sky-500 rounded text-xs font-bold">1 (0°)</button>
+            <button onclick="jumpToPos(1, this)" class="pos-btn px-3 py-1.5 bg-slate-700 hover:bg-slate-600 rounded text-xs font-bold">2 (90°)</button>
+            <button onclick="jumpToPos(2, this)" class="pos-btn px-3 py-1.5 bg-slate-700 hover:bg-slate-600 rounded text-xs font-bold">3 (180°)</button>
+            <button onclick="jumpToPos(3, this)" class="pos-btn px-3 py-1.5 bg-slate-700 hover:bg-slate-600 rounded text-xs font-bold">4 (270°)</button>
+            <button onclick="jumpToPos(4, this)" class="pos-btn px-3 py-1.5 bg-slate-700 hover:bg-slate-600 rounded text-xs font-bold">5 (360°)</button>
+        </div>
+
+        <!-- Lienzo de animación principal -->
+        <div class="bg-slate-800 p-4 rounded-xl border border-slate-700 shadow-xl mb-6 flex flex-col items-center">
+            <canvas id="simCanvas" width="750" height="470" class="bg-slate-950 rounded-lg border border-slate-700"></canvas>
+            <div class="flex flex-wrap justify-center gap-4 mt-4">
+                <button onclick="togglePlay()" id="playBtn" class="px-5 py-2 rounded-lg font-medium bg-emerald-600 hover:bg-emerald-500 text-white transition shadow text-sm">Pausar</button>
+                <button onclick="resetSim()" class="px-5 py-2 rounded-lg font-medium bg-rose-600 hover:bg-rose-500 text-white transition shadow text-sm">Reiniciar</button>
+                <label class="text-xs text-slate-300 flex items-center gap-2">Velocidad
+                    <input id="vel" type="range" min="0.2" max="2" step="0.1" value="1" class="accent-sky-500">
+                </label>
+            </div>
+        </div>
+
+        <!-- Valores en este momento -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6 text-center">
+            <div class="bg-slate-800 p-3 rounded-xl border border-slate-700">
+                <div class="text-xs text-slate-400">Ángulo θ (n con B)</div>
+                <div id="vTheta" class="text-xl font-mono font-bold text-emerald-400">0°</div>
+            </div>
+            <div class="bg-slate-800 p-3 rounded-xl border border-slate-700">
+                <div class="text-xs text-slate-400">cos θ</div>
+                <div id="vCos" class="text-xl font-mono font-bold text-amber-400">1,00</div>
+            </div>
+            <div class="bg-slate-800 p-3 rounded-xl border border-slate-700">
+                <div class="text-xs text-slate-400">Flujo Φ (rojo)</div>
+                <div id="vPhi" class="text-xl font-mono font-bold text-rose-400">+Máx</div>
+            </div>
+            <div class="bg-slate-800 p-3 rounded-xl border border-slate-700">
+                <div class="text-xs text-slate-400">FEM ε (azul)</div>
+                <div id="vEps" class="text-xl font-mono font-bold text-sky-400">0</div>
+            </div>
+        </div>
+
+        <!-- Qué pasa ahora -->
+        <div class="bg-sky-950/40 border border-sky-500/30 p-4 rounded-xl mb-6 text-sm text-slate-200 leading-relaxed">
+            <p class="font-bold text-sky-300 mb-1">¿Qué pasa en este momento?</p>
+            <p id="txtAhora">—</p>
+        </div>
+
+        <!-- Leyenda explicativa -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs text-slate-300 bg-slate-800 p-4 rounded-xl border border-slate-700 mb-6">
+            <div>
+                <p class="font-bold text-rose-400 mb-1">🔴 Onda roja (flujo magnético Φ):</p>
+                <p>Máximo cuando la espira está de frente al campo (la normal n va con B, θ = 0°). Cero cuando está de canto (θ = 90°). Mínimo (−Máx) cuando la normal va al revés que B (θ = 180°).</p>
+            </div>
+            <div>
+                <p class="font-bold text-sky-400 mb-1">🔵 Onda azul (fuerza electromotriz ε):</p>
+                <p>Mide lo RÁPIDO que cambia el flujo (ε = − dΦ/dt). Por eso es 0 justo cuando el flujo está en su punto más alto o más bajo (ahí el flujo casi no cambia), y es máxima cuando el flujo pasa por 0 (ahí cambia más deprisa).</p>
+            </div>
+        </div>
+
+        <div class="bg-amber-950/30 border border-amber-500/30 p-4 rounded-xl text-xs text-slate-300 leading-relaxed">
+            <p class="font-bold text-amber-300 mb-1">⚠️ Donde falla mucha gente</p>
+            <p>• «Flujo máximo» y «FEM máxima» NO ocurren a la vez. Cuando una está arriba del todo, la otra vale 0.</p>
+            <p>• En el examen: si te preguntan dónde el FLUJO es máximo → posición 1 (la espira de frente, n con B). Si te preguntan dónde la FEM es máxima → donde el flujo cruza el 0.</p>
+            <p>• Ojo con el dibujo del temario: debajo de algunas espiras pone 45°, 135° y 180°, pero en la gráfica, de una posición a la siguiente hay 90° (1 = 0°, 2 = 90°, 3 = 180°, 4 = 270°, 5 = 360°). Este simulador sigue la gráfica.</p>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('simCanvas');
+        const ctx = canvas.getContext('2d');
+        const W = canvas.width;
+
+        let theta = 0;          // ángulo entre la normal n y el campo B (radianes)
+        let isPlaying = true;
+        const omegaBase = 0.9;  // radianes por segundo (una vuelta cada ~7 s)
+        let lastT = performance.now();
+
+        const playBtn = document.getElementById('playBtn');
+        const posAngles = [0, Math.PI / 2, Math.PI, 3 * Math.PI / 2, 2 * Math.PI];
+
+        function setPlayBtn() {
+            playBtn.innerText = isPlaying ? "Pausar" : "Reanudar";
+            playBtn.className = "px-5 py-2 rounded-lg font-medium text-white transition shadow text-sm " +
+                (isPlaying ? "bg-emerald-600 hover:bg-emerald-500" : "bg-amber-600 hover:bg-amber-500");
+        }
+        function marcarBoton(btn) {
+            document.querySelectorAll('.pos-btn').forEach(b => b.className = b.className.replace('bg-sky-600 hover:bg-sky-500', 'bg-slate-700 hover:bg-slate-600'));
+            if (btn) btn.className = btn.className.replace('bg-slate-700 hover:bg-slate-600', 'bg-sky-600 hover:bg-sky-500');
+        }
+        function togglePlay() { isPlaying = !isPlaying; setPlayBtn(); if (isPlaying) marcarBoton(null); }
+        function resetSim() { theta = 0; isPlaying = true; setPlayBtn(); marcarBoton(null); }
+        function jumpToPos(i, btn) {
+            theta = posAngles[i];
+            isPlaying = false;
+            setPlayBtn();
+            marcarBoton(btn);
+        }
+
+        // Proyección sencilla en perspectiva: x a la derecha, y hacia arriba, z "hacia el fondo"
+        function P(x, y, z) { return [x + 0.55 * z, -y - 0.35 * z]; }
+
+        function flecha(x1, y1, x2, y2, color, ancho) {
+            ctx.strokeStyle = color; ctx.fillStyle = color; ctx.lineWidth = ancho;
+            ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+            const a = Math.atan2(y2 - y1, x2 - x1);
+            ctx.beginPath();
+            ctx.moveTo(x2, y2);
+            ctx.lineTo(x2 - 10 * Math.cos(a - 0.45), y2 - 10 * Math.sin(a - 0.45));
+            ctx.lineTo(x2 - 10 * Math.cos(a + 0.45), y2 - 10 * Math.sin(a + 0.45));
+            ctx.closePath(); ctx.fill();
+        }
+
+        function grados(t) { return ((t * 180 / Math.PI) % 360 + 360) % 360; }
+        function num(v) { const s = v.toFixed(2).replace('.', ','); return (v > 0.004 ? '+' : (v < -0.004 ? '' : '')) + (Math.abs(v) < 0.005 ? '0' : s); }
+
+        function draw(now) {
+            const dt = Math.min((now - lastT) / 1000, 0.1);
+            lastT = now;
+            if (isPlaying) theta = (theta + omegaBase * parseFloat(document.getElementById('vel').value) * dt) % (2 * Math.PI);
+
+            ctx.clearRect(0, 0, W, canvas.height);
+
+            // --- PARTE DE ARRIBA: espira girando en el campo B ---
+            const cx = 300, cy = 125;
+            const h = 70, w = 60;
+
+            // Líneas de campo B (verdes, hacia la derecha)
+            for (let y = -60; y <= 60; y += 30) {
+                flecha(60, cy + y, 560, cy + y, 'rgba(34,197,94,0.55)', 2);
+            }
+            ctx.fillStyle = '#22c55e';
+            ctx.font = 'bold 15px sans-serif';
+            ctx.fillText('B →', 70, cy - 72);
+
+            // Eje de giro vertical
+            ctx.strokeStyle = '#64748b'; ctx.lineWidth = 2; ctx.setLineDash([5, 4]);
+            ctx.beginPath(); ctx.moveTo(cx, cy - 100); ctx.lineTo(cx, cy + 100); ctx.stroke();
+            ctx.setLineDash([]);
+            ctx.fillStyle = '#94a3b8'; ctx.font = '12px sans-serif';
+            ctx.fillText('↻ eje de giro', cx - 40, cy - 104);
+
+            // Normal n = (cos θ, 0, sin θ); dirección de la espira en horizontal u = (−sin θ, 0, cos θ)
+            const c = Math.cos(theta), s = Math.sin(theta);
+            const ux = -s * w, uz = c * w;
+            const esq = [[ux, h, uz], [-ux, h, -uz], [-ux, -h, -uz], [ux, -h, uz]].map(p => {
+                const q = P(p[0], p[1], p[2]); return [cx + q[0], cy + q[1]];
+            });
+            ctx.fillStyle = 'rgba(168, 85, 247, 0.18)';
+            ctx.strokeStyle = '#a855f7'; ctx.lineWidth = 5;
+            ctx.beginPath(); ctx.moveTo(esq[0][0], esq[0][1]);
+            for (let i = 1; i < 4; i++) ctx.lineTo(esq[i][0], esq[i][1]);
+            ctx.closePath(); ctx.fill(); ctx.stroke();
+            ctx.fillStyle = '#c084fc'; ctx.font = 'bold 13px sans-serif';
+            ctx.fillText('espira', esq[3][0] + 6, esq[3][1] + 16);
+
+            // Vector normal n (amarillo) saliendo del centro
+            const nq = P(95 * c, 0, 95 * s);
+            flecha(cx, cy, cx + nq[0], cy + nq[1], '#facc15', 3.5);
+            ctx.fillStyle = '#facc15'; ctx.font = 'bold 15px sans-serif';
+            ctx.fillText('n', cx + nq[0] + 8, cy + nq[1] - 4);
+
+            // Etiqueta del ángulo
+            ctx.fillStyle = '#e2e8f0'; ctx.font = 'bold 14px sans-serif';
+            ctx.fillText(`θ = ${Math.round(grados(theta))}°`, 590, cy - 30);
+            ctx.font = '12px sans-serif'; ctx.fillStyle = '#94a3b8';
+            ctx.fillText('(ángulo entre n y B)', 590, cy - 12);
+
+            // --- PARTE DE ABAJO: gráficas de Φ y ε (una vuelta: 0° a 360°) ---
+            const gTop = 260, gHeight = 160, gWidth = 660, gLeft = 55;
+            const gCenterY = gTop + gHeight / 2;
+            const amp = gHeight * 0.4;
+
+            ctx.strokeStyle = '#475569'; ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.moveTo(gLeft, gCenterY); ctx.lineTo(gLeft + gWidth, gCenterY);
+            ctx.moveTo(gLeft, gTop); ctx.lineTo(gLeft, gTop + gHeight);
+            ctx.stroke();
+
+            ctx.fillStyle = '#94a3b8'; ctx.font = '12px sans-serif';
+            ctx.fillText('+Máx', gLeft - 45, gCenterY - amp + 4);
+            ctx.fillText('−Máx', gLeft - 45, gCenterY + amp + 4);
+            ctx.fillText('0', gLeft - 15, gCenterY + 4);
+
+            // Posiciones 1 a 5 (cada 90°)
+            for (let i = 0; i < 5; i++) {
+                const x = gLeft + (i / 4) * gWidth;
+                ctx.strokeStyle = 'rgba(148,163,184,0.35)'; ctx.setLineDash([3, 4]); ctx.lineWidth = 1;
+                ctx.beginPath(); ctx.moveTo(x, gTop); ctx.lineTo(x, gTop + gHeight); ctx.stroke();
+                ctx.setLineDash([]);
+                ctx.fillStyle = '#e2e8f0'; ctx.font = 'bold 13px sans-serif';
+                ctx.fillText(String(i + 1), x - 4, gTop + gHeight + 18);
+                ctx.fillStyle = '#94a3b8'; ctx.font = '11px sans-serif';
+                ctx.fillText(`${i * 90}°`, x - 10, gTop + gHeight + 33);
+            }
+
+            function curva(fn, color) {
+                ctx.strokeStyle = color; ctx.lineWidth = 3;
+                ctx.beginPath();
+                for (let px = 0; px <= gWidth; px++) {
+                    const t = (px / gWidth) * 2 * Math.PI;
+                    const py = gCenterY - fn(t) * amp;
+                    if (px === 0) ctx.moveTo(gLeft + px, py); else ctx.lineTo(gLeft + px, py);
+                }
+                ctx.stroke();
+            }
+            curva(Math.cos, '#f43f5e');   // Φ = Máx · cos θ
+            curva(Math.sin, '#38bdf8');   // ε = − dΦ/dt = Máx · sen θ
+
+            ctx.font = 'bold 14px sans-serif';
+            ctx.fillStyle = '#f43f5e'; ctx.fillText('Φ (flujo)', gLeft + 12, gTop + 16);
+            ctx.fillStyle = '#38bdf8'; ctx.fillText('ε (FEM)', gLeft + 100, gTop + 16);
+
+            // Línea vertical y puntos que se mueven con la espira
+            const mx = gLeft + (theta / (2 * Math.PI)) * gWidth;
+            ctx.strokeStyle = '#e2e8f0'; ctx.setLineDash([4, 4]); ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.moveTo(mx, gTop); ctx.lineTo(mx, gTop + gHeight); ctx.stroke();
+            ctx.setLineDash([]);
+            [[Math.cos(theta), '#f43f5e'], [Math.sin(theta), '#38bdf8']].forEach(([v, col]) => {
+                ctx.beginPath(); ctx.arc(mx, gCenterY - v * amp, 7, 0, 2 * Math.PI);
+                ctx.fillStyle = col; ctx.fill();
+                ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.stroke();
+            });
+
+            actualizarTextos();
+            requestAnimationFrame(draw);
+        }
+
+        function actualizarTextos() {
+            const g = grados(theta);
+            const c = Math.cos(theta), s = Math.sin(theta);
+            document.getElementById('vTheta').textContent = Math.round(g) + '°';
+            document.getElementById('vCos').textContent = num(c);
+            document.getElementById('vPhi').textContent = Math.abs(c) > 0.995 ? (c > 0 ? '+Máx' : '−Máx') : (Math.abs(c) < 0.005 ? '0' : num(c) + ' · Máx');
+            document.getElementById('vEps').textContent = Math.abs(s) > 0.995 ? (s > 0 ? '+Máx' : '−Máx') : (Math.abs(s) < 0.005 ? '0' : num(s) + ' · Máx');
+
+            let t;
+            const cerca = (a) => Math.abs(g - a) < 4 || Math.abs(g - a - 360) < 4 || Math.abs(g - a + 360) < 4;
+            if (cerca(0)) t = '<b>Posición 1 (o 5): espira de frente.</b><br>• La normal n va en el mismo sentido que B → θ = 0°.<br>• cos 0° = 1 → el flujo es MÁXIMO.<br>• Justo aquí el flujo está «arriba del todo» y casi no cambia → la FEM vale 0.';
+            else if (cerca(90)) t = '<b>Posición 2: espira de canto.</b><br>• La normal n forma 90° con B.<br>• cos 90° = 0 → el flujo es 0 (las líneas resbalan por el borde).<br>• Pero aquí el flujo cambia MÁS DEPRISA → la FEM es MÁXIMA (+Máx).';
+            else if (cerca(180)) t = '<b>Posición 3: espira de frente, pero al revés.</b><br>• La normal n va en sentido CONTRARIO a B → θ = 180°.<br>• cos 180° = −1 → el flujo es −Máx (las líneas entran por la otra cara).<br>• El flujo está «abajo del todo» y casi no cambia → la FEM vale 0.';
+            else if (cerca(270)) t = '<b>Posición 4: otra vez de canto.</b><br>• La normal n forma 270° con B (de canto, hacia el otro lado).<br>• cos 270° = 0 → el flujo es 0.<br>• El flujo vuelve a cambiar lo más deprisa posible, pero subiendo → la FEM es MÍNIMA (−Máx). La corriente va al revés: por eso es «alterna».';
+            else t = `<b>Entre dos posiciones (θ = ${Math.round(g)}°).</b><br>• cos ${Math.round(g)}° = ${num(c)} → flujo = ${num(c)} · Máx.<br>• La FEM vale ${num(s)} · Máx.<br>• Fíjate: cuando el punto rojo está cerca de arriba o de abajo, el azul está cerca de 0, y al revés.`;
+            document.getElementById('txtAhora').innerHTML = t;
+        }
+
+        requestAnimationFrame(draw);
+    </script>
+</body>
+</html>
