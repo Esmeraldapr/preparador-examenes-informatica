@@ -47,6 +47,18 @@ function planDiasHasta(desde, hasta) {
 function planEsYoutube(url) {
   return /(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/|live\/))[\w-]{11}/.test(String(url || "")) && !/[?&]list=/.test(String(url || "")) ;
 }
+// 🎓 Cálculo: lo que hizo el profe en cada clase, convertido en preguntas (ids de preguntas, seguidos).
+const PLAN_CLASES_PREG = [
+  { clase: 2, tema: "f(x) = x · e^(1/x)", desde: 2679, hasta: 2683 },
+  { clase: 2, tema: "f(x) = ln(√(x²/(x² − 4))) con la tabla de signos", desde: 2684, hasta: 2688 },
+  { clase: 3, tema: "f(x) = e^(−x)/(x − 1) entera", desde: 2689, hasta: 2694 },
+  { clase: 4, tema: "el límite con raíz y la caja de 500 dm³", desde: 2695, hasta: 2697 },
+  { clase: 4, tema: "f(x) = e^(−1/x)/x² entera", desde: 2698, hasta: 2703 },
+  { clase: 5, tema: "los límites 1^∞ y 0^∞", desde: 2704, hasta: 2707 },
+  { clase: 5, tema: "f(x) = x / ln x entera", desde: 2708, hasta: 2715 },
+  { clase: 6, tema: "integrales inmediatas y cambio de variable", desde: 2553, hasta: 2562 },
+  { clase: 6, tema: "por partes, Barrow y áreas", desde: 2563, hasta: 2576 },
+];
 const PLAN_MIN = { clase: 40, video: 20, tema: 45, test: 15, repaso: 10, cae: 15, simulacro: 45 };
 const PLAN_VIDEOS_MAX = 10; // vídeos de ejercicios al día, como mucho
 const PLAN_VIDEOS_MIN = { semana: 45, finde: 75 }; // minutos de vídeos de ejercicios al día
@@ -122,7 +134,9 @@ async function planCatalogo(asigId) {
   // que aún no han llegado (p. ej. UD4 de Cálculo) no entran en el plan.
   const items = [];
   [...unidades].sort((a, b) => a - b).forEach((u) => {
-    (cl.data || []).filter((c) => c.unidad_num === u).forEach((c) =>
+    // Cálculo: las clases del profe ya no salen como clase para leer; salen en preguntas
+    // (bloque «🎓 Clase N del profe, en preguntas», ver PLAN_CLASES_PREG en planGenerar).
+    (cl.data || []).filter((c) => c.unidad_num === u && asigId !== 1).forEach((c) =>
       items.push({ clave: `clase:${asigId}:${c.numero}`, tipo: "nuevo", sub: "clase", asig: nombre, asigId, unidadNum: u, titulo: `Clase ${c.numero} del profe: ${c.titulo}`, min: PLAN_MIN.clase, url: `clase.html?asignatura=${asigId}&clase=${c.numero}&claveplan=${encodeURIComponent("clase:" + asigId + ":" + c.numero)}`, repasable: true,
         // Repaso de una clase: lo importante de la clase para ESCUCHAR (sin cuentas, vale para el metro).
         repasoUrl: `clase.html?asignatura=${asigId}&clase=${c.numero}&modo=repaso` }));
@@ -366,17 +380,22 @@ function planGenerar(hoy, catalogos, hechos, arrastre = []) {
     }
   }
 
-  // ✏️ Fines de semana: una función entera como las del profe de Cálculo en clase, con papel y calculadora.
-  if (finde && !arrastre.some((t) => /^func:/.test(t.clave))) {
-    const cls = (catalogos[1] || {}).clasesFuncion || [];
-    if (cls.length) {
-      const c = cls[Math.floor(planDiaDelAnio(hoy) / 7) % cls.length];
-      const clave = `func:${hoy}`;
-      tareas.push({ clave, tipo: "test", sub: "mano", asig: catalogos[1][0]?.asig || "Cálculo", asigId: 1,
-        titulo: `Estudio completo como en clase: rehaz tú sola el ejercicio de la Clase ${c.numero} (${c.titulo}) con papel y calculadora, y luego compara`,
-        min: 45, url: `clase.html?asignatura=1&clase=${c.numero}&claveplan=${encodeURIComponent(clave)}` });
-      usado += 45;
-    }
+  // 🎓 Cálculo: lo que hizo el profe en cada clase, en preguntas tipo test (examen 102 y, para la
+  // clase 6, examen 99). Sustituye a «Clase N del profe» y al ejercicio a mano del finde (16-nov).
+  // Un bloque al día, en orden; solo se pasa al siguiente cuando se ha hecho el anterior.
+  // Acabados todos, vuelven a empezar (uno al día, rotando).
+  if (!arrastre.some((t) => /^cpreg:/.test(t.clave))) {
+    const rango = (a, b) => Array.from({ length: b - a + 1 }, (_, k) => a + k).join(",");
+    const B = PLAN_CLASES_PREG.map((b) => ({ ...b, ids: rango(b.desde, b.hasta), n: b.hasta - b.desde + 1 }));
+    let n = B.findIndex((b, i) => !hechos.has(`cpreg:${i + 1}`)) + 1;
+    let clave = `cpreg:${n}`;
+    if (!n) { n = (planDiaDelAnio(hoy) % B.length) + 1; clave = `cpreg:${n}:${hoy}`; }
+    const b = B[n - 1];
+    const tit = `Clase ${b.clase} del profe, en preguntas: ${b.tema} (${b.n} preguntas seguidas)`;
+    tareas.push({ clave, tipo: "test", sub: "practica", asig: "Cálculo", asigId: 1, ids: b.ids.split(",").map(Number),
+      titulo: `🎓 ${tit}`, min: Math.max(10, Math.round(b.n * 2)),
+      url: `quiz.html?asignatura=1&modo=ids&ids=${b.ids}&titulo=${encodeURIComponent("🎓 " + tit)}&desde=plan&claveplan=${encodeURIComponent(clave)}` });
+    usado += Math.max(10, Math.round(b.n * 2));
   }
   // 📈 Fines de semana: una función del test «estudio completo de una función» (examen 91), 5 preguntas como en el examen.
   if (finde && !arrastre.some((t) => /^estf:/.test(t.clave))) {
@@ -702,7 +721,7 @@ function planTiempoTxt(seg) {
       // (Se salta los días en que solo se apuntaron trabajos durante una pausa.)
       const anterior = (dia || []).find((d) => d.fecha < hoy && d.tareas.some((t) => t.sub !== "trabajo"));
       const arrastre = anterior
-        ? anterior.tareas.filter((t) => !hechos.has(t.clave) && !/^(exa|sim|cae|trab):/.test(t.clave)).map((t) => ({ ...t, arrastrada: true }))
+        ? anterior.tareas.filter((t) => !hechos.has(t.clave) && !/^(exa|sim|cae|trab|func):/.test(t.clave) && !/^(rep:)?clase:1:/.test(t.clave)).map((t) => ({ ...t, arrastrada: true }))
         : [];
       const nuevas = planGenerar(hoy, catalogos, hechosSinHoy, arrastre).filter((t) => !previas.some((p) => p.clave === t.clave));
       const tareas = [...previas, ...nuevas];
