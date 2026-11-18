@@ -447,16 +447,20 @@ function planGenerar(hoy, catalogos, hechos, arrastre = []) {
   const colasVideo = activas.map((a) => (catalogos[a] || []).filter((i) => i.carril === "video" && !hechos.has(i.clave) && unidadAbierta(i)));
   const topeVideo = finde ? PLAN_VIDEOS_MIN.finde : PLAN_VIDEOS_MIN.semana;
   const tareasVideo = []; // se apartan ahora (reservan tiempo) y se ponen al final de la lista
-  let minVideo = 0, nVideo = 0, sigueVideo = true;
+  let minVideo = 0, nVideo = 0, sigueVideo = true, rondaVideo = 0;
   while (sigueVideo && nVideo < PLAN_VIDEOS_MAX) {
     sigueVideo = false;
     for (const cola of colasVideo) {
       const v = cola[0];
-      if (!v || nVideo >= PLAN_VIDEOS_MAX || minVideo + v.min > topeVideo) continue;
+      // En la primera ronda cada asignatura con vídeos pendientes tiene SIEMPRE uno,
+      // aunque otra (Cálculo) ya haya llenado los minutos: así no se queda ninguna
+      // esperando a que se acaben los de otra (lo pidió Esmeralda el 18-nov).
+      if (!v || nVideo >= PLAN_VIDEOS_MAX || (rondaVideo > 0 && minVideo + v.min > topeVideo)) continue;
       cola.shift();
       tareasVideo.push({ clave: v.clave, tipo: v.tipo, sub: v.sub, asig: v.asig, asigId: v.asigId, unidadNum: v.unidadNum, titulo: v.titulo, min: v.min, sinDuracion: v.sinDuracion, url: v.url, externo: !!v.externo });
       minVideo += v.min; nVideo++; usado += v.min; sigueVideo = true;
     }
+    rondaVideo++;
   }
 
   // 📖✍️ Lo nuevo, mezclando asignaturas (Interfaces solo 1 de cada 3 días).
