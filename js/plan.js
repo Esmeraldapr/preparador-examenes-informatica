@@ -58,6 +58,8 @@ const PLAN_CLASES_PREG = [
   { clase: 5, tema: "f(x) = x / ln x entera", desde: 2708, hasta: 2715 },
   { clase: 6, tema: "integrales inmediatas y cambio de variable", desde: 2553, hasta: 2562 },
   { clase: 6, tema: "por partes, Barrow y áreas", desde: 2563, hasta: 2576 },
+  { clase: 7, tema: "f(x) = 1/(x · ln x) entera", desde: 2837, hasta: 2851 },
+  { clase: 7, tema: "la integral de eˣ/(1 + e²ˣ) y cambio de variable o por partes", desde: 2852, hasta: 2858 },
 ];
 const PLAN_MIN = { clase: 40, video: 20, tema: 45, test: 15, repaso: 10, cae: 15, simulacro: 45 };
 const PLAN_VIDEOS_MAX = 10; // vídeos de ejercicios al día, como mucho
