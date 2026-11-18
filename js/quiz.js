@@ -870,29 +870,28 @@ async function pintarResultado() {
     }
   }
 
-  let bloqueNota = "";
-  if (examenOficialActual) {
-    const notaBruta = aciertos - errores * 0.33;
-    const notaSobre10 = Math.max(0, (notaBruta / total) * 10);
-    bloqueNota = `
+  // Nota SIEMPRE sobre 10 y con los fallos restando (como en el examen): cada fallo quita 1/3
+  // de acierto y los blancos ni suman ni restan. Para aprobar el examen hacen falta 12 netas de 30 = un 4.
+  const netas = aciertos - errores / 3;
+  const notaSobre10 = Math.max(0, total ? (netas / total) * 10 : 0);
+  const llega = notaSobre10 >= 4;
+  const bloqueNota = `
+      <div class="nota-final" style="font-size:2.2rem;font-weight:800;color:${llega ? "var(--verde)" : "var(--rojo)"}">
+        ${notaSobre10.toFixed(1).replace(".", ",")} / 10
+      </div>
+      <p style="font-weight:700;margin:4px 0 10px">${llega ? "✅ Llegas al 4 que necesitas (12 netas de 30)" : "❌ Aún no llegas al 4 que necesitas (12 netas de 30)"}</p>
       <div class="resumen-nota">
         <div class="stat-mini aciertos"><span class="num">${aciertos}</span>Aciertos</div>
         <div class="stat-mini blancos"><span class="num">${blancos}</span>En blanco</div>
-        <div class="stat-mini errores"><span class="num">${errores}</span>Errores</div>
+        <div class="stat-mini errores"><span class="num">${errores}</span>Fallos</div>
       </div>
-      <p class="subtitulo" style="margin-bottom:6px">Cada error resta 0.33 puntos · los blancos no puntúan ni penalizan.</p>
-      <div class="nota-final">
-        Nota: ${notaBruta.toFixed(2)} / ${total}
-        <span class="sobre-diez">(${notaSobre10.toFixed(2)} / 10)</span>
-      </div>
+      <p class="subtitulo" style="margin-bottom:6px">Netas: ${aciertos} − ${errores}/3 = ${netas.toFixed(2).replace(".", ",")} de ${total}. Cada fallo resta 1/3; los blancos ni suman ni restan.</p>
     `;
-  }
 
   document.getElementById("zona-quiz").innerHTML = `
     <div class="quiz-barra"><div style="width:100%"></div></div>
     <div class="pregunta-caja resultado-final">
-      <div class="porcentaje">${pct}%</div>
-      <p style="font-size:1.1rem;font-weight:700;margin:8px 0 4px">${aciertos} de ${total} correctas</p>
+      <p style="font-size:1.1rem;font-weight:700;margin:8px 0 4px">${aciertos} de ${total} correctas (${pct}%)</p>
       ${terminadoAntes && terminadoAntes.hechas < terminadoAntes.total ? `<p class="subtitulo" style="margin-bottom:6px">Terminaste antes: la nota cuenta solo las ${terminadoAntes.hechas} preguntas que hiciste (de ${terminadoAntes.total}). La próxima vez empezarás por las que aún no has hecho.</p>` : ""}
       ${bloqueNota}
       ${bloqueRacha}
