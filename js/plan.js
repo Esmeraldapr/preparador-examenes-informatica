@@ -431,7 +431,10 @@ function planGenerar(hoy, catalogos, hechos, arrastre = []) {
     const ofis = (catalogos[asigSim] || {}).oficiales || [];
     const nombreSim = (catalogos[asigSim] || [])[0]?.asig || "";
     if (ofis.length && nombreSim) {
-      const ex = ofis[Math.floor(planDiaDelAnio(hoy) / 7) % ofis.length];
+      // Los exámenes del curso pasado (código 25…) cuentan doble: son más difíciles y traen ya 5
+      // preguntas de cada unidad (también de la UD5). Lo vio Esmeralda el 19-nov.
+      const pool = ofis.flatMap((e) => (/\b25\d{5}\b/.test(e.nombre || "") ? [e, e] : [e]));
+      const ex = pool[Math.floor(planDiaDelAnio(hoy) / 7) % pool.length];
       const clave = `sim:${asigSim}:${hoy}`;
       tareas.push({
         clave, tipo: "test", sub: "simulacro", asig: nombreSim, asigId: asigSim,
