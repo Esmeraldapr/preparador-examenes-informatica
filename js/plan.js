@@ -67,8 +67,9 @@ const PLAN_CLASES_PREG = [
   { clase: 7, tema: "la integral de eˣ/(1 + e²ˣ) y cambio de variable o por partes", desde: 2852, hasta: 2858 },
 ];
 const PLAN_MIN = { clase: 40, video: 20, tema: 45, test: 15, repaso: 10, cae: 15, simulacro: 45 };
-const PLAN_VIDEOS_MAX = 10; // vídeos de ejercicios al día, como mucho
-const PLAN_VIDEOS_MIN = { semana: 45, finde: 75 }; // minutos de vídeos de ejercicios al día
+const PLAN_VIDEOS_MAX = 5; // vídeos de ejercicios al día, como mucho (20-nov: con 10 eran demasiados)
+const PLAN_VIDEOS_MIN = { semana: 25, finde: 45 }; // minutos de vídeos de ejercicios al día
+const PLAN_VIDEOS_TEMA_DIA = 2; // vídeos/lecturas «del tema» al día, como mucho (el resto, otros días)
 
 function planFechaMadrid(d) {
   return (d || new Date()).toLocaleDateString("sv-SE", { timeZone: "Europe/Madrid" });
@@ -213,6 +214,7 @@ function planGenerar(hoy, catalogos, hechos, arrastre = []) {
   // más reciente). Una cosa por asignatura cada día va SIEMPRE, antes que repasos y preguntas.
   const hayInterfaces0 = planDiaDelAnio(hoy) % 3 === 0;
   const garantizadas = new Set();
+  let videosTemaHoy = tareas.filter((t) => t.sub === "video").length; // los que vienen arrastrados ya cuentan
   PLAN_ASIGNATURAS.filter((a) => a !== PLAN_INTERFACES || hayInterfaces0).forEach((a) => {
     const cat = catalogos[a] || [];
     const sig = cat.find((i) => i.unidadNum === cat.unidadActual && i.carril !== "video" && i.sub !== "video" && !hechos.has(i.clave) && !enArrastre.has(i.clave) && !(udLectura(i) && udHoy.has(udLectura(i))));
@@ -223,7 +225,8 @@ function planGenerar(hoy, catalogos, hechos, arrastre = []) {
     usado += sig.min;
     // Con el tema van sus vídeos, como tareas sueltas justo debajo.
     if (sig.sub === "tema") {
-      cat.filter((v) => v.deTema && v.unidadNum === sig.unidadNum && !hechos.has(v.clave) && !enArrastre.has(v.clave)).forEach((v) => {
+      cat.filter((v) => v.deTema && v.unidadNum === sig.unidadNum && !hechos.has(v.clave) && !enArrastre.has(v.clave)).slice(0, Math.max(0, PLAN_VIDEOS_TEMA_DIA - videosTemaHoy)).forEach((v) => {
+        videosTemaHoy++;
         garantizadas.add(v.clave);
         tareas.push({ clave: v.clave, tipo: v.tipo, sub: v.sub, asig: v.asig, asigId: v.asigId, unidadNum: v.unidadNum, titulo: `🆕 ${v.titulo}`, min: v.min, sinDuracion: v.sinDuracion, url: v.url, externo: !!v.externo });
         usado += v.min;
@@ -499,12 +502,15 @@ function planGenerar(hoy, catalogos, hechos, arrastre = []) {
       if (usado >= presupuesto) break;
       // Lo que choca con algo de la misma unidad que ya sale hoy, se aparta para otro día.
       while (c.pend.length && udLectura(c.pend[0]) && udHoy.has(udLectura(c.pend[0]))) c.pend.shift();
+      // Vídeos y lecturas del tema: como mucho PLAN_VIDEOS_TEMA_DIA al día; los demás esperan.
+      while (c.pend.length && c.pend[0].sub === "video" && videosTemaHoy >= PLAN_VIDEOS_TEMA_DIA) c.pend.shift();
       const sig = c.pend[0];
       if (!sig || c.gastado + sig.min > c.tope) continue;
       c.pend.shift();
       if (udLectura(sig)) udHoy.add(udLectura(sig));
       tareas.push({ clave: sig.clave, tipo: sig.tipo, sub: sig.sub, asig: sig.asig, asigId: sig.asigId, unidadNum: sig.unidadNum, unidadTexto: sig.unidadTexto, titulo: sig.titulo, min: sig.min, sinDuracion: sig.sinDuracion, url: sig.url, externo: !!sig.externo });
       usado += sig.min; c.gastado += sig.min; avanzo = true;
+      if (sig.sub === "video") videosTemaHoy++;
     }
   }
   const vistas = new Set();
