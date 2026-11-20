@@ -47,6 +47,11 @@ function planDiasHasta(desde, hasta) {
 function planEsYoutube(url) {
   return /(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/|live\/))[\w-]{11}/.test(String(url || "")) && !/[?&]list=/.test(String(url || "")) ;
 }
+// ¿Se ve dentro de la web? YouTube, PDF pasado a imágenes (paginas) o página que se puede incrustar (embed_url).
+let PLAN_RECURSOS_DENTRO = new Set();
+function planDentro(v) {
+  return planEsYoutube(v.url) || (Array.isArray(v.paginas) && v.paginas.length > 0) || !!v.embed_url;
+}
 // 🎓 Cálculo: lo que hizo el profe en cada clase, convertido en preguntas (ids de preguntas, seguidos).
 const PLAN_CLASES_PREG = [
   { clase: 2, tema: "f(x) = x · e^(1/x)", desde: 2679, hasta: 2683 },
@@ -97,7 +102,7 @@ const planEsc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;"
 async function planCatalogo(asigId) {
   const [cl, vi, te, as] = await Promise.all([
     sb.from("clases").select("numero, titulo, unidad_num, examen_practica_id").eq("asignatura_id", asigId),
-    sb.from("recursos").select("id, titulo, url, unidad, minuto_inicio, orden, tipo, duracion_min, apartado").eq("asignatura_id", asigId).in("origen", ["profe", "recomendado"]).eq("verificado", true),
+    sb.from("recursos").select("id, titulo, url, unidad, minuto_inicio, orden, tipo, duracion_min, apartado, paginas, embed_url").eq("asignatura_id", asigId).in("origen", ["profe", "recomendado"]).eq("verificado", true),
     sb.from("tema_completo").select("unidad_num, unidad, titulo").eq("asignatura_id", asigId),
     sb.from("asignaturas").select("nombre").eq("id", asigId).single(),
   ]);
@@ -146,9 +151,9 @@ async function planCatalogo(asigId) {
     const videosUD = (vi.data || []).filter((v) => v.unidad === "UD" + u).sort((a, b) => a.orden - b.orden);
     const meteVideo = (v) =>
       items.push({ clave: `video:${v.id}`, tipo: "nuevo", sub: "video", asig: nombre, asigId, unidadNum: u, deTema: v.tipo !== "ejercicios",
-        titulo: v.tipo !== "ejercicios" ? `Vídeo del tema UD${u}${v.apartado ? ` (va con el apartado «${v.apartado}»)` : ""}: ${v.titulo}` : v.titulo, min: v.duracion_min ? Math.max(1, Math.ceil(v.duracion_min - (v.minuto_inicio || 0) / 60)) : PLAN_MIN.video, sinDuracion: !v.duracion_min,
+        titulo: v.tipo !== "ejercicios" ? `${v.tipo === "apuntes" ? "Lectura" : "Vídeo"} del tema UD${u}${v.apartado ? ` (va con el apartado «${v.apartado}»)` : ""}: ${v.titulo}` : v.titulo, min: v.duracion_min ? Math.max(1, Math.ceil(v.duracion_min - (v.minuto_inicio || 0) / 60)) : PLAN_MIN.video, sinDuracion: !v.duracion_min,
         // Los de YouTube se ven dentro de la web (video.html); los demás se abren fuera.
-        url: planEsYoutube(v.url) ? `video.html?id=${v.id}&claveplan=${encodeURIComponent("video:" + v.id)}` : v.url, externo: !planEsYoutube(v.url) });
+        url: planDentro(v) ? `video.html?id=${v.id}&claveplan=${encodeURIComponent("video:" + v.id)}` : v.url, externo: !planDentro(v) });
     // Vídeos de explicación: justo después del tema (son los vídeos de ese tema).
     // Vídeos de ejercicios: después del test, en su carril.
     const t = (te.data || []).find((x) => x.unidad_num === u);
@@ -698,10 +703,13 @@ function planTiempoTxt(seg) {
       sb.from("plan_hecho").select("clave, hecho_en"),
       sb.from("plan_dia").select("fecha, tareas").order("fecha", { ascending: false }).limit(30),
     ]);
+    // Recursos que ya se ven dentro (PDF en imágenes o página incrustada): también en los planes ya guardados.
+    const { data: dentro } = await sb.from("recursos").select("id").or("paginas.not.is.null,embed_url.not.is.null");
+    PLAN_RECURSOS_DENTRO = new Set((dentro || []).map((x) => x.id));
     // Planes guardados antes del 29-oct: sus vídeos de YouTube también se abren dentro de la web.
     (dia || []).forEach((d) => (d.tareas || []).forEach((t) => {
       const m = /^video:(\d+)$/.exec(t.clave || "");
-      if (m && planEsYoutube(t.url)) { t.url = `video.html?id=${m[1]}&claveplan=${encodeURIComponent(t.clave)}`; t.externo = false; }
+      if (m && (planEsYoutube(t.url) || PLAN_RECURSOS_DENTRO.has(+m[1]))) { t.url = `video.html?id=${m[1]}&claveplan=${encodeURIComponent(t.clave)}`; t.externo = false; }
     }));
     const { data: pausas } = await sb.from("plan_pausa").select("desde, hasta, motivo");
     PLAN_PAUSAS = pausas || [];

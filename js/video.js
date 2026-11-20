@@ -40,7 +40,7 @@ function vdApiYoutube() {
   const cont = document.getElementById("vd-cuerpo");
   if (!id) { window.location.href = "index.html"; return; }
 
-  const { data: r } = await sb.from("recursos").select("id, asignatura_id, unidad, titulo, url, canal, minuto_inicio, para_que_sirve, duracion_min, apartado").eq("id", id).maybeSingle();
+  const { data: r } = await sb.from("recursos").select("id, asignatura_id, unidad, titulo, url, canal, tipo, minuto_inicio, para_que_sirve, duracion_min, apartado, paginas, embed_url").eq("id", id).maybeSingle();
   const { data: asig } = r ? await sb.from("asignaturas").select("id, nombre").eq("id", r.asignatura_id).maybeSingle() : { data: null };
   pintarNavbar("plan.html", usuario, asig || null);
   if (!r) {
@@ -59,7 +59,38 @@ function vdApiYoutube() {
     await sb.from("plan_hecho").upsert({ clave: clavePlan }, { onConflict: "auth_user_id,clave" });
   };
 
-  // Vídeos que no son de YouTube (campus, noticias…): no se pueden meter aquí.
+  const botonHecho = (txt) => clavePlan ? `<button type="button" class="btn btn-primario" id="vd-hecho">${txt}</button>` : "";
+  const activarHecho = () => document.getElementById("vd-hecho")?.addEventListener("click", async (e) => {
+    await yaHecho();
+    e.target.textContent = "✅ Ya está marcado como hecho";
+    e.target.disabled = true;
+    e.target.style.cssText = "background:#16a34a;border-color:#16a34a;color:#fff;opacity:1;cursor:default";
+  });
+  const cabecera = `${r.para_que_sirve ? `<div class="cl-vd-para vd-para">🎯 ${vdEsc(r.para_que_sirve)}</div>` : ""}
+    ${r.apartado ? `<div class="cl-vd-para">📖 Va con el apartado «${vdEsc(r.apartado)}» del tema.</div>` : ""}`;
+
+  // 📄 PDF del aula pasado a imágenes: se lee aquí mismo, página a página.
+  if (!yt && Array.isArray(r.paginas) && r.paginas.length) {
+    document.getElementById("vd-titulo").textContent = `📄 ${r.titulo}`;
+    if (typeof cronoActivar === "function") cronoActivar();
+    cont.innerHTML = `${cabecera}
+      <div class="vd-paginas">${r.paginas.map((u, i) => `<figure class="vd-pagina"><img src="${vdEsc(u)}" alt="Página ${i + 1}" loading="lazy" style="width:100%;border-radius:10px;border:1px solid #e5e7eb;background:#fff"><figcaption class="pl-mini">Página ${i + 1} de ${r.paginas.length}</figcaption></figure>`).join("")}</div>
+      <div class="cl-vd-botones vd-botones">${botonHecho("✅ Ya lo he leído")}${volver}</div>`;
+    activarHecho();
+    return;
+  }
+
+  // 🌐 Página que se puede meter dentro (Wikipedia, reproductor del campus…).
+  if (!yt && r.embed_url) {
+    if (typeof cronoActivar === "function") cronoActivar();
+    cont.innerHTML = `${cabecera}
+      <div class="vd-marco" style="aspect-ratio:auto;height:75vh"><iframe src="${vdEsc(r.embed_url)}" style="width:100%;height:100%;border:0;border-radius:10px;background:#fff" allow="autoplay; fullscreen; encrypted-media" allowfullscreen loading="lazy"></iframe></div>
+      <div class="cl-vd-botones vd-botones">${botonHecho(r.tipo === "video" ? "✅ Ya lo he visto" : "✅ Ya lo he leído")}${volver}</div>`;
+    activarHecho();
+    return;
+  }
+
+  // Lo que no se puede meter aquí: se abre fuera.
   if (!yt) {
     cont.innerHTML = `<div class="cl-vd">
       ${r.para_que_sirve ? `<div class="cl-vd-para">${vdEsc(r.para_que_sirve)}</div>` : ""}
