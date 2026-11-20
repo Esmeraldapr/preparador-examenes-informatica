@@ -165,6 +165,10 @@ function resumenRepaso(texto) {
 
   // ---- Enlaces del tema (vídeos, simuladores, fuentes) ----
   const enlaces = Array.isArray(t.enlaces) ? t.enlaces : [];
+  // Los vídeos que están en `recursos` se ven DENTRO de la web (video.html), como en Cálculo.
+  const { data: recs } = await sb.from("recursos").select("id, url").eq("asignatura_id", asigId);
+  const recPorUrl = new Map((recs || []).map((x) => [String(x.url).trim(), x.id]));
+  const enlaceDentro = (e) => recPorUrl.get(String(e.url || "").trim());
   const grupos = [];
   enlaces.forEach((e) => {
     let g = grupos.find((x) => x.nombre === (e.grupo || "Enlaces"));
@@ -182,7 +186,9 @@ function resumenRepaso(texto) {
                   (e) => `<div class="tm-enlace">
                     <div><b>${tmEsc(e.titulo)}</b></div>
                     ${e.para_que ? `<div class="subtitulo">${tmEsc(e.para_que)}</div>` : ""}
-                    <a class="btn btn-secundario" href="${tmEsc(e.url)}" target="_blank" rel="noopener">${e.tipo === "video" ? "▶ Ver vídeo" : "Abrir enlace ↗"}</a>
+                    ${enlaceDentro(e)
+                      ? `<a class="btn btn-secundario" href="video.html?id=${enlaceDentro(e)}">${e.tipo === "video" ? "▶ Ver vídeo aquí" : "Abrir aquí"}</a>`
+                      : `<a class="btn btn-secundario" href="${tmEsc(e.url)}" target="_blank" rel="noopener">${e.tipo === "video" ? "▶ Ver vídeo" : "Abrir enlace ↗"}</a>`}
                   </div>`
                 )
                 .join("")

@@ -53,7 +53,9 @@ function vdApiYoutube() {
   document.getElementById("vd-subtitulo").textContent = [asig && asig.nombre, r.unidad, r.duracion_min ? `dura unos ${r.duracion_min} min` : ""].filter(Boolean).join(" · ");
 
   const yt = vdYoutubeId(r.url);
-  const volver = `<a class="btn btn-secundario" href="plan.html">⬅ Volver a Mi plan</a>`;
+  const volver = clavePlan || history.length < 2
+    ? `<a class="btn btn-secundario" href="plan.html">⬅ Volver a Mi plan</a>`
+    : `<a class="btn btn-secundario" href="#" onclick="history.back();return false;">⬅ Volver</a>`;
   const yaHecho = async () => {
     if (!clavePlan) return;
     await sb.from("plan_hecho").upsert({ clave: clavePlan }, { onConflict: "auth_user_id,clave" });
