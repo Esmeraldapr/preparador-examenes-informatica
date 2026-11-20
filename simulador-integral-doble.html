@@ -4,456 +4,1337 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Integral doble con la Casio (simulador)</title>
-  <link rel="icon" href="img/favicon-64.png" />
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet" />
+  <link rel="icon" type="image/png" href="img/favicon-64.png" />
   <style>
+    :root {
+      --bg-app: #f1f5f9;
+      --bg-card: #ffffff;
+      --text-main: #0f172a;
+      --text-muted: #64748b;
+      --border-light: #e2e8f0;
+
+      /* Colores fijos codificados por paso */
+      --blue-main: #2563eb;
+      --blue-bg: #eff6ff;
+      --blue-border: #bfdbfe;
+
+      --orange-main: #d97706;
+      --orange-bg: #fffbeb;
+      --orange-border: #fde68a;
+
+      --green-main: #059669;
+      --green-bg: #ecfdf5;
+      --green-border: #a7f3d0;
+
+      --purple-main: #7c3aed;
+      --purple-bg: #f5f3ff;
+      --purple-border: #ddd6fe;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
     body {
-      font-family: 'Inter', sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: var(--bg-app);
+      color: var(--text-main);
+      line-height: 1.45;
+      min-height: 100vh;
     }
-    .font-mono-calc {
-      font-family: 'JetBrains Mono', monospace;
+
+    .mono {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
     }
-    /* Estilo personalizado para el deslizador de y */
+
+    /* Cabecera */
+    header {
+      background: #0f172a;
+      color: #ffffff;
+      padding: 16px 20px;
+      box-shadow: 0 2px 8px rgba(15, 23, 42, 0.15);
+    }
+
+    .header-inner {
+      max-width: 1320px;
+      margin: 0 auto;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .badge-top {
+      display: inline-block;
+      background: #f59e0b;
+      color: #0f172a;
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      padding: 3px 10px;
+      border-radius: 999px;
+      margin-bottom: 4px;
+    }
+
+    header h1 {
+      font-size: 1.25rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+    }
+
+    header p {
+      font-size: 0.82rem;
+      color: #94a3b8;
+    }
+
+    /* Barra de Configuración Interactiva */
+    .config-bar {
+      max-width: 1320px;
+      margin: 16px auto 0;
+      padding: 0 16px;
+    }
+
+    .config-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-light);
+      border-radius: 16px;
+      padding: 14px 18px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+    }
+
+    .config-group {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .config-label {
+      font-size: 0.78rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      letter-spacing: 0.03em;
+    }
+
+    select.preset-select {
+      padding: 8px 12px;
+      border-radius: 10px;
+      border: 1.5px solid #cbd5e1;
+      background: #f8fafc;
+      font-size: 0.88rem;
+      font-weight: 700;
+      color: var(--text-main);
+      cursor: pointer;
+      outline: none;
+    }
+
+    select.preset-select { max-width: 100%; min-width: 0; }
+    .config-group { min-width: 0; max-width: 100%; }
+    @media (max-width: 600px) { select.preset-select { width: 100%; font-size: 0.8rem; } }
+
+    select.preset-select:focus {
+      border-color: var(--blue-main);
+    }
+
+    .interval-box {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: #f8fafc;
+      border: 1px solid var(--border-light);
+      padding: 5px 10px;
+      border-radius: 10px;
+      font-size: 0.85rem;
+      font-weight: 700;
+    }
+
+    .interval-box.y-box {
+      background: var(--purple-bg);
+      border-color: var(--purple-border);
+      color: #4c1d95;
+    }
+
+    .stepper {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background: #ffffff;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      padding: 2px 4px;
+    }
+
+    .stepper button {
+      width: 24px;
+      height: 24px;
+      border: none;
+      background: #e2e8f0;
+      color: #0f172a;
+      font-weight: 800;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      line-height: 1;
+      transition: background 0.15s;
+    }
+
+    .stepper button:hover {
+      background: #cbd5e1;
+    }
+
+    .stepper span {
+      min-width: 22px;
+      text-align: center;
+      font-weight: 800;
+    }
+
+    /* Layout Principal */
+    .main-grid {
+      max-width: 1320px;
+      margin: 16px auto 28px;
+      padding: 0 16px;
+      display: grid;
+      grid-template-columns: 1.25fr 1fr;
+      gap: 18px;
+    }
+
+    @media (max-width: 980px) {
+      .main-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-light);
+      border-radius: 18px;
+      padding: 18px;
+      box-shadow: 0 2px 6px rgba(15, 23, 42, 0.04);
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .section-header {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .section-title {
+      font-size: 1rem;
+      font-weight: 800;
+      color: var(--text-main);
+    }
+
+    .section-sub {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    /* Selector de vista (3D Pan vs Perfil Lateral) */
+    .view-tabs {
+      display: inline-flex;
+      background: #f1f5f9;
+      padding: 4px;
+      border-radius: 12px;
+      border: 1px solid var(--border-light);
+      gap: 4px;
+    }
+
+    .view-tab {
+      border: none;
+      background: transparent;
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .view-tab.active {
+      background: #ffffff;
+      color: var(--text-main);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+
+    /* Lienzo Visual */
+    .canvas-container {
+      position: relative;
+      width: 100%;
+      height: 360px;
+      background: #f8fafc;
+      border: 1.5px solid var(--border-light);
+      border-radius: 14px;
+      overflow: hidden;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    .floating-hud {
+      position: absolute;
+      top: 12px;
+      left: 12px;
+      background: rgba(255, 255, 255, 0.96);
+      border: 1px solid var(--border-light);
+      border-radius: 12px;
+      padding: 8px 14px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+      pointer-events: none;
+    }
+
+    .hud-label {
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: var(--text-muted);
+    }
+
+    .hud-values {
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+      margin-top: 2px;
+    }
+
+    .hud-y {
+      font-size: 1.15rem;
+      font-weight: 800;
+      color: var(--text-main);
+    }
+
+    .hud-area {
+      font-size: 0.78rem;
+      font-weight: 800;
+      padding: 2px 8px;
+      border-radius: 6px;
+      background: #e2e8f0;
+      color: #1e293b;
+    }
+
+    .floating-hint {
+      position: absolute;
+      bottom: 10px;
+      right: 12px;
+      background: rgba(15, 23, 42, 0.85);
+      color: #f8fafc;
+      font-size: 0.72rem;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: 8px;
+      pointer-events: none;
+    }
+
+    /* Controles de la cuchilla / deslizador */
+    .slider-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: #f8fafc;
+      padding: 10px 14px;
+      border-radius: 12px;
+      border: 1px solid var(--border-light);
+    }
+
+    .slider-row label {
+      font-size: 0.82rem;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
     input[type="range"] {
       -webkit-appearance: none;
       appearance: none;
-      height: 10px;
+      width: 100%;
+      height: 8px;
       border-radius: 999px;
-      background: #e2e8f0;
+      background: #cbd5e1;
       outline: none;
     }
+
     input[type="range"]::-webkit-slider-thumb {
       -webkit-appearance: none;
       appearance: none;
-      width: 24px;
-      height: 24px;
+      width: 22px;
+      height: 22px;
       border-radius: 50%;
       background: #0f172a;
       border: 3px solid #ffffff;
-      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
       cursor: pointer;
-      transition: transform 0.15s ease;
     }
-    input[type="range"]::-webkit-slider-thumb:hover {
-      transform: scale(1.12);
+
+    .y-pill {
+      background: #ffffff;
+      border: 1px solid #cbd5e1;
+      padding: 4px 10px;
+      border-radius: 8px;
+      font-weight: 800;
+      font-size: 0.85rem;
+      min-width: 62px;
+      text-align: center;
     }
+
+    /* Botones de los 3 cortes */
+    .cut-buttons {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+    }
+
+    @media (max-width: 600px) {
+      .cut-buttons {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    .cut-btn {
+      border: none;
+      border-radius: 12px;
+      padding: 10px 8px;
+      font-weight: 800;
+      font-size: 0.8rem;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 2px;
+      transition: transform 0.1s, box-shadow 0.15s;
+    }
+
+    .cut-btn:active {
+      transform: scale(0.98);
+    }
+
+    .cut-btn small {
+      font-size: 0.7rem;
+      font-weight: 600;
+      opacity: 0.9;
+    }
+
+    .btn-blue {
+      background: var(--blue-main);
+      color: #ffffff;
+    }
+
+    .btn-orange {
+      background: var(--orange-main);
+      color: #ffffff;
+    }
+
+    .btn-green {
+      background: var(--green-main);
+      color: #ffffff;
+    }
+
+    .btn-dark {
+      background: #1e293b;
+      color: #ffffff;
+    }
+
+    .cut-btn.selected {
+      outline: 3px solid #0f172a;
+      outline-offset: 2px;
+    }
+
+    /* Pantalla Casio realista */
+    .casio-lcd {
+      background: #c5d3be;
+      border: 4px solid #1e293b;
+      border-radius: 14px;
+      padding: 12px 16px;
+      box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.18);
+    }
+
+    .casio-top {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.68rem;
+      font-weight: 800;
+      color: #334155;
+      border-bottom: 1px solid rgba(51, 65, 85, 0.25);
+      padding-bottom: 4px;
+      margin-bottom: 8px;
+      letter-spacing: 0.04em;
+    }
+
+    .casio-expr {
+      font-size: 1rem;
+      font-weight: 800;
+      color: #0f172a;
+    }
+
+    .casio-bottom {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      margin-top: 8px;
+    }
+
+    .casio-sub {
+      font-size: 0.74rem;
+      font-weight: 700;
+      color: #334155;
+    }
+
+    .casio-ans {
+      font-size: 1.35rem;
+      font-weight: 900;
+      color: #020617;
+    }
+
+    /* Tarjetas de los 3 cortes */
+    .slice-cards {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .slice-card {
+      border-radius: 12px;
+      padding: 10px 14px;
+      border: 2px solid transparent;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+      transition: transform 0.12s, box-shadow 0.12s;
+    }
+
+    .slice-card:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 3px 8px rgba(0, 0, 0, 0.05);
+    }
+
+    .slice-card.blue {
+      background: var(--blue-bg);
+      border-color: var(--blue-border);
+    }
+
+    .slice-card.orange {
+      background: var(--orange-bg);
+      border-color: var(--orange-border);
+    }
+
+    .slice-card.green {
+      background: var(--green-bg);
+      border-color: var(--green-border);
+    }
+
+    .slice-card.active-card {
+      box-shadow: 0 0 0 2px #0f172a;
+    }
+
+    .slice-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.8rem;
+      font-weight: 800;
+      text-transform: uppercase;
+    }
+
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+
+    .tag-x4 {
+      background: var(--orange-main);
+      color: #ffffff;
+      font-size: 0.68rem;
+      padding: 1px 6px;
+      border-radius: 6px;
+      font-weight: 900;
+    }
+
+    .slice-formula {
+      font-size: 0.82rem;
+      margin-top: 3px;
+      color: #334155;
+    }
+
+    .slice-result {
+      text-align: right;
+    }
+
+    .slice-result span {
+      display: block;
+      font-size: 0.68rem;
+      font-weight: 700;
+      color: var(--text-muted);
+    }
+
+    .slice-result strong {
+      font-size: 1.2rem;
+      font-weight: 900;
+    }
+
+    /* Paso 2: Las 4 cuentas fijas */
+    .steps-box {
+      background: #0f172a;
+      color: #f8fafc;
+      border-radius: 14px;
+      padding: 14px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .steps-box-header {
+      font-size: 0.78rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #fbbf24;
+    }
+
+    .calc-step {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 10px;
+      padding: 8px 12px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .calc-step.final-step {
+      background: #064e3b;
+      border-color: #10b981;
+    }
+
+    .step-desc {
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: #e2e8f0;
+    }
+
+    .step-desc small {
+      display: block;
+      font-size: 0.71rem;
+      font-weight: 400;
+      color: #94a3b8;
+    }
+
+    .step-math {
+      font-size: 0.9rem;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .pill-val {
+      padding: 2px 7px;
+      border-radius: 6px;
+      font-weight: 900;
+    }
+
+    .pill-blue { background: rgba(37, 99, 235, 0.35); color: #93c5fd; border: 1px solid #3b82f6; }
+    .pill-orange { background: rgba(217, 119, 6, 0.35); color: #fcd34d; border: 1px solid #f59e0b; }
+    .pill-green { background: rgba(5, 150, 105, 0.35); color: #6ee7b7; border: 1px solid #10b981; }
+    .pill-purple { background: rgba(124, 58, 237, 0.35); color: #c4b5fd; border: 1px solid #8b5cf6; }
+    .pill-white { background: rgba(255, 255, 255, 0.12); color: #ffffff; }
+    .pill-total { background: #10b981; color: #022c22; font-size: 1.05rem; padding: 3px 10px; }
+
+    .study-grid { max-width: 1320px; margin: 0 auto 32px; padding: 0 16px; display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+    @media (max-width: 980px) { .study-grid { grid-template-columns: 1fr; } }
+    .study-card { background: #fff; border: 1px solid var(--border-light); border-radius: 18px; padding: 18px; font-size: 0.92rem; line-height: 1.7; }
+    .study-card.exam { background: var(--orange-bg); border: 2px solid var(--orange-border); }
+    .study-card h2 { font-size: 1rem; font-weight: 800; margin-bottom: 8px; }
+    .study-card .paso { font-weight: 800; color: var(--purple-main); margin-top: 6px; }
+    .study-card .nota { color: var(--text-muted); margin-top: 8px; }
+    .study-card .ok { font-weight: 900; color: var(--green-main); }
   </style>
 </head>
-<body class="bg-slate-100 text-slate-900 min-h-screen flex flex-col">
+<body>
 
-  <!-- Cabecera clara y directa -->
-  <header class="bg-slate-900 text-white px-4 py-4 shadow-md">
-    <div class="max-w-7xl mx-auto flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+  <header>
+    <div class="header-inner">
       <div>
-        <span class="inline-block text-xs font-bold uppercase tracking-wider bg-amber-500 text-slate-950 px-2.5 py-0.5 rounded-full mb-1">
-          Receta Casio fx-570SP X II
-        </span>
-        <h1 class="text-xl sm:text-2xl font-extrabold tracking-tight">
-          ¿Cómo calcula la calculadora la integral doble?
-        </h1>
-      </div>
-      <div class="bg-slate-800 border border-slate-700 rounded-xl px-4 py-2 text-sm">
-        <span class="text-slate-400">Función:</span>
-        <span class="font-mono-calc font-bold text-amber-400">f(x, y) = x + y</span>
-        <span class="mx-2 text-slate-600">|</span>
-        <span class="text-slate-400">Recinto:</span>
-        <span class="font-mono-calc font-semibold text-white">0 ≤ x ≤ 1, 0 ≤ y ≤ 2</span>
+        <span class="badge-top">Receta Casio fx-570SP X II Iberia</span>
+        <h1>Integral Doble en Rectángulo = Barra de Pan en 3 Rebanadas</h1>
+        <p>Visualiza por qué calcular 3 integrales normales y aplicar las 4 cuentas fijas te da el volumen exacto.</p>
       </div>
     </div>
   </header>
 
-  <!-- Contenido principal -->
-  <main class="max-w-7xl w-full mx-auto p-4 sm:p-6 flex-1 grid grid-cols-1 lg:grid-cols-12 gap-6">
+  <!-- Barra Superior de Configuración -->
+  <div class="config-bar">
+    <div class="config-card">
+      <div class="config-group">
+        <span class="config-label">1. Elige función:</span>
+        <select id="presetSelect" class="preset-select">
+          <option value="0">f = x + y  |  x ∈ [0, 1], y ∈ [0, 2]  (examen 2500130)</option>
+          <option value="1">f = x + y  |  x ∈ [0, 2], y ∈ [0, 1]  (examen 2512770)</option>
+          <option value="2">f = x² + y  |  x ∈ [0, 2], y ∈ [0, 2]</option>
+          <option value="3">f = 2x + 3y  |  x ∈ [1, 3], y ∈ [0, 2]</option>
+          <option value="4">f = x + y  |  x ∈ [0, 1], y ∈ [0, 1]</option>
+          <option value="5">f = x + y  |  x ∈ [0, 2], y ∈ [0, 2]</option>
+          <option value="6">f = 2x + y  |  x ∈ [0, 1], y ∈ [0, 3]</option>
+          <option value="7">f = x · y  |  x ∈ [0, 2], y ∈ [0, 1]</option>
+          <option value="8">f = x³ + y²  |  x ∈ [0, 1], y ∈ [0, 1]  (test UD5)</option>
+          <option value="9">f = (x·y)² · cos(x³)  |  [0, 1] × [0, 1]  (test UD5, errata: pone cos(x²))</option>
+          <option value="10">f = sen(x + y)  |  [0, 1] × [0, 1]  (test UD5)</option>
+        </select>
+      </div>
 
-    <!-- Columna Izquierda: Visualización 3D Isométrica + Controles (7 cols) -->
-    <section class="lg:col-span-7 flex flex-col gap-4">
-      <!-- Tarjeta del Lienzo 3D -->
-      <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 flex flex-col">
-        <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
-          <div>
-            <h2 class="text-base font-bold text-slate-800">1. El Volumen por "Rebanadas" (Vista 3D)</h2>
-            <p class="text-xs text-slate-500">
-              Cada corte vertical en <span class="font-semibold text-slate-700">y</span> es una integral normal de <span class="font-semibold text-slate-700">x = 0</span> a <span class="font-semibold text-slate-700">x = 1</span>.
-            </p>
+      <div class="config-group">
+        <!-- Intervalo X -->
+        <div class="interval-box">
+          <span>Intervalo X:</span>
+          <div class="stepper">
+            <button type="button" onclick="adjustBound('xMin', -1)">−</button>
+            <span id="xMinVal" class="mono">0</span>
+            <button type="button" onclick="adjustBound('xMin', 1)">+</button>
           </div>
-          <!-- Leyenda de las 3 rebanadas -->
-          <div class="flex flex-wrap items-center gap-2 text-xs font-semibold">
-            <span class="flex items-center gap-1.5 bg-blue-50 text-blue-700 border border-blue-200 px-2.5 py-1 rounded-lg">
-              <span class="w-2.5 h-2.5 rounded-full bg-blue-600"></span> Inicio (y=0)
-            </span>
-            <span class="flex items-center gap-1.5 bg-amber-50 text-amber-800 border border-amber-300 px-2.5 py-1 rounded-lg">
-              <span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span> Centro (y=1) ×4
-            </span>
-            <span class="flex items-center gap-1.5 bg-emerald-50 text-emerald-700 border border-emerald-200 px-2.5 py-1 rounded-lg">
-              <span class="w-2.5 h-2.5 rounded-full bg-emerald-600"></span> Final (y=2)
-            </span>
-          </div>
-        </div>
-
-        <!-- Contenedor responsive del Canvas -->
-        <div id="canvas-wrapper" class="relative w-full h-[340px] sm:h-[400px] bg-slate-50 rounded-xl border border-slate-200 overflow-hidden">
-          <canvas id="isoCanvas" class="w-full h-full block"></canvas>
-
-          <!-- Indicador flotante del corte actual -->
-          <div id="slice-badge" class="absolute top-3 left-3 bg-white/95 backdrop-blur border border-slate-200 rounded-xl px-3.5 py-2 shadow-sm">
-            <div class="text-xs text-slate-500 font-medium">Corte actual en <span class="font-mono-calc font-bold text-slate-800">y</span></div>
-            <div class="flex items-baseline gap-2">
-              <span id="badge-y" class="font-mono-calc text-xl font-extrabold text-slate-900">y = 1.00</span>
-              <span id="badge-area" class="text-xs font-bold px-2 py-0.5 rounded-md bg-amber-100 text-amber-800">
-                Área = 1.50
-              </span>
-            </div>
-          </div>
-
-          <!-- Etiqueta del ancho total -->
-          <div class="absolute bottom-3 right-3 bg-slate-900/90 text-white text-xs font-medium px-3 py-1.5 rounded-lg shadow">
-            Ancho total en y: <span class="font-mono-calc font-bold text-amber-400">2 - 0 = 2</span>
+          <span>a</span>
+          <div class="stepper">
+            <button type="button" onclick="adjustBound('xMax', -1)">−</button>
+            <span id="xMaxVal" class="mono">1</span>
+            <button type="button" onclick="adjustBound('xMax', 1)">+</button>
           </div>
         </div>
 
-        <!-- Controles Interactivos -->
-        <div class="mt-4 pt-4 border-t border-slate-100 flex flex-col gap-3">
-          <!-- Barra deslizante -->
-          <div class="flex items-center gap-3">
-            <label for="ySlider" class="text-xs font-bold text-slate-700 whitespace-nowrap">
-              Mover corte <span class="font-mono-calc text-sm">y</span>:
-            </label>
-            <input id="ySlider" type="range" min="0" max="2" step="0.01" value="1" class="w-full" />
-            <span id="yValLabel" class="font-mono-calc text-sm font-bold bg-slate-100 border border-slate-300 px-2.5 py-1 rounded-lg min-w-[64px] text-center">
-              1.00
-            </span>
+        <!-- Intervalo Y -->
+        <div class="interval-box y-box">
+          <span>Intervalo Y (largo):</span>
+          <div class="stepper">
+            <button type="button" onclick="adjustBound('yMin', -1)">−</button>
+            <span id="yMinVal" class="mono">0</span>
+            <button type="button" onclick="adjustBound('yMin', 1)">+</button>
           </div>
-
-          <!-- Botones rápidos de salto y animación -->
-          <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
-            <button id="btnInicio" type="button"
-              class="p-2.5 rounded-xl font-bold text-xs sm:text-sm bg-blue-600 hover:bg-blue-700 text-white shadow-sm transition flex flex-col items-center justify-center">
-              <span>1. Inicio (y = 0)</span>
-              <span class="text-[11px] font-normal text-blue-100">Área = 0.5</span>
-            </button>
-
-            <button id="btnCentro" type="button"
-              class="p-2.5 rounded-xl font-bold text-xs sm:text-sm bg-amber-500 hover:bg-amber-600 text-slate-950 shadow-sm transition flex flex-col items-center justify-center ring-2 ring-amber-300">
-              <span>2. Centro (y = 1)</span>
-              <span class="text-[11px] font-semibold text-amber-950">Área = 1.5 (×4)</span>
-            </button>
-
-            <button id="btnFinal" type="button"
-              class="p-2.5 rounded-xl font-bold text-xs sm:text-sm bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm transition flex flex-col items-center justify-center">
-              <span>3. Final (y = 2)</span>
-              <span class="text-[11px] font-normal text-emerald-100">Área = 2.5</span>
-            </button>
-
-            <button id="btnBarrido" type="button"
-              class="p-2.5 rounded-xl font-bold text-xs sm:text-sm bg-slate-800 hover:bg-slate-900 text-white shadow-sm transition flex flex-col items-center justify-center">
-              <span id="barridoIcon">▶ Barrido</span>
-              <span class="text-[11px] font-normal text-slate-300">Ver volumen</span>
-            </button>
+          <span>a</span>
+          <div class="stepper">
+            <button type="button" onclick="adjustBound('yMax', -1)">−</button>
+            <span id="yMaxVal" class="mono">2</span>
+            <button type="button" onclick="adjustBound('yMax', 1)">+</button>
           </div>
         </div>
       </div>
-    </section>
+    </div>
+  </div>
 
-    <!-- Columna Derecha: Desglose Paso a Paso en la Casio (5 cols) -->
-    <section class="lg:col-span-5 flex flex-col gap-4">
-      <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 flex flex-col justify-between h-full">
+  <!-- Grid Principal -->
+  <main class="main-grid">
+
+    <!-- COLUMNA IZQUIERDA: Visualización Clara -->
+    <section class="card">
+      <div class="section-header">
         <div>
-          <h2 class="text-base font-bold text-slate-800 mb-1">2. Lo que pulsas en tu Casio</h2>
-          <p class="text-xs text-slate-500 mb-4">
-            Solo calculas <strong>3 integrales normales</strong> con el botón <span class="font-mono-calc bg-slate-200 text-slate-800 px-1.5 py-0.5 rounded font-bold">∫</span> y las juntas en la fórmula.
-          </p>
+          <div class="section-title">Vista Visual de la Barra de Pan</div>
+          <div class="section-sub">Las 3 rebanadas van separadas de izquierda (Inicio) a derecha (Final).</div>
+        </div>
 
-          <!-- Pantalla simulada de la Casio -->
-          <div class="bg-[#c5d1c0] border-4 border-slate-800 rounded-xl p-3.5 mb-4 shadow-inner">
-            <div class="flex justify-between items-center text-[10px] font-bold text-slate-700 border-b border-slate-600/30 pb-1 mb-2">
-              <span>CASIO fx-570SP X II</span>
-              <span id="casio-mode-label">REBANADA ACTUAL</span>
-            </div>
-            <div id="casio-screen-expr" class="font-mono-calc text-sm sm:text-base font-bold text-slate-900">
-              ∫₀¹ (X + 1) dx
-            </div>
-            <div class="flex justify-between items-end mt-2">
-              <span id="casio-screen-note" class="text-[11px] font-semibold text-slate-700">
-                Sustituyendo y = 1.00
-              </span>
-              <span id="casio-screen-res" class="font-mono-calc text-xl font-extrabold text-slate-950">
-                = 1.5
-              </span>
-            </div>
-          </div>
+        <div class="view-tabs">
+          <button id="tab3D" type="button" class="view-tab active" onclick="setViewMode('3d')">
+            Vista 3D (Barra de pan)
+          </button>
+          <button id="tab2D" type="button" class="view-tab" onclick="setViewMode('2d')">
+            Vista Lateral (Perfil de áreas)
+          </button>
+        </div>
+      </div>
 
-          <!-- Las 3 tarjetas de rebanadas -->
-          <div class="space-y-2.5 mb-5">
-            <!-- Tarjeta Inicio -->
-            <div id="card-inicio" onclick="jumpToY(0)"
-              class="cursor-pointer rounded-xl border-2 border-blue-200 bg-blue-50/70 p-3 transition hover:border-blue-400 flex items-center justify-between">
-              <div>
-                <div class="flex items-center gap-2">
-                  <span class="w-3 h-3 rounded-full bg-blue-600"></span>
-                  <span class="text-xs font-extrabold uppercase text-blue-900">Inicio (y = 0)</span>
-                </div>
-                <div class="font-mono-calc text-xs text-blue-800 mt-1">
-                  ∫₀¹ (X + <strong>0</strong>) dx
-                </div>
-              </div>
-              <div class="text-right">
-                <span class="text-[11px] text-blue-700 block">Peso: ×1</span>
-                <span class="font-mono-calc text-lg font-extrabold text-blue-700">0.5</span>
-              </div>
-            </div>
+      <!-- Canvas -->
+      <div id="canvasWrapper" class="canvas-container">
+        <canvas id="simCanvas"></canvas>
 
-            <!-- Tarjeta Centro -->
-            <div id="card-centro" onclick="jumpToY(1)"
-              class="cursor-pointer rounded-xl border-2 border-amber-400 bg-amber-50 p-3 transition hover:border-amber-500 flex items-center justify-between shadow-sm">
-              <div>
-                <div class="flex items-center gap-2">
-                  <span class="w-3 h-3 rounded-full bg-amber-500"></span>
-                  <span class="text-xs font-extrabold uppercase text-amber-950">Centro (y = 1)</span>
-                  <span class="text-[10px] font-extrabold bg-amber-500 text-slate-950 px-1.5 py-0.5 rounded">¡POR 4!</span>
-                </div>
-                <div class="font-mono-calc text-xs text-amber-900 mt-1">
-                  ∫₀¹ (X + <strong>1</strong>) dx
-                </div>
-              </div>
-              <div class="text-right">
-                <span class="text-[11px] font-bold text-amber-800 block">Peso: ×4</span>
-                <span class="font-mono-calc text-lg font-extrabold text-amber-700">1.5</span>
-              </div>
-            </div>
-
-            <!-- Tarjeta Final -->
-            <div id="card-final" onclick="jumpToY(2)"
-              class="cursor-pointer rounded-xl border-2 border-emerald-200 bg-emerald-50/70 p-3 transition hover:border-emerald-400 flex items-center justify-between">
-              <div>
-                <div class="flex items-center gap-2">
-                  <span class="w-3 h-3 rounded-full bg-emerald-600"></span>
-                  <span class="text-xs font-extrabold uppercase text-emerald-900">Final (y = 2)</span>
-                </div>
-                <div class="font-mono-calc text-xs text-emerald-800 mt-1">
-                  ∫₀¹ (X + <strong>2</strong>) dx
-                </div>
-              </div>
-              <div class="text-right">
-                <span class="text-[11px] text-emerald-700 block">Peso: ×1</span>
-                <span class="font-mono-calc text-lg font-extrabold text-emerald-700">2.5</span>
-              </div>
-            </div>
+        <div class="floating-hud">
+          <div class="hud-label">Cuchilla / Corte actual en Y</div>
+          <div class="hud-values">
+            <span id="hudY" class="hud-y mono">y = 1.00</span>
+            <span id="hudArea" class="hud-area mono">Área rebanada = 1.50</span>
           </div>
         </div>
 
-        <!-- Fórmula Fija Final (Simpson) -->
-        <div class="bg-slate-900 text-white rounded-2xl p-4 shadow-md">
-          <div class="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-2">
-            3. La Fórmula Fija (Juntar las 3 rebanadas)
-          </div>
+        <div id="canvasHint" class="floating-hint">
+          Arrastra con el ratón para girar la barra de pan
+        </div>
+      </div>
 
-          <!-- Fórmula visual con colores -->
-          <div class="bg-slate-800 rounded-xl p-3 border border-slate-700">
-            <div class="flex items-center justify-center gap-2 text-sm sm:text-base font-mono-calc">
-              <!-- Fracción -->
-              <div class="flex flex-col items-center">
-                <div class="pb-1.5 border-b-2 border-slate-400 flex items-center gap-1.5 flex-wrap justify-center">
-                  <span class="bg-blue-600/30 border border-blue-400 text-blue-200 px-1.5 py-0.5 rounded font-bold" title="Inicio">0.5</span>
-                  <span>+</span>
-                  <span class="bg-amber-500/30 border border-amber-400 text-amber-200 px-1.5 py-0.5 rounded font-bold" title="4 × Centro">4×1.5</span>
-                  <span>+</span>
-                  <span class="bg-emerald-600/30 border border-emerald-400 text-emerald-200 px-1.5 py-0.5 rounded font-bold" title="Final">2.5</span>
-                </div>
-                <div class="pt-1 text-slate-300 font-bold">
-                  6 <span class="text-[10px] font-sans font-normal text-slate-400">(siempre 6)</span>
-                </div>
-              </div>
+      <!-- Deslizador de Y -->
+      <div class="slider-row">
+        <label for="ySlider">Mover cuchilla (<span class="mono">y</span>):</label>
+        <input id="ySlider" type="range" min="0" max="2" step="0.01" value="1" />
+        <span id="yPill" class="y-pill mono">1.00</span>
+      </div>
 
-              <!-- Multiplicación por ancho -->
-              <div class="flex items-center gap-1.5 pl-1">
-                <span class="text-slate-400">×</span>
-                <div class="flex flex-col items-center">
-                  <span class="bg-purple-600/30 border border-purple-400 text-purple-200 px-2 py-0.5 rounded font-bold">2</span>
-                  <span class="text-[10px] font-sans text-slate-400 mt-0.5">ancho y</span>
-                </div>
-              </div>
+      <!-- Botones de Acción Directa -->
+      <div class="cut-buttons">
+        <button id="btnCutStart" type="button" class="cut-btn btn-blue" onclick="jumpToKeySlice('start')">
+          <span>1. Cortar Inicio</span>
+          <small id="subBtnStart">y = 0</small>
+        </button>
 
-              <!-- Resultado -->
-              <div class="flex items-center gap-1.5 pl-1">
-                <span class="text-slate-400">=</span>
-                <span class="bg-emerald-500 text-slate-950 font-extrabold text-xl px-3 py-1 rounded-xl shadow">
-                  3
-                </span>
-              </div>
+        <button id="btnCutMid" type="button" class="cut-btn btn-orange selected" onclick="jumpToKeySlice('mid')">
+          <span>2. Cortar Centro</span>
+          <small id="subBtnMid">y = 1 (×4)</small>
+        </button>
+
+        <button id="btnCutEnd" type="button" class="cut-btn btn-green" onclick="jumpToKeySlice('end')">
+          <span>3. Cortar Final</span>
+          <small id="subBtnEnd">y = 2</small>
+        </button>
+
+        <button id="btnSweep" type="button" class="cut-btn btn-dark" onclick="toggleSweep()">
+          <span id="sweepLabel">▶ Barrido completo</span>
+          <small>Ver volumen entero</small>
+        </button>
+      </div>
+    </section>
+
+    <!-- COLUMNA DERECHA: Receta Casio en 2 Pasos -->
+    <section class="card">
+      <div>
+        <div class="section-title">Paso 1: Saca los 3 cortes con la tecla <span class="mono">∫</span> de tu Casio</div>
+        <div class="section-sub">Deja siempre la <span class="mono">X</span> roja en la integral y cambia solo el número de la <span class="mono">y</span>.</div>
+      </div>
+
+      <!-- Pantalla Casio -->
+      <div class="casio-lcd">
+        <div class="casio-top">
+          <span>CASIO fx-570SP X II IBERIA</span>
+          <span>REBANADA ACTUAL</span>
+        </div>
+        <div id="casioExpr" class="casio-expr mono">∫₀¹ (X + 1) dx</div>
+        <div class="casio-bottom">
+          <span id="casioSub" class="casio-sub">Cambiando y por 1</span>
+          <span id="casioAns" class="casio-ans mono">= 1.5</span>
+        </div>
+      </div>
+
+      <!-- 3 Tarjetas de Resultados -->
+      <div class="slice-cards">
+        <div id="cardStart" class="slice-card blue" onclick="jumpToKeySlice('start')">
+          <div>
+            <div class="slice-title" style="color: var(--blue-main);">
+              <span class="dot" style="background: var(--blue-main);"></span>
+              Corte 1 · Inicio (<span id="lblYStart" class="mono">y = 0</span>)
             </div>
+            <div id="formStart" class="slice-formula mono">∫₀¹ (X + 0) dx</div>
           </div>
+          <div class="slice-result">
+            <span>Da en Casio:</span>
+            <strong id="valStart" class="mono" style="color: var(--blue-main);">0.5</strong>
+          </div>
+        </div>
 
-          <p class="text-xs text-slate-300 mt-2.5 leading-relaxed">
-            <strong class="text-amber-400">¿Por qué funciona?</strong> El promedio ponderado <span class="font-mono-calc text-white">(0.5 + 6 + 2.5) ÷ 6 = 1.5</span> saca el área media, y al multiplicarlo por el ancho <span class="font-mono-calc text-purple-300">2</span> obtienes el volumen exacto: <strong class="text-emerald-400">3</strong>.
-          </p>
+        <div id="cardMid" class="slice-card orange active-card" onclick="jumpToKeySlice('mid')">
+          <div>
+            <div class="slice-title" style="color: var(--orange-main);">
+              <span class="dot" style="background: var(--orange-main);"></span>
+              Corte 2 · Centro (<span id="lblYMid" class="mono">y = 1</span>)
+              <span class="tag-x4">× 4</span>
+            </div>
+            <div id="formMid" class="slice-formula mono">∫₀¹ (X + 1) dx</div>
+          </div>
+          <div class="slice-result">
+            <span>Da en Casio:</span>
+            <strong id="valMid" class="mono" style="color: var(--orange-main);">1.5</strong>
+          </div>
+        </div>
+
+        <div id="cardEnd" class="slice-card green" onclick="jumpToKeySlice('end')">
+          <div>
+            <div class="slice-title" style="color: var(--green-main);">
+              <span class="dot" style="background: var(--green-main);"></span>
+              Corte 3 · Final (<span id="lblYEnd" class="mono">y = 2</span>)
+            </div>
+            <div id="formEnd" class="slice-formula mono">∫₀¹ (X + 2) dx</div>
+          </div>
+          <div class="slice-result">
+            <span>Da en Casio:</span>
+            <strong id="valEnd" class="mono" style="color: var(--green-main);">2.5</strong>
+          </div>
+        </div>
+      </div>
+
+      <!-- Paso 2: Las 4 Cuentas Fijas -->
+      <div class="steps-box">
+        <div class="steps-box-header">Paso 2: Junta los 3 números con las 4 cuentas fijas</div>
+
+        <div class="calc-step">
+          <div class="step-desc">
+            1. Multiplica el del centro por 4
+            <small>El corte naranja siempre vale por 4</small>
+          </div>
+          <div class="step-math mono">
+            <span id="s1Mid" class="pill-val pill-orange">1.5</span> × 4 =
+            <span id="s1Res" class="pill-val pill-white">6</span>
+          </div>
+        </div>
+
+        <div class="calc-step">
+          <div class="step-desc">
+            2. Suma los tres resultados
+            <small>Inicio + (Centro × 4) + Final</small>
+          </div>
+          <div class="step-math mono">
+            <span id="s2Start" class="pill-val pill-blue">0.5</span> +
+            <span id="s2Mid4" class="pill-val pill-orange">6</span> +
+            <span id="s2End" class="pill-val pill-green">2.5</span> =
+            <span id="s2Res" class="pill-val pill-white">9</span>
+          </div>
+        </div>
+
+        <div class="calc-step">
+          <div class="step-desc">
+            3. Divide siempre entre 6
+            <small>Tamaño medio de 1 rebanada</small>
+          </div>
+          <div class="step-math mono">
+            <span id="s3Sum" class="pill-val pill-white">9</span> ÷ 6 =
+            <span id="s3Res" class="pill-val pill-white">1.5</span>
+          </div>
+        </div>
+
+        <div class="calc-step final-step">
+          <div class="step-desc">
+            4. Multiplica por el largo de Y (<span id="s4WidthText" class="mono">2 − 0 = 2</span>)
+            <small>Rebanada media × largo total de la barra</small>
+          </div>
+          <div class="step-math mono">
+            <span id="s4Mean" class="pill-val pill-white">1.5</span> ×
+            <span id="s4Width" class="pill-val pill-purple">2</span> =
+            <span id="s4Total" class="pill-val pill-total">3</span>
+          </div>
+        </div>
+
+        <div class="calc-step">
+          <div class="step-desc">
+            Comprobación: el valor exacto
+            <small id="checkText">Calculado con muchísimas rebanadas</small>
+          </div>
+          <div class="step-math mono">
+            <span id="checkVal" class="pill-val pill-white">3</span>
+          </div>
         </div>
       </div>
     </section>
+
   </main>
 
   <!-- Añadido para la web de estudio: cuentas a mano y cuándo vale el truco -->
-  <section class="max-w-7xl w-full mx-auto px-4 sm:px-6 pb-8 grid grid-cols-1 lg:grid-cols-2 gap-6">
-    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 text-sm leading-relaxed">
-      <h2 class="text-base font-bold text-slate-800 mb-2">4. La misma cuenta a mano (sin calculadora)</h2>
-      <p class="font-bold text-violet-700">Paso 1. Integro primero en x (la y es un número fijo)</p>
-      <p class="font-mono-calc">∫₀¹ (x + y) dx</p>
-      <p class="font-mono-calc">= [x²/2 + y·x] de 0 a 1</p>
-      <p class="font-mono-calc">= 1/2 + y</p>
-      <p class="text-slate-500 mb-3">Es el «área de la rebanada»: con y = 1 sale 1/2 + 1 = 1,5 (la tarjeta naranja).</p>
-      <p class="font-bold text-violet-700">Paso 2. Integro eso en y, de 0 a 2</p>
-      <p class="font-mono-calc">∫₀² (1/2 + y) dy</p>
-      <p class="font-mono-calc">= [y/2 + y²/2] de 0 a 2</p>
-      <p class="font-mono-calc">= 2/2 + 4/2</p>
-      <p class="font-mono-calc">= 1 + 2</p>
-      <p class="font-mono-calc font-bold text-emerald-700">= 3 ✅</p>
-      <p class="text-slate-500 mt-3">Si el recinto es al revés (0 ≤ x ≤ 2, 0 ≤ y ≤ 1, examen 2512770) también sale 3.</p>
+  <section class="study-grid">
+    <div class="study-card">
+      <h2>La misma cuenta a mano (sin calculadora)</h2>
+      <div class="nota" style="margin-top:0">Ejemplo: f = x + y, con x de 0 a 1 e y de 0 a 2.</div>
+      <div class="paso">Paso 1. Integro primero en x (la y es un número fijo)</div>
+      <div class="mono">∫₀¹ (x + y) dx</div>
+      <div class="mono">= [x²/2 + y·x] de 0 a 1</div>
+      <div class="mono">= 1/2 + y</div>
+      <div class="nota">Es el «área de la rebanada»: con y = 1 sale 1/2 + 1 = 1,5 (la tarjeta naranja).</div>
+      <div class="paso">Paso 2. Integro eso en y, de 0 a 2</div>
+      <div class="mono">∫₀² (1/2 + y) dy</div>
+      <div class="mono">= [y/2 + y²/2] de 0 a 2</div>
+      <div class="mono">= 2/2 + 4/2</div>
+      <div class="mono">= 1 + 2</div>
+      <div class="mono ok">= 3 ✅</div>
+      <div class="nota">Si el recinto es al revés (x de 0 a 2, y de 0 a 1, examen 2512770) también sale 3.</div>
     </div>
-    <div class="bg-amber-50 rounded-2xl border-2 border-amber-300 p-5 text-sm leading-relaxed">
-      <h2 class="text-base font-bold text-amber-900 mb-2">🎯 En el examen</h2>
-      <p>Esta pregunta (f = x + y en un rectángulo) ha caído <strong>2 veces</strong>, las dos en exámenes del curso pasado (2500130 y 2512770). Respuesta: <strong>3</strong>.</p>
-      <h2 class="text-base font-bold text-amber-900 mt-4 mb-2">⚠️ Ojo: cuándo vale el truco de la Casio</h2>
-      <p>La receta es siempre la misma:</p>
-      <p class="font-mono-calc">(Inicio + 4 × Centro + Final) ÷ 6 × ancho de y</p>
-      <p class="mt-2">Da el resultado <strong>exacto</strong> cuando la función solo lleva potencias de x e y (x + y, x·y, x³ + y²…).</p>
-      <p class="mt-2">Si lleva sin, cos o e (por ejemplo sin(x + y)) sale <strong>casi</strong> exacto: comprueba qué opción se parece más.</p>
-      <p class="mt-2">El centro es el punto medio de y: (inicio + final) ÷ 2.</p>
+    <div class="study-card exam">
+      <h2>🎯 En el examen</h2>
+      <div>La pregunta de f = x + y en un rectángulo ha caído <strong>2 veces</strong> en los exámenes oficiales registrados (2500130 y 2512770). Respuesta: <strong>3</strong>.</div>
+      <div>En el Test no evaluable de la UD5 salen 3 más: x³ + y², (x·y)²·cos(x²) y sen(x + y). Están en el menú de arriba.</div><div style="margin-top:6px">⚠️ En la de cos(x²) hay una errata: la clave (sen(1)/9 = 0,0935) solo sale con cos(x³). En el menú está con cos(x³).</div>
+      <h2 style="margin-top:14px">⚠️ Ojo: cuándo vale el truco de la Casio</h2>
+      <div>La receta es siempre la misma:</div>
+      <div class="mono">(Inicio + 4 × Centro + Final) ÷ 6 × largo de y</div>
+      <div style="margin-top:6px">Da el resultado <strong>exacto</strong> cuando la y sale como mucho al cubo (y, y², y³). La parte de la x la hace la Casio, así que ahí da igual lo que haya.</div>
+      <div style="margin-top:6px">Si la y va dentro de sin, cos o e (por ejemplo sen(x + y)), sale <strong>casi</strong> exacto: elige la opción que más se parezca. La fila «Comprobación» te lo enseña.</div>
+      <div style="margin-top:6px">El centro es el punto medio de y: (inicio + final) ÷ 2.</div>
     </div>
   </section>
 
   <script>
-    // Estado de la simulación
-    let currentY = 1.0;
-    let isSweeping = false;
-    let sweepDirection = 1;
-    let animationFrameId = null;
+    // Definición de funciones predefinidas
+    // Funciones: f(x, y) y cómo se escribe en la Casio con la y ya cambiada por un número
+    const FUNCS = {
+      x_plus_y:   { f: (x, y) => x + y,                         casio: (v) => `X + ${v}` },
+      x2_plus_y:  { f: (x, y) => x * x + y,                     casio: (v) => `X² + ${v}` },
+      '2x_plus_3y': { f: (x, y) => 2 * x + 3 * y,               casio: (v) => `2X + 3·${v}` },
+      '2x_plus_y':  { f: (x, y) => 2 * x + y,                   casio: (v) => `2X + ${v}` },
+      x_por_y:    { f: (x, y) => x * y,                         casio: (v) => `X · ${v}` },
+      x3_plus_y2: { f: (x, y) => x * x * x + y * y,             casio: (v) => `X³ + ${v}²` },
+      xy2_cos:    { f: (x, y) => (x * y) ** 2 * Math.cos(x * x * x), casio: (v) => `(X·${v})² · cos(X³)` },
+      sen_xy:     { f: (x, y) => Math.sin(x + y),               casio: (v) => `sin(X + ${v})` }
+    };
+    const PRESETS = [
+      { id: 'x_plus_y', xMin: 0, xMax: 1, yMin: 0, yMax: 2 },
+      { id: 'x_plus_y', xMin: 0, xMax: 2, yMin: 0, yMax: 1 },
+      { id: 'x2_plus_y', xMin: 0, xMax: 2, yMin: 0, yMax: 2 },
+      { id: '2x_plus_3y', xMin: 1, xMax: 3, yMin: 0, yMax: 2 },
+      { id: 'x_plus_y', xMin: 0, xMax: 1, yMin: 0, yMax: 1 },
+      { id: 'x_plus_y', xMin: 0, xMax: 2, yMin: 0, yMax: 2 },
+      { id: '2x_plus_y', xMin: 0, xMax: 1, yMin: 0, yMax: 3 },
+      { id: 'x_por_y', xMin: 0, xMax: 2, yMin: 0, yMax: 1 },
+      { id: 'x3_plus_y2', xMin: 0, xMax: 1, yMin: 0, yMax: 1 },
+      { id: 'xy2_cos', xMin: 0, xMax: 1, yMin: 0, yMax: 1 },
+      { id: 'sen_xy', xMin: 0, xMax: 1, yMin: 0, yMax: 1 }
+    ];
+
+    // Estado de la aplicación
+    let state = {
+      funcId: 'x_plus_y',
+      xMin: 0,
+      xMax: 1,
+      yMin: 0,
+      yMax: 2,
+      currentY: 1,
+      viewMode: '3d', // '3d' o '2d'
+      yaw: 0.42,      // Ángulo horizontal para rotación suave en 3D
+      pitch: 0.48,    // Ángulo vertical en 3D
+      isSweeping: false,
+      sweepDir: 1
+    };
+
+    let animFrame = null;
+    let isDragging = false;
+    let lastMouseX = 0;
+    let lastMouseY = 0;
 
     // Referencias DOM
-    const canvas = document.getElementById('isoCanvas');
+    const canvas = document.getElementById('simCanvas');
     const ctx = canvas.getContext('2d');
-    const wrapper = document.getElementById('canvas-wrapper');
-
+    const wrapper = document.getElementById('canvasWrapper');
     const ySlider = document.getElementById('ySlider');
-    const yValLabel = document.getElementById('yValLabel');
-    const badgeY = document.getElementById('badge-y');
-    const badgeArea = document.getElementById('badge-area');
 
-    const casioExpr = document.getElementById('casio-screen-expr');
-    const casioNote = document.getElementById('casio-screen-note');
-    const casioRes = document.getElementById('casio-screen-res');
-
-    const btnInicio = document.getElementById('btnInicio');
-    const btnCentro = document.getElementById('btnCentro');
-    const btnFinal = document.getElementById('btnFinal');
-    const btnBarrido = document.getElementById('btnBarrido');
-    const barridoIcon = document.getElementById('barridoIcon');
-
-    const cardInicio = document.getElementById('card-inicio');
-    const cardCentro = document.getElementById('card-centro');
-    const cardFinal = document.getElementById('card-final');
-
-    // Función matemática: f(x, y) = x + y
-    function f(x, y) {
-      return x + y;
+    // Evaluación matemática de f(x, y)
+    function evalF(x, y) {
+      return (FUNCS[state.funcId] || FUNCS.x_plus_y).f(x, y);
     }
 
-    // Área de la rebanada para un y fijo: integral de 0 a 1 de (x + y) dx = 0.5 + y
-    function sliceArea(y) {
-      return 0.5 + y;
+    // Integral en X desde xMin hasta xMax con la y fija (lo que hace la tecla ∫ de la Casio)
+    function integrateX(y) {
+      const a = state.xMin, b = state.xMax, n = 200, h = (b - a) / n;
+      let sum = evalF(a, y) + evalF(b, y);
+      for (let i = 1; i < n; i++) sum += (i % 2 ? 4 : 2) * evalF(a + i * h, y);
+      return (sum * h) / 3;
     }
 
-    // Proyección isométrica limpia adaptada al tamaño del lienzo
-    function project(x, y, z, width, height) {
-      // Escala dinámica según el tamaño del canvas
-      const scale = Math.min(width, height) * 0.23;
+    // Valor exacto de la integral doble (con muchísimas rebanadas), para comprobar el truco
+    function exactDouble() {
+      const a = state.yMin, b = state.yMax, n = 100, h = (b - a) / n;
+      let sum = integrateX(a) + integrateX(b);
+      for (let i = 1; i < n; i++) sum += (i % 2 ? 4 : 2) * integrateX(a + i * h);
+      return (sum * h) / 3;
+    }
 
-      // Ejes isométricos:
-      // x va hacia abajo-izquierda, y va hacia abajo-derecha, z va hacia arriba
-      const isoX = (y - x) * Math.cos(Math.PI / 6);
-      const isoY = (x + y) * Math.sin(Math.PI / 6) - z * 0.72;
+    // Altura máxima de la superficie (para que el dibujo quepa)
+    function maxHeight() {
+      let m = 0;
+      for (let i = 0; i <= 10; i++) for (let j = 0; j <= 10; j++) {
+        const x = state.xMin + (state.xMax - state.xMin) * i / 10;
+        const y = state.yMin + (state.yMax - state.yMin) * j / 10;
+        m = Math.max(m, evalF(x, y));
+      }
+      return m;
+    }
 
-      // Centrar la figura en el lienzo
-      const originX = width * 0.44;
-      const originY = height * 0.76;
+    // Formato limpio de números (evita decimales largos innecesarios)
+    function fmt(num) {
+      const rounded = Math.round(num * 1000) / 1000;
+      return Number.isInteger(rounded) ? rounded.toString() : rounded.toFixed(3).replace(/\.?0+$/, '');
+    }
+
+    // Formato de la expresión en pantalla Casio
+    function formatCasioIntegrand(yVal) {
+      return (FUNCS[state.funcId] || FUNCS.x_plus_y).casio(fmt(yVal));
+    }
+
+    // Obtener los 3 puntos clave y resultados
+    function getSimpsonData() {
+      const y0 = state.yMin;
+      const y2 = state.yMax;
+      const y1 = (y0 + y2) / 2;
+      const widthY = y2 - y0;
+
+      const areaStart = integrateX(y0);
+      const areaMid = integrateX(y1);
+      const areaEnd = integrateX(y2);
+
+      const midTimes4 = areaMid * 4;
+      const sum = areaStart + midTimes4 + areaEnd;
+      const meanSlice = sum / 6;
+      const totalVolume = meanSlice * widthY;
 
       return {
-        px: originX + isoX * scale,
-        py: originY + isoY * scale
+        y0, y1, y2, widthY,
+        areaStart, areaMid, areaEnd,
+        midTimes4, sum, meanSlice, totalVolume
       };
     }
 
-    // Dibuja un polígono dados sus puntos 3D
-    function drawPoly3D(points3D, fillStyle, strokeStyle, lineWidth = 1.5, width, height) {
-      if (!points3D.length) return;
-      ctx.beginPath();
-      points3D.forEach((pt, idx) => {
-        const p = project(pt.x, pt.y, pt.z, width, height);
-        if (idx === 0) ctx.moveTo(p.px, p.py);
-        else ctx.lineTo(p.px, p.py);
-      });
-      ctx.closePath();
-      if (fillStyle) {
-        ctx.fillStyle = fillStyle;
-        ctx.fill();
+    // Cambiar preset
+    document.getElementById('presetSelect').addEventListener('change', (e) => {
+      stopSweep();
+      const p = PRESETS[parseInt(e.target.value, 10)];
+      state.funcId = p.id;
+      state.xMin = p.xMin;
+      state.xMax = p.xMax;
+      state.yMin = p.yMin;
+      state.yMax = p.yMax;
+      state.currentY = (p.yMin + p.yMax) / 2;
+      syncAll();
+    });
+
+    // Ajustar límites con botones +/-
+    function adjustBound(key, delta) {
+      stopSweep();
+      if (key === 'xMin' && state.xMin + delta < state.xMax && state.xMin + delta >= 0) {
+        state.xMin += delta;
+      } else if (key === 'xMax' && state.xMax + delta > state.xMin && state.xMax + delta <= 5) {
+        state.xMax += delta;
+      } else if (key === 'yMin' && state.yMin + delta < state.yMax && state.yMin + delta >= 0) {
+        state.yMin += delta;
+      } else if (key === 'yMax' && state.yMax + delta > state.yMin && state.yMax + delta <= 6) {
+        state.yMax += delta;
       }
-      if (strokeStyle) {
-        ctx.strokeStyle = strokeStyle;
-        ctx.lineWidth = lineWidth;
-        ctx.stroke();
+      state.currentY = (state.yMin + state.yMax) / 2;
+      syncAll();
+    }
+
+    // Cambiar modo de vista (3D vs 2D lateral)
+    function setViewMode(mode) {
+      state.viewMode = mode;
+      document.getElementById('tab3D').classList.toggle('active', mode === '3d');
+      document.getElementById('tab2D').classList.toggle('active', mode === '2d');
+      document.getElementById('canvasHint').textContent =
+        mode === '3d'
+          ? 'Arrastra con el ratón para girar la barra de pan'
+          : 'Vista lateral limpia: observa cómo las 3 rebanadas no se cruzan';
+      renderCanvas();
+    }
+
+    // Saltar a Inicio, Centro o Final
+    function jumpToKeySlice(which) {
+      stopSweep();
+      const d = getSimpsonData();
+      if (which === 'start') state.currentY = d.y0;
+      if (which === 'mid') state.currentY = d.y1;
+      if (which === 'end') state.currentY = d.y2;
+      syncAll();
+    }
+
+    // Animación de barrido
+    function toggleSweep() {
+      if (state.isSweeping) {
+        stopSweep();
+        return;
+      }
+      state.isSweeping = true;
+      document.getElementById('sweepLabel').textContent = '⏸ Pausar barrido';
+      if (state.currentY >= state.yMax - 0.01) {
+        state.currentY = state.yMin;
+      }
+
+      function step() {
+        if (!state.isSweeping) return;
+        const span = state.yMax - state.yMin;
+        state.currentY += (span * 0.008) * state.sweepDir;
+        if (state.currentY >= state.yMax) {
+          state.currentY = state.yMax;
+          state.sweepDir = -1;
+        } else if (state.currentY <= state.yMin) {
+          state.currentY = state.yMin;
+          state.sweepDir = 1;
+        }
+        syncAll();
+        animFrame = requestAnimationFrame(step);
+      }
+      animFrame = requestAnimationFrame(step);
+    }
+
+    function stopSweep() {
+      state.isSweeping = false;
+      document.getElementById('sweepLabel').textContent = '▶ Barrido completo';
+      if (animFrame) {
+        cancelAnimationFrame(animFrame);
+        animFrame = null;
       }
     }
 
-    // Dibuja una línea entre dos puntos 3D
-    function drawLine3D(p1, p2, strokeStyle, lineWidth = 1.5, dash = [], width, height) {
-      const a = project(p1.x, p1.y, p1.z, width, height);
-      const b = project(p2.x, p2.y, p2.z, width, height);
-      ctx.save();
-      ctx.beginPath();
-      ctx.setLineDash(dash);
-      ctx.moveTo(a.px, a.py);
-      ctx.lineTo(b.px, b.py);
-      ctx.strokeStyle = strokeStyle;
-      ctx.lineWidth = lineWidth;
-      ctx.stroke();
-      ctx.restore();
-    }
+    // Evento del deslizador manual
+    ySlider.addEventListener('input', (e) => {
+      stopSweep();
+      state.currentY = parseFloat(e.target.value);
+      syncAll();
+    });
 
-    // Dibuja texto en coordenadas 3D
-    function drawText3D(text, p3d, color, font = 'bold 12px Inter', offsetX = 0, offsetY = 0, width, height) {
-      const p = project(p3d.x, p3d.y, p3d.z, width, height);
-      ctx.save();
-      ctx.font = font;
-      ctx.fillStyle = color;
-      ctx.fillText(text, p.px + offsetX, p.py + offsetY);
-      ctx.restore();
-    }
+    // Rotación interactiva con ratón/táctil en modo 3D
+    canvas.addEventListener('mousedown', (e) => {
+      if (state.viewMode !== '3d') return;
+      isDragging = true;
+      lastMouseX = e.clientX;
+      lastMouseY = e.clientY;
+    });
 
-    // Dibuja una rebanada específica en yVal
-    function drawSlice(yVal, fillColor, strokeColor, lineWidth, labelText, width, height) {
-      const pts = [
-        { x: 0, y: yVal, z: 0 },
-        { x: 1, y: yVal, z: 0 },
-        { x: 1, y: yVal, z: f(1, yVal) },
-        { x: 0, y: yVal, z: f(0, yVal) }
-      ];
-      drawPoly3D(pts, fillColor, strokeColor, lineWidth, width, height);
+    window.addEventListener('mousemove', (e) => {
+      if (!isDragging || state.viewMode !== '3d') return;
+      const dx = e.clientX - lastMouseX;
+      const dy = e.clientY - lastMouseY;
+      lastMouseX = e.clientX;
+      lastMouseY = e.clientY;
+      state.yaw = Math.max(-0.9, Math.min(1.1, state.yaw + dx * 0.008));
+      state.pitch = Math.max(0.2, Math.min(0.95, state.pitch + dy * 0.006));
+      renderCanvas();
+    });
 
-      if (labelText) {
-        drawText3D(
-          labelText,
-          { x: 1, y: yVal, z: f(1, yVal) },
-          strokeColor,
-          'bold 12px Inter',
-          -65,
-          -8,
-          width,
-          height
-        );
+    window.addEventListener('mouseup', () => {
+      isDragging = false;
+    });
+
+    canvas.addEventListener('touchstart', (e) => {
+      if (state.viewMode !== '3d' || e.touches.length !== 1) return;
+      isDragging = true;
+      lastMouseX = e.touches[0].clientX;
+      lastMouseY = e.touches[0].clientY;
+    }, { passive: true });
+
+    canvas.addEventListener('touchmove', (e) => {
+      if (!isDragging || state.viewMode !== '3d' || e.touches.length !== 1) return;
+      const dx = e.touches[0].clientX - lastMouseX;
+      const dy = e.touches[0].clientY - lastMouseY;
+      lastMouseX = e.touches[0].clientX;
+      lastMouseY = e.touches[0].clientY;
+      state.yaw = Math.max(-0.9, Math.min(1.1, state.yaw + dx * 0.008));
+      state.pitch = Math.max(0.2, Math.min(0.95, state.pitch + dy * 0.006));
+      renderCanvas();
+    }, { passive: true });
+
+    canvas.addEventListener('touchend', () => {
+      isDragging = false;
+    });
+
+    // Sincronizar toda la interfaz con el estado actual
+    function syncAll() {
+      const d = getSimpsonData();
+
+      // Actualizar contadores de límites
+      document.getElementById('xMinVal').textContent = state.xMin;
+      document.getElementById('xMaxVal').textContent = state.xMax;
+      document.getElementById('yMinVal').textContent = state.yMin;
+      document.getElementById('yMaxVal').textContent = state.yMax;
+
+      // Actualizar deslizador
+      ySlider.min = state.yMin;
+      ySlider.max = state.yMax;
+      ySlider.value = state.currentY;
+      document.getElementById('yPill').textContent = state.currentY.toFixed(2);
+
+      // HUD flotante sobre el canvas
+      const curArea = integrateX(state.currentY);
+      document.getElementById('hudY').textContent = `y = ${state.currentY.toFixed(2)}`;
+      const hudAreaEl = document.getElementById('hudArea');
+      hudAreaEl.textContent = `Área rebanada = ${fmt(curArea)}`;
+
+      // Color del HUD según cercanía a los 3 cortes clave
+      const tol = (state.yMax - state.yMin) * 0.02 + 0.01;
+      const isStart = Math.abs(state.currentY - d.y0) < tol;
+      const isMid = Math.abs(state.currentY - d.y1) < tol;
+      const isEnd = Math.abs(state.currentY - d.y2) < tol;
+
+      if (isStart) {
+        hudAreaEl.style.background = '#dbeafe';
+        hudAreaEl.style.color = '#1e40af';
+      } else if (isMid) {
+        hudAreaEl.style.background = '#fef3c7';
+        hudAreaEl.style.color = '#92400e';
+      } else if (isEnd) {
+        hudAreaEl.style.background = '#d1fae5';
+        hudAreaEl.style.color = '#065f46';
+      } else {
+        hudAreaEl.style.background = '#e2e8f0';
+        hudAreaEl.style.color = '#1e293b';
       }
+
+      // Botones inferiores
+      document.getElementById('subBtnStart').textContent = `y = ${fmt(d.y0)}`;
+      document.getElementById('subBtnMid').textContent = `y = ${fmt(d.y1)} (×4)`;
+      document.getElementById('subBtnEnd').textContent = `y = ${fmt(d.y2)}`;
+
+      document.getElementById('btnCutStart').classList.toggle('selected', isStart);
+      document.getElementById('btnCutMid').classList.toggle('selected', isMid);
+      document.getElementById('btnCutEnd').classList.toggle('selected', isEnd);
+
+      // Pantalla Casio
+      document.getElementById('casioExpr').textContent =
+        `∫[${state.xMin}→${state.xMax}] (${formatCasioIntegrand(state.currentY)}) dx`;
+      document.getElementById('casioSub').textContent =
+        `Sustituyendo y = ${fmt(state.currentY)}`;
+      document.getElementById('casioAns').textContent = `= ${fmt(curArea)}`;
+
+      // Tarjetas de los 3 cortes
+      document.getElementById('lblYStart').textContent = `y = ${fmt(d.y0)}`;
+      document.getElementById('formStart').textContent =
+        `∫[${state.xMin}→${state.xMax}] (${formatCasioIntegrand(d.y0)}) dx`;
+      document.getElementById('valStart').textContent = fmt(d.areaStart);
+
+      document.getElementById('lblYMid').textContent = `y = ${fmt(d.y1)}`;
+      document.getElementById('formMid').textContent =
+        `∫[${state.xMin}→${state.xMax}] (${formatCasioIntegrand(d.y1)}) dx`;
+      document.getElementById('valMid').textContent = fmt(d.areaMid);
+
+      document.getElementById('lblYEnd').textContent = `y = ${fmt(d.y2)}`;
+      document.getElementById('formEnd').textContent =
+        `∫[${state.xMin}→${state.xMax}] (${formatCasioIntegrand(d.y2)}) dx`;
+      document.getElementById('valEnd').textContent = fmt(d.areaEnd);
+
+      document.getElementById('cardStart').classList.toggle('active-card', isStart);
+      document.getElementById('cardMid').classList.toggle('active-card', isMid);
+      document.getElementById('cardEnd').classList.toggle('active-card', isEnd);
+
+      // Paso 2: Las 4 cuentas fijas
+      document.getElementById('s1Mid').textContent = fmt(d.areaMid);
+      document.getElementById('s1Res').textContent = fmt(d.midTimes4);
+
+      document.getElementById('s2Start').textContent = fmt(d.areaStart);
+      document.getElementById('s2Mid4').textContent = fmt(d.midTimes4);
+      document.getElementById('s2End').textContent = fmt(d.areaEnd);
+      document.getElementById('s2Res').textContent = fmt(d.sum);
+
+      document.getElementById('s3Sum').textContent = fmt(d.sum);
+      document.getElementById('s3Res').textContent = fmt(d.meanSlice);
+
+      document.getElementById('s4WidthText').textContent = `${fmt(d.y2)} − ${fmt(d.y0)} = ${fmt(d.widthY)}`;
+      document.getElementById('s4Mean').textContent = fmt(d.meanSlice);
+      document.getElementById('s4Width').textContent = fmt(d.widthY);
+      document.getElementById('s4Total').textContent = fmt(d.totalVolume);
+      const ex = exactDouble();
+      const igual = Math.abs(ex - d.totalVolume) < 0.0005;
+      document.getElementById('checkVal').textContent = fmt(ex) + (igual ? ' ✅' : ' ≈');
+      document.getElementById('checkText').textContent = igual
+        ? 'Sale lo mismo: aquí el truco es exacto'
+        : 'Sale casi lo mismo: elige la opción que más se parezca';
+
+      renderCanvas();
     }
 
-    // Renderizado principal del canvas
-    function renderScene() {
+    // Renderizado principal del Canvas (Vista 3D limpia o Vista 2D lateral)
+    function renderCanvas() {
       const rect = wrapper.getBoundingClientRect();
       const dpr = window.devicePixelRatio || 1;
       canvas.width = rect.width * dpr;
@@ -462,236 +1343,378 @@
 
       const W = rect.width;
       const H = rect.height;
-
       ctx.clearRect(0, 0, W, H);
 
-      // 1. Ejes de coordenadas base
-      drawLine3D({ x: 0, y: 0, z: 0 }, { x: 1.35, y: 0, z: 0 }, '#94a3b8', 1.5, [], W, H);
-      drawLine3D({ x: 0, y: 0, z: 0 }, { x: 0, y: 2.35, z: 0 }, '#94a3b8', 1.5, [], W, H);
-      drawLine3D({ x: 0, y: 0, z: 0 }, { x: 0, y: 0, z: 3.3 }, '#94a3b8', 1.5, [], W, H);
-
-      drawText3D('x = 1', { x: 1.15, y: 0, z: 0 }, '#475569', 'bold 12px JetBrains Mono', -28, 16, W, H);
-      drawText3D('y = 2', { x: 0, y: 2.15, z: 0 }, '#475569', 'bold 12px JetBrains Mono', 8, 12, W, H);
-      drawText3D('z = x + y', { x: 0, y: 0, z: 3.15 }, '#475569', 'bold 12px JetBrains Mono', 8, 4, W, H);
-
-      // 2. Base rectangular [0,1] x [0,2] en z = 0
-      drawPoly3D(
-        [
-          { x: 0, y: 0, z: 0 },
-          { x: 1, y: 0, z: 0 },
-          { x: 1, y: 2, z: 0 },
-          { x: 0, y: 2, z: 0 }
-        ],
-        'rgba(226, 232, 240, 0.55)',
-        '#64748b',
-        1.5,
-        W,
-        H
-      );
-
-      // Líneas guía en la base para y=0, y=1, y=2
-      drawLine3D({ x: 0, y: 1, z: 0 }, { x: 1, y: 1, z: 0 }, '#f59e0b', 1.5, [4, 4], W, H);
-
-      // 3. Volumen barrido hasta currentY (si y > 0)
-      if (currentY > 0.01) {
-        // Cara trasera (x = 0, de y=0 a currentY)
-        drawPoly3D(
-          [
-            { x: 0, y: 0, z: 0 },
-            { x: 0, y: currentY, z: 0 },
-            { x: 0, y: currentY, z: f(0, currentY) },
-            { x: 0, y: 0, z: f(0, 0) }
-          ],
-          'rgba(148, 163, 184, 0.16)',
-          'rgba(100, 116, 139, 0.4)',
-          1,
-          W,
-          H
-        );
-
-        // Techo z = x + y desde y=0 hasta currentY
-        drawPoly3D(
-          [
-            { x: 0, y: 0, z: f(0, 0) },
-            { x: 1, y: 0, z: f(1, 0) },
-            { x: 1, y: currentY, z: f(1, currentY) },
-            { x: 0, y: currentY, z: f(0, currentY) }
-          ],
-          'rgba(99, 102, 241, 0.14)',
-          'rgba(79, 70, 229, 0.45)',
-          1.2,
-          W,
-          H
-        );
-
-        // Cara frontal (x = 1, de y=0 a currentY)
-        drawPoly3D(
-          [
-            { x: 1, y: 0, z: 0 },
-            { x: 1, y: currentY, z: 0 },
-            { x: 1, y: currentY, z: f(1, currentY) },
-            { x: 1, y: 0, z: f(1, 0) }
-          ],
-          'rgba(99, 102, 241, 0.10)',
-          'rgba(79, 70, 229, 0.35)',
-          1,
-          W,
-          H
-        );
-      }
-
-      // 4. Contorno completo del sólido en línea discontinua suave
-      drawPoly3D(
-        [
-          { x: 0, y: 0, z: f(0, 0) },
-          { x: 1, y: 0, z: f(1, 0) },
-          { x: 1, y: 2, z: f(1, 2) },
-          { x: 0, y: 2, z: f(0, 2) }
-        ],
-        null,
-        'rgba(100, 116, 139, 0.45)',
-        1.2,
-        W,
-        H
-      );
-      drawLine3D({ x: 1, y: 2, z: 0 }, { x: 1, y: 2, z: f(1, 2) }, 'rgba(100, 116, 139, 0.45)', 1.2, [4, 4], W, H);
-      drawLine3D({ x: 0, y: 2, z: 0 }, { x: 0, y: 2, z: f(0, 2) }, 'rgba(100, 116, 139, 0.45)', 1.2, [4, 4], W, H);
-      drawLine3D({ x: 1, y: 0, z: 0 }, { x: 1, y: 0, z: f(1, 0) }, 'rgba(100, 116, 139, 0.45)', 1.2, [4, 4], W, H);
-
-      // 5. Dibujar las 3 rebanadas clave de referencia (suaves si no están activas)
-      // Rebanada 1: Inicio (y = 0) - Azul
-      drawSlice(0, 'rgba(37, 99, 235, 0.22)', '#2563eb', 2, 'Inicio (0.5)', W, H);
-
-      // Rebanada 2: Centro (y = 1) - Ámbar/Naranja
-      drawSlice(1, 'rgba(245, 158, 11, 0.25)', '#d97706', 2.2, 'Centro (1.5)', W, H);
-
-      // Rebanada 3: Final (y = 2) - Verde
-      drawSlice(2, 'rgba(5, 150, 105, 0.22)', '#059669', 2, 'Final (2.5)', W, H);
-
-      // 6. Dibujar la rebanada activa móvil encima con color intenso
-      let activeFill = 'rgba(15, 23, 42, 0.35)';
-      let activeStroke = '#0f172a';
-
-      if (Math.abs(currentY - 0) < 0.03) {
-        activeFill = 'rgba(37, 99, 235, 0.55)';
-        activeStroke = '#1d4ed8';
-      } else if (Math.abs(currentY - 1) < 0.03) {
-        activeFill = 'rgba(245, 158, 11, 0.58)';
-        activeStroke = '#b45309';
-      } else if (Math.abs(currentY - 2) < 0.03) {
-        activeFill = 'rgba(5, 150, 105, 0.55)';
-        activeStroke = '#047857';
+      if (state.viewMode === '2d') {
+        render2DProfile(W, H);
       } else {
-        activeFill = 'rgba(99, 102, 241, 0.42)';
-        activeStroke = '#4338ca';
+        render3DBreadLoaf(W, H);
       }
-
-      drawSlice(currentY, activeFill, activeStroke, 3, null, W, H);
     }
 
-    // Actualiza textos de la pantalla Casio y resaltados de tarjetas
-    function updateUI() {
-      const yFormatted = currentY.toFixed(2);
-      const area = sliceArea(currentY);
-      const areaFormatted = area.toFixed(2);
+    // VISTA 2D: Perfil lateral de áreas (cero superposición)
+    function render2DProfile(W, H) {
+      const d = getSimpsonData();
+      const padL = 56;
+      const padR = 36;
+      const padT = 68;
+      const padB = 44;
 
-      ySlider.value = currentY;
-      yValLabel.textContent = yFormatted;
-      badgeY.textContent = `y = ${yFormatted}`;
-      badgeArea.textContent = `Área = ${areaFormatted}`;
+      const plotW = W - padL - padR;
+      const plotH = H - padT - padB;
 
-      // Actualizar color de la etiqueta del área según cercanía a los 3 puntos clave
-      badgeArea.className = 'text-xs font-bold px-2 py-0.5 rounded-md ';
-      if (Math.abs(currentY - 0) < 0.03) {
-        badgeArea.className += 'bg-blue-100 text-blue-800';
-      } else if (Math.abs(currentY - 1) < 0.03) {
-        badgeArea.className += 'bg-amber-100 text-amber-800';
-      } else if (Math.abs(currentY - 2) < 0.03) {
-        badgeArea.className += 'bg-emerald-100 text-emerald-800';
-      } else {
-        badgeArea.className += 'bg-indigo-100 text-indigo-800';
+      let maxArea = 0;
+      for (let i = 0; i <= 20; i++) maxArea = Math.max(maxArea, integrateX(d.y0 + d.widthY * i / 20));
+      maxArea = Math.max(maxArea, 0.5) * 1.22;
+      const spanY = Math.max(d.widthY, 0.001);
+
+      const toX = (y) => padL + ((y - d.y0) / spanY) * plotW;
+      const toY = (area) => padT + plotH - (area / maxArea) * plotH;
+
+      // Cuadrícula suave
+      ctx.strokeStyle = '#e2e8f0';
+      ctx.lineWidth = 1;
+      for (let i = 0; i <= 4; i++) {
+        const yy = padT + (plotH * i) / 4;
+        ctx.beginPath();
+        ctx.moveTo(padL, yy);
+        ctx.lineTo(padL + plotW, yy);
+        ctx.stroke();
       }
 
-      // Actualizar pantalla Casio
-      const yDisplay = Number.isInteger(Number(yFormatted)) ? Number(yFormatted).toString() : yFormatted;
-      const resDisplay = Number.isInteger(Number(areaFormatted)) ? Number(areaFormatted).toString() : areaFormatted;
+      // Rectángulo equivalente de "Área Media × Largo de Y" (en morado punteado)
+      const meanY = toY(d.meanSlice);
+      ctx.fillStyle = 'rgba(124, 58, 237, 0.08)';
+      ctx.fillRect(toX(d.y0), meanY, plotW, toY(0) - meanY);
 
-      casioExpr.textContent = `∫₀¹ (X + ${yDisplay}) dx`;
-      casioNote.textContent = `Calculando rebanada en y = ${yDisplay}`;
-      casioRes.textContent = `= ${resDisplay}`;
+      ctx.save();
+      ctx.setLineDash([6, 5]);
+      ctx.strokeStyle = '#7c3aed';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(toX(d.y0), meanY);
+      ctx.lineTo(toX(d.y2), meanY);
+      ctx.stroke();
+      ctx.restore();
 
-      // Resaltar tarjeta correspondiente si estamos en 0, 1 o 2
-      cardInicio.classList.toggle('ring-2', Math.abs(currentY - 0) < 0.03);
-      cardInicio.classList.toggle('ring-blue-500', Math.abs(currentY - 0) < 0.03);
+      ctx.fillStyle = '#6d28d9';
+      ctx.font = 'bold 12px sans-serif';
+      ctx.fillText(`Rebanada media = ${fmt(d.meanSlice)}`, toX(d.y0) + 8, meanY - 7);
 
-      cardCentro.classList.toggle('ring-2', Math.abs(currentY - 1) < 0.03);
-      cardCentro.classList.toggle('ring-amber-500', Math.abs(currentY - 1) < 0.03);
-
-      cardFinal.classList.toggle('ring-2', Math.abs(currentY - 2) < 0.03);
-      cardFinal.classList.toggle('ring-emerald-500', Math.abs(currentY - 2) < 0.03);
-
-      renderScene();
-    }
-
-    // Saltar directamente a un valor de y
-    function jumpToY(targetY) {
-      stopSweep();
-      currentY = targetY;
-      updateUI();
-    }
-
-    // Control de animación de barrido
-    function startSweep() {
-      if (isSweeping) {
-        stopSweep();
-        return;
+      // Relleno de la curva de áreas desde y0 hasta currentY
+      const steps = 40;
+      ctx.beginPath();
+      ctx.moveTo(toX(d.y0), toY(0));
+      for (let i = 0; i <= steps; i++) {
+        const yv = d.y0 + ((state.currentY - d.y0) * i) / steps;
+        ctx.lineTo(toX(yv), toY(integrateX(yv)));
       }
-      isSweeping = true;
-      barridoIcon.textContent = '⏸ Pausar';
-      if (currentY >= 1.98) currentY = 0;
+      ctx.lineTo(toX(state.currentY), toY(0));
+      ctx.closePath();
+      ctx.fillStyle = 'rgba(37, 99, 235, 0.16)';
+      ctx.fill();
 
-      function step() {
-        if (!isSweeping) return;
-        currentY += 0.015 * sweepDirection;
-        if (currentY >= 2) {
-          currentY = 2;
-          sweepDirection = -1;
-        } else if (currentY <= 0) {
-          currentY = 0;
-          sweepDirection = 1;
+      // Curva completa superior
+      ctx.beginPath();
+      for (let i = 0; i <= steps; i++) {
+        const yv = d.y0 + (spanY * i) / steps;
+        const px = toX(yv);
+        const py = toY(integrateX(yv));
+        if (i === 0) ctx.moveTo(px, py);
+        else ctx.lineTo(px, py);
+      }
+      ctx.strokeStyle = '#334155';
+      ctx.lineWidth = 2.5;
+      ctx.stroke();
+
+      // Ejes
+      ctx.strokeStyle = '#64748b';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(padL, padT);
+      ctx.lineTo(padL, padT + plotH);
+      ctx.lineTo(padL + plotW, padT + plotH);
+      ctx.stroke();
+
+      // Dibujar las 3 barras verticales (Inicio, Centro, Final) bien separadas
+      const bars = [
+        { y: d.y0, area: d.areaStart, color: '#2563eb', label: `Inicio (${fmt(d.areaStart)})` },
+        { y: d.y1, area: d.areaMid, color: '#d97706', label: `Centro (${fmt(d.areaMid)})` },
+        { y: d.y2, area: d.areaEnd, color: '#059669', label: `Final (${fmt(d.areaEnd)})` }
+      ];
+
+      bars.forEach((b) => {
+        const bx = toX(b.y);
+        const by = toY(b.area);
+
+        ctx.strokeStyle = b.color;
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        ctx.moveTo(bx, toY(0));
+        ctx.lineTo(bx, by);
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.arc(bx, by, 6, 0, Math.PI * 2);
+        ctx.fillStyle = b.color;
+        ctx.fill();
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        ctx.fillStyle = b.color;
+        ctx.font = 'bold 12px sans-serif';
+        const offset = b.y === d.y2 ? -82 : b.y === d.y1 ? -38 : 6;
+        ctx.fillText(b.label, bx + offset, by - 10);
+
+        // Etiqueta en eje Y abajo
+        ctx.fillStyle = '#334155';
+        ctx.font = 'bold 11px monospace';
+        ctx.fillText(`y=${fmt(b.y)}`, bx - 16, toY(0) + 18);
+      });
+
+      // Cuchilla móvil actual
+      const cx = toX(state.currentY);
+      const cy = toY(integrateX(state.currentY));
+      ctx.save();
+      ctx.setLineDash([3, 3]);
+      ctx.strokeStyle = '#0f172a';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(cx, toY(0));
+      ctx.lineTo(cx, cy);
+      ctx.stroke();
+      ctx.restore();
+
+      ctx.beginPath();
+      ctx.arc(cx, cy, 7, 0, Math.PI * 2);
+      ctx.fillStyle = '#0f172a';
+      ctx.fill();
+    }
+
+    // VISTA 3D: Barra de pan limpia con eje Y de izquierda a derecha y X hacia el fondo
+    function render3DBreadLoaf(W, H) {
+      const d = getSimpsonData();
+      const spanX = Math.max(state.xMax - state.xMin, 0.1);
+      const spanY = Math.max(state.yMax - state.yMin, 0.1);
+
+      // Calcular altura máxima para escalar el eje Z cómodamente
+      const maxZ = Math.max(maxHeight(), 0.5);
+
+      // Normalizamos coordenadas al cubo [0,1] x [0,1] x [0,1] para que siempre se vea proporcionado
+      function project3D(nx, ny, nz) {
+        // ny va de -0.5 a 0.5 (de izquierda a derecha)
+        // nx va de -0.5 a 0.5 (de delante hacia atrás)
+        const cy = ny - 0.5;
+        const cx = nx - 0.5;
+
+        const cosY = Math.cos(state.yaw);
+        const sinY = Math.sin(state.yaw);
+
+        // Rotación horizontal
+        const rx = cy * cosY - cx * sinY;
+        const rzDepth = cy * sinY + cx * cosY;
+
+        const scaleX = W * 0.44;
+        const scaleY = H * 0.34;
+
+        const px = W * 0.5 + rx * scaleX;
+        const py = H * 0.72 + rzDepth * scaleY * state.pitch - nz * (H * 0.42);
+        return { px, py };
+      }
+
+      const normX = (x) => (x - state.xMin) / spanX;
+      const normY = (y) => (y - state.yMin) / spanY;
+      const normZ = (z) => z / maxZ;
+
+      function poly3D(pts, fill, stroke, lineW = 1.5, dash = []) {
+        ctx.save();
+        ctx.beginPath();
+        ctx.setLineDash(dash);
+        pts.forEach((p, idx) => {
+          const pr = project3D(normX(p.x), normY(p.y), normZ(p.z));
+          if (idx === 0) ctx.moveTo(pr.px, pr.py);
+          else ctx.lineTo(pr.px, pr.py);
+        });
+        ctx.closePath();
+        if (fill) {
+          ctx.fillStyle = fill;
+          ctx.fill();
         }
-        updateUI();
-        animationFrameId = requestAnimationFrame(step);
+        if (stroke) {
+          ctx.strokeStyle = stroke;
+          ctx.lineWidth = lineW;
+          ctx.stroke();
+        }
+        ctx.restore();
       }
-      animationFrameId = requestAnimationFrame(step);
+
+      // 1. Base rectangular en el suelo (z = 0)
+      poly3D(
+        [
+          { x: state.xMin, y: state.yMin, z: 0 },
+          { x: state.xMin, y: state.yMax, z: 0 },
+          { x: state.xMax, y: state.yMax, z: 0 },
+          { x: state.xMax, y: state.yMin, z: 0 }
+        ],
+        'rgba(226, 232, 240, 0.65)',
+        '#64748b',
+        1.5
+      );
+
+      // 2. Volumen barrido hasta currentY (la parte de la barra ya cortada)
+      const segs = 18;
+      if (state.currentY > state.yMin + 0.005) {
+        for (let i = 0; i < segs; i++) {
+          const ya = state.yMin + ((state.currentY - state.yMin) * i) / segs;
+          const yb = state.yMin + ((state.currentY - state.yMin) * (i + 1)) / segs;
+
+          // Cara frontal (x = xMin)
+          poly3D(
+            [
+              { x: state.xMin, y: ya, z: 0 },
+              { x: state.xMin, y: yb, z: 0 },
+              { x: state.xMin, y: yb, z: evalF(state.xMin, yb) },
+              { x: state.xMin, y: ya, z: evalF(state.xMin, ya) }
+            ],
+            'rgba(99, 102, 241, 0.14)',
+            'rgba(79, 70, 229, 0.25)',
+            0.8
+          );
+
+          // Techo superior (superficie z = f(x, y))
+          poly3D(
+            [
+              { x: state.xMin, y: ya, z: evalF(state.xMin, ya) },
+              { x: state.xMin, y: yb, z: evalF(state.xMin, yb) },
+              { x: state.xMax, y: yb, z: evalF(state.xMax, yb) },
+              { x: state.xMax, y: ya, z: evalF(state.xMax, ya) }
+            ],
+            'rgba(99, 102, 241, 0.20)',
+            'rgba(79, 70, 229, 0.35)',
+            0.9
+          );
+        }
+      }
+
+      // 3. Contorno completo de toda la barra (línea discontinua)
+      for (let i = 0; i < segs; i++) {
+        const ya = state.yMin + (spanY * i) / segs;
+        const yb = state.yMin + (spanY * (i + 1)) / segs;
+        poly3D(
+          [
+            { x: state.xMin, y: ya, z: evalF(state.xMin, ya) },
+            { x: state.xMin, y: yb, z: evalF(state.xMin, yb) },
+            { x: state.xMax, y: yb, z: evalF(state.xMax, yb) },
+            { x: state.xMax, y: ya, z: evalF(state.xMax, ya) }
+          ],
+          null,
+          'rgba(100, 116, 139, 0.35)',
+          1,
+          [3, 3]
+        );
+      }
+
+      // Función auxiliar para dibujar una rebanada transversal en y = yVal
+      function drawSlice3D(yVal, fillColor, strokeColor, lineW, labelTop, labelBottom) {
+        const xSteps = 14;
+        const pts = [{ x: state.xMin, y: yVal, z: 0 }];
+        for (let k = 0; k <= xSteps; k++) {
+          const xv = state.xMin + (spanX * k) / xSteps;
+          pts.push({ x: xv, y: yVal, z: evalF(xv, yVal) });
+        }
+        pts.push({ x: state.xMax, y: yVal, z: 0 });
+
+        poly3D(pts, fillColor, strokeColor, lineW);
+
+        if (labelTop) {
+          const pTop = project3D(
+            normX(state.xMax),
+            normY(yVal),
+            normZ(evalF(state.xMax, yVal))
+          );
+          ctx.fillStyle = strokeColor;
+          ctx.font = 'bold 12px sans-serif';
+          ctx.fillText(labelTop, pTop.px - 28, pTop.py - 8);
+        }
+
+        if (labelBottom) {
+          const pBot = project3D(normX(state.xMin), normY(yVal), 0);
+          ctx.fillStyle = '#1e293b';
+          ctx.font = 'bold 11px monospace';
+          ctx.fillText(labelBottom, pBot.px - 18, pBot.py + 16);
+        }
+      }
+
+      // 4. Dibujar las 3 rebanadas clave (de izquierda a derecha, bien separadas)
+      drawSlice3D(
+        d.y0,
+        'rgba(37, 99, 235, 0.28)',
+        '#2563eb',
+        2.2,
+        `Inicio (${fmt(d.areaStart)})`,
+        `y=${fmt(d.y0)}`
+      );
+
+      drawSlice3D(
+        d.y1,
+        'rgba(217, 119, 6, 0.28)',
+        '#d97706',
+        2.2,
+        `Centro (${fmt(d.areaMid)})`,
+        `y=${fmt(d.y1)}`
+      );
+
+      drawSlice3D(
+        d.y2,
+        'rgba(5, 150, 105, 0.28)',
+        '#059669',
+        2.2,
+        `Final (${fmt(d.areaEnd)})`,
+        `y=${fmt(d.y2)}`
+      );
+
+      // 5. Dibujar la cuchilla móvil activa encima
+      let knifeColor = '#0f172a';
+      let knifeFill = 'rgba(15, 23, 42, 0.22)';
+      const tol = spanY * 0.02 + 0.01;
+      if (Math.abs(state.currentY - d.y0) < tol) {
+        knifeColor = '#1d4ed8';
+        knifeFill = 'rgba(37, 99, 235, 0.48)';
+      } else if (Math.abs(state.currentY - d.y1) < tol) {
+        knifeColor = '#b45309';
+        knifeFill = 'rgba(217, 119, 6, 0.48)';
+      } else if (Math.abs(state.currentY - d.y2) < tol) {
+        knifeColor = '#047857';
+        knifeFill = 'rgba(5, 150, 105, 0.48)';
+      }
+
+      drawSlice3D(state.currentY, knifeFill, knifeColor, 3.2, null, null);
+
+      // Etiquetas de ejes de referencia
+      const pXEnd = project3D(1, 0, 0);
+      ctx.fillStyle = '#475569';
+      ctx.font = 'bold 11px monospace';
+      ctx.fillText(`x ∈ [${state.xMin}, ${state.xMax}]`, pXEnd.px - 45, pXEnd.py - 6);
+
+      const pYMid = project3D(0, 0.5, 0);
+      ctx.fillStyle = '#6d28d9';
+      ctx.font = 'bold 12px sans-serif';
+      ctx.fillText(`← Largo de Y = ${fmt(d.widthY)} →`, pYMid.px - 52, pYMid.py + 34);
     }
 
-    function stopSweep() {
-      isSweeping = false;
-      barridoIcon.textContent = '▶ Barrido';
-      if (animationFrameId) {
-        cancelAnimationFrame(animationFrameId);
-        animationFrameId = null;
-      }
-    }
+    window.addEventListener('resize', renderCanvas);
 
-    // Eventos de interfaz
-    ySlider.addEventListener('input', (e) => {
-      stopSweep();
-      currentY = parseFloat(e.target.value);
-      updateUI();
-    });
-
-    btnInicio.addEventListener('click', () => jumpToY(0));
-    btnCentro.addEventListener('click', () => jumpToY(1));
-    btnFinal.addEventListener('click', () => jumpToY(2));
-    btnBarrido.addEventListener('click', startSweep);
-
-    window.addEventListener('resize', renderScene);
-
-    // Arranque inicial
+    // Inicializar al cargar
     window.onload = function () {
-      updateUI();
+      const m = /p=(\d+)/.exec(location.hash || '');
+      const sel = document.getElementById('presetSelect');
+      if (m && PRESETS[+m[1]]) {
+        sel.value = m[1];
+        sel.dispatchEvent(new Event('change'));
+      } else {
+        syncAll();
+      }
     };
   </script>
 </body>
