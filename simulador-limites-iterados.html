@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Simulador: ¿por qué dos límites iterados iguales NO bastan?</title>
+  <link rel="icon" type="image/png" href="img/favicon-64.png" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet" />
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+    }
+    .font-mono-calc {
+      font-family: 'JetBrains Mono', monospace;
+    }
+    input[type="range"] {
+      -webkit-appearance: none;
+      appearance: none;
+      height: 10px;
+      border-radius: 999px;
+      background: #e2e8f0;
+      outline: none;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: #0f172a;
+      border: 3px solid #ffffff;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+      cursor: pointer;
+      transition: transform 0.15s ease;
+    }
+    input[type="range"]::-webkit-slider-thumb:hover {
+      transform: scale(1.12);
+    }
+  </style>
+</head>
+<body class="bg-slate-100 text-slate-900 min-h-screen flex flex-col">
+
+  <!-- Cabecera -->
+  <header class="bg-slate-900 text-white px-4 py-4 shadow-md">
+    <div class="max-w-7xl mx-auto flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+      <div>
+        <span class="inline-block text-xs font-bold uppercase tracking-wider bg-amber-500 text-slate-950 px-2.5 py-0.5 rounded-full mb-1">
+          Teoría Visual UD5 · Límites en (0, 0)
+        </span>
+        <h1 class="text-xl sm:text-2xl font-extrabold tracking-tight">
+          Los 2 límites iterados dan 3… ¿Existe el límite?
+        </h1>
+      </div>
+      <div class="bg-slate-800 border border-slate-700 rounded-xl px-4 py-2 text-xs sm:text-sm">
+        <span class="text-slate-400">Ejemplo visual:</span>
+        <span id="formulaHeader" class="font-mono-calc font-bold text-amber-400">f(x, y) = 3 + 2xy / (x² + y²)</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Contenido Principal -->
+  <main class="max-w-7xl w-full mx-auto p-4 sm:p-6 flex-1 grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+    <!-- Columna Izquierda: Vista 3D de la Superficie y Caminos (7 cols) -->
+    <section class="lg:col-span-7 flex flex-col gap-4">
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 flex flex-col h-full">
+        <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+          <div>
+            <h2 class="text-base font-bold text-slate-800">1. El Terreno en 3D (Destino: el centro (0, 0))</h2>
+            <p class="text-xs text-slate-500">
+              Pulsa los botones para lanzar la bola hacia <span class="font-mono-calc font-bold text-slate-700">(0, 0)</span> por distintos caminos y mira qué altura marca.
+            </p>
+          </div>
+
+          <!-- Selector de escenario (Trampa vs Bueno) -->
+          <div class="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200 text-xs font-bold">
+            <button id="modeTrapBtn" type="button"
+              class="px-3 py-1.5 rounded-lg bg-rose-600 text-white shadow-sm transition">
+              Caso Trampa (Falla en diagonal)
+            </button>
+            <button id="modeGoodBtn" type="button"
+              class="px-3 py-1.5 rounded-lg text-slate-600 hover:text-slate-900 transition">
+              Caso Bueno (Todos dan 3)
+            </button>
+          </div>
+        </div>
+
+        <!-- Lienzo 3D -->
+        <div id="canvas-wrapper" class="relative w-full h-[350px] sm:h-[420px] bg-slate-50 rounded-xl border border-slate-200 overflow-hidden">
+          <canvas id="limitCanvas" class="w-full h-full block"></canvas>
+
+          <!-- Medidor grande de altura en tiempo real -->
+          <div class="absolute top-3 left-3 bg-white/95 backdrop-blur border border-slate-200 rounded-2xl px-4 py-2.5 shadow-md">
+            <div class="text-[11px] font-bold uppercase tracking-wider text-slate-500">
+              Altura actual <span class="font-mono-calc lowercase">f(x, y)</span>
+            </div>
+            <div class="flex items-baseline gap-2.5 mt-0.5">
+              <span id="heightReadout" class="font-mono-calc text-3xl font-extrabold text-blue-600">
+                3.00
+              </span>
+              <span id="pathBadge" class="text-xs font-bold px-2.5 py-1 rounded-lg bg-blue-100 text-blue-800">
+                1. Camino Iterado X
+              </span>
+            </div>
+            <div id="coordsReadout" class="font-mono-calc text-[11px] text-slate-500 mt-1">
+              Posición: (x = 0.80, y = 0.00)
+            </div>
+          </div>
+
+          <!-- Etiqueta del origen -->
+          <div class="absolute bottom-3 left-3 bg-slate-900/90 text-white text-xs px-3 py-1.5 rounded-lg shadow">
+            Meta: acercarse al punto rojo <span class="font-mono-calc font-bold text-amber-400">(0, 0)</span>
+          </div>
+        </div>
+
+        <!-- Control Manual de Distancia al (0,0) -->
+        <div class="mt-4 pt-3 border-t border-slate-100 flex flex-col gap-3">
+          <div class="flex items-center gap-3">
+            <label for="distSlider" class="text-xs font-bold text-slate-700 whitespace-nowrap">
+              Acercarse a <span class="font-mono-calc">(0, 0)</span>:
+            </label>
+            <input id="distSlider" type="range" min="0.01" max="1" step="0.01" value="0.80" class="w-full" />
+            <span id="distLabel" class="font-mono-calc text-xs font-bold bg-slate-100 border border-slate-300 px-2.5 py-1 rounded-lg min-w-[74px] text-center">
+              t = 0.80
+            </span>
+          </div>
+
+          <!-- Botones de Caminos Paso a Paso -->
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            <button id="btnPathX" type="button"
+              class="p-2.5 rounded-xl font-bold text-xs sm:text-sm bg-blue-600 hover:bg-blue-700 text-white shadow-sm transition flex flex-col items-center justify-center ring-2 ring-blue-300">
+              <span>1. Iterado Eje X</span>
+              <span class="text-[11px] font-normal text-blue-100">y = 0 → altura 3</span>
+            </button>
+
+            <button id="btnPathY" type="button"
+              class="p-2.5 rounded-xl font-bold text-xs sm:text-sm bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm transition flex flex-col items-center justify-center">
+              <span>2. Iterado Eje Y</span>
+              <span class="text-[11px] font-normal text-emerald-100">x = 0 → altura 3</span>
+            </button>
+
+            <button id="btnPathDiag" type="button"
+              class="p-2.5 rounded-xl font-bold text-xs sm:text-sm bg-rose-600 hover:bg-rose-700 text-white shadow-sm transition flex flex-col items-center justify-center">
+              <span>3. Diagonal (y = x)</span>
+              <span id="diagBtnSub" class="text-[11px] font-normal text-rose-100">¡Sube a altura 4!</span>
+            </button>
+
+            <button id="btnAllPaths" type="button"
+              class="p-2.5 rounded-xl font-bold text-xs sm:text-sm bg-slate-800 hover:bg-slate-900 text-white shadow-sm transition flex flex-col items-center justify-center">
+              <span id="allBtnTitle">▶ Probar todos</span>
+              <span class="text-[11px] font-normal text-slate-300">Ver los 3 seguidos</span>
+            </button>
+          </div>
+
+          <!-- Camino 4: cualquier recta y = m·x -->
+          <div class="rounded-xl border-2 border-amber-300 bg-amber-50 p-3 flex flex-col gap-2">
+            <div class="text-xs font-extrabold text-amber-900">4. Prueba tú: la recta y = m · x (otra calle cualquiera)</div>
+            <div class="flex items-center gap-3">
+              <label for="mSlider" class="text-xs font-bold text-amber-900 whitespace-nowrap">Inclinación m:</label>
+              <input id="mSlider" type="range" min="0" max="3" step="0.25" value="2" class="w-full" />
+              <span id="mLabel" class="font-mono-calc text-xs font-bold bg-white border border-amber-300 px-2.5 py-1 rounded-lg min-w-[64px] text-center">m = 2</span>
+            </div>
+            <button id="btnPathM" type="button" class="p-2.5 rounded-xl font-bold text-xs sm:text-sm bg-amber-500 hover:bg-amber-600 text-slate-950 shadow-sm transition">
+              ▶ Lanzar la bola por y = m · x
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Columna Derecha: Explicación Visual y Regla de Examen (5 cols) -->
+    <section class="lg:col-span-5 flex flex-col gap-4">
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 flex flex-col justify-between h-full">
+        <div>
+          <h2 class="text-base font-bold text-slate-800 mb-1">2. ¿Qué acaba de pasar al mirar los 3 caminos?</h2>
+          <p class="text-xs text-slate-500 mb-4">
+            Los <strong>límites iterados</strong> solo miran las dos calles principales (Eje X y Eje Y), pero en 2D puedes llegar al centro por infinitas calles.
+          </p>
+
+          <!-- Tarjetas de resultados de los 3 caminos -->
+          <div class="space-y-2.5 mb-4">
+            <!-- Camino 1 -->
+            <div onclick="selectPath('x')"
+              class="cursor-pointer rounded-xl border-2 border-blue-200 bg-blue-50/70 p-3 hover:border-blue-400 transition flex items-center justify-between">
+              <div>
+                <div class="flex items-center gap-2">
+                  <span class="w-3 h-3 rounded-full bg-blue-600"></span>
+                  <span class="text-xs font-extrabold uppercase text-blue-900">1. Límite Iterado por X (y = 0)</span>
+                </div>
+                <p class="text-xs text-blue-800 mt-0.5">Vas recto por el eje X hasta (0,0).</p>
+              </div>
+              <div class="text-right">
+                <span class="text-[10px] font-bold uppercase text-blue-600 block">Llega a</span>
+                <span class="font-mono-calc text-xl font-extrabold text-blue-700">3.00</span>
+              </div>
+            </div>
+
+            <!-- Camino 2 -->
+            <div onclick="selectPath('y')"
+              class="cursor-pointer rounded-xl border-2 border-emerald-200 bg-emerald-50/70 p-3 hover:border-emerald-400 transition flex items-center justify-between">
+              <div>
+                <div class="flex items-center gap-2">
+                  <span class="w-3 h-3 rounded-full bg-emerald-600"></span>
+                  <span class="text-xs font-extrabold uppercase text-emerald-900">2. Límite Iterado por Y (x = 0)</span>
+                </div>
+                <p class="text-xs text-emerald-800 mt-0.5">Vas recto por el eje Y hasta (0,0).</p>
+              </div>
+              <div class="text-right">
+                <span class="text-[10px] font-bold uppercase text-emerald-600 block">Llega a</span>
+                <span class="font-mono-calc text-xl font-extrabold text-emerald-700">3.00</span>
+              </div>
+            </div>
+
+            <!-- Camino 3 -->
+            <div id="diagCard" onclick="selectPath('diag')"
+              class="cursor-pointer rounded-xl border-2 border-rose-300 bg-rose-50 p-3 hover:border-rose-500 transition flex items-center justify-between shadow-sm">
+              <div>
+                <div class="flex items-center gap-2">
+                  <span id="diagDot" class="w-3 h-3 rounded-full bg-rose-600"></span>
+                  <span id="diagTitle" class="text-xs font-extrabold uppercase text-rose-950">3. Otro camino: Diagonal (y = x)</span>
+                </div>
+                <p id="diagDesc" class="text-xs text-rose-900 mt-0.5">Subes por la montaña central y llegas a otra altura.</p>
+              </div>
+              <div class="text-right">
+                <span id="diagSubLabel" class="text-[10px] font-bold uppercase text-rose-600 block">¡Llega a!</span>
+                <span id="diagResVal" class="font-mono-calc text-xl font-extrabold text-rose-600">4.00</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Las cuentas del camino elegido, una operación por línea -->
+        <div class="rounded-2xl border-2 border-slate-200 bg-slate-50 p-4 mb-4">
+          <div class="text-xs font-extrabold uppercase tracking-wider text-slate-600 mb-2">Las cuentas de este camino</div>
+          <div id="cuentas" class="font-mono-calc text-sm text-slate-800 leading-7"></div>
+        </div>
+
+        <!-- Conclusión Visual Clara para el Examen -->
+        <div id="conclusionBox" class="bg-slate-900 text-white rounded-2xl p-4 shadow-md border-l-4 border-amber-400">
+          <div class="text-xs font-extrabold uppercase tracking-wider text-amber-400 mb-1.5">
+            Conclusión para tu examen
+          </div>
+          <p id="conclusionText" class="text-xs sm:text-sm text-slate-200 leading-relaxed mb-3">
+            Aunque los dos límites iterados den <strong>3</strong>, puede haber una "montaña" escondida en la diagonal que suba hasta <strong>4</strong> (Caso Trampa), o puede que todo sea plano en <strong>3</strong> (Caso Bueno).
+          </p>
+          <div class="bg-slate-800 rounded-xl p-3 border border-slate-700 text-center">
+            <span class="text-xs text-slate-400 block">Por eso, si SOLO sabes que los iterados dan 3:</span>
+            <span class="text-base sm:text-lg font-extrabold text-amber-400">
+              No se puede saber si el límite existe
+            </span>
+          </div>
+          <ul class="mt-3 space-y-1.5 text-xs text-slate-200 leading-relaxed">
+            <li>✅ Para decir que <strong>NO existe</strong>: basta con 2 caminos que lleguen a alturas distintas.</li>
+            <li>⚠️ Para decir que <strong>SÍ existe</strong>: no basta con probar caminos (hay infinitos). Hace falta otra herramienta, como las polares.</li>
+            <li>🎯 Si todos los caminos que pruebas dan lo mismo, eso solo te dice <strong>cuánto valdría</strong> el límite si existe.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    // Estado global
+    let scenario = 'trap'; // 'trap' (cresta en diagonal -> 4) o 'good' (todos -> 3)
+    let activePath = 'x';  // 'x', 'y', 'diag'
+    let tParam = 0.80;     // Distancia al origen (de 1.00 hacia 0.01)
+    let isAutoPlaying = false;
+    let autoQueue = [];
+    let animFrame = null;
+
+    // Referencias DOM
+    const canvas = document.getElementById('limitCanvas');
+    const ctx = canvas.getContext('2d');
+    const wrapper = document.getElementById('canvas-wrapper');
+
+    const heightReadout = document.getElementById('heightReadout');
+    const pathBadge = document.getElementById('pathBadge');
+    const coordsReadout = document.getElementById('coordsReadout');
+    const distSlider = document.getElementById('distSlider');
+    const distLabel = document.getElementById('distLabel');
+
+    const btnPathX = document.getElementById('btnPathX');
+    const btnPathY = document.getElementById('btnPathY');
+    const btnPathDiag = document.getElementById('btnPathDiag');
+    const btnAllPaths = document.getElementById('btnAllPaths');
+    const allBtnTitle = document.getElementById('allBtnTitle');
+    const diagBtnSub = document.getElementById('diagBtnSub');
+
+    const modeTrapBtn = document.getElementById('modeTrapBtn');
+    const modeGoodBtn = document.getElementById('modeGoodBtn');
+
+    const diagCard = document.getElementById('diagCard');
+    const diagDot = document.getElementById('diagDot');
+    const diagTitle = document.getElementById('diagTitle');
+    const diagDesc = document.getElementById('diagDesc');
+    const diagSubLabel = document.getElementById('diagSubLabel');
+    const diagResVal = document.getElementById('diagResVal');
+
+    // Función matemática de la superficie según el escenario
+    function surfaceZ(x, y) {
+      const r2 = x * x + y * y;
+      if (r2 < 1e-9) return 3.0;
+      if (scenario === 'trap') {
+        // En los ejes (x=0 o y=0) vale exactamente 3. En la diagonal (y=x) vale 3 + 2x^2/(2x^2) = 4.
+        return 3.0 + (2.0 * x * y) / r2;
+      } else {
+        // Caso bueno: todos los caminos convergen suavemente a 3
+        return 3.0 + 0.6 * (x * x + y * y);
+      }
+    }
+
+    // Coordenadas (x, y) según el camino elegido y el parámetro t (0.01 a 1)
+    let mVal = 2; // inclinación de la recta y = m·x
+    function getCoords(path, t) {
+      if (path === 'm') { const x = t * 0.75 / Math.max(1, mVal); return { x: x, y: mVal * x }; }
+      if (path === 'x') return { x: t, y: 0 };
+      if (path === 'y') return { x: 0, y: t };
+      return { x: t * 0.75, y: t * 0.75 }; // Diagonal y = x
+    }
+
+    // Proyección isométrica
+    function project(x, y, z, W, H) {
+      const scale = Math.min(W, H) * 0.24;
+      const isoX = (y - x) * Math.cos(Math.PI / 6);
+      const isoY = (x + y) * Math.sin(Math.PI / 6) - (z - 2.2) * 0.65;
+      return {
+        px: W * 0.50 + isoX * scale,
+        py: H * 0.68 + isoY * scale
+      };
+    }
+
+    // Dibujar línea 3D
+    function drawLine3D(p1, p2, color, width = 1.5, dash = [], W, H) {
+      const a = project(p1.x, p1.y, p1.z, W, H);
+      const b = project(p2.x, p2.y, p2.z, W, H);
+      ctx.save();
+      ctx.beginPath();
+      ctx.setLineDash(dash);
+      ctx.moveTo(a.px, a.py);
+      ctx.lineTo(b.px, b.py);
+      ctx.strokeStyle = color;
+      ctx.lineWidth = width;
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    // Dibujar superficie en malla suave
+    function drawSurfaceMesh(W, H) {
+      const steps = 18;
+      const minC = -0.35;
+      const maxC = 1.05;
+      const stepSize = (maxC - minC) / steps;
+
+      for (let i = 0; i < steps; i++) {
+        for (let j = 0; j < steps; j++) {
+          const x0 = minC + i * stepSize;
+          const x1 = x0 + stepSize;
+          const y0 = minC + j * stepSize;
+          const y1 = y0 + stepSize;
+
+          const xm = (x0 + x1) * 0.5;
+          const ym = (y0 + y1) * 0.5;
+          const zm = surfaceZ(xm, ym);
+
+          const p00 = project(x0, y0, surfaceZ(x0, y0), W, H);
+          const p10 = project(x1, y0, surfaceZ(x1, y0), W, H);
+          const p11 = project(x1, y1, surfaceZ(x1, y1), W, H);
+          const p01 = project(x0, y1, surfaceZ(x0, y1), W, H);
+
+          ctx.beginPath();
+          ctx.moveTo(p00.px, p00.py);
+          ctx.lineTo(p10.px, p10.py);
+          ctx.lineTo(p11.px, p11.py);
+          ctx.lineTo(p01.px, p01.py);
+          ctx.closePath();
+
+          // Color según la altura z
+          if (zm > 3.45) {
+            ctx.fillStyle = 'rgba(244, 63, 94, 0.24)'; // Cresta roja (sube a 4)
+          } else if (zm > 3.15) {
+            ctx.fillStyle = 'rgba(251, 146, 60, 0.18)'; // Naranja intermedio
+          } else if (zm < 2.6) {
+            ctx.fillStyle = 'rgba(99, 102, 241, 0.14)'; // Valle azulado
+          } else {
+            ctx.fillStyle = 'rgba(148, 163, 184, 0.15)'; // Nivel 3 neutro
+          }
+          ctx.fill();
+          ctx.strokeStyle = 'rgba(100, 116, 139, 0.22)';
+          ctx.lineWidth = 0.8;
+          ctx.stroke();
+        }
+      }
+    }
+
+    // Dibuja un camino completo sobre la superficie
+    function drawPathCurve(pathType, color, lineWidth, W, H) {
+      const segments = 35;
+      ctx.save();
+      ctx.beginPath();
+      for (let k = 0; k <= segments; k++) {
+        const t = 1.0 - (k / segments) * 0.99;
+        const c = getCoords(pathType, t);
+        const z = surfaceZ(c.x, c.y);
+        const p = project(c.x, c.y, z, W, H);
+        if (k === 0) ctx.moveTo(p.px, p.py);
+        else ctx.lineTo(p.px, p.py);
+      }
+      ctx.strokeStyle = color;
+      ctx.lineWidth = lineWidth;
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    // Render principal
+    function render() {
+      const rect = wrapper.getBoundingClientRect();
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width = rect.width * dpr;
+      canvas.height = rect.height * dpr;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+      const W = rect.width;
+      const H = rect.height;
+      ctx.clearRect(0, 0, W, H);
+
+      // 1. Plano base z = 0 (referencia del suelo)
+      drawLine3D({ x: 0, y: 0, z: 1.8 }, { x: 1.15, y: 0, z: 1.8 }, '#cbd5e1', 1.2, [4, 4], W, H);
+      drawLine3D({ x: 0, y: 0, z: 1.8 }, { x: 0, y: 1.15, z: 1.8 }, '#cbd5e1', 1.2, [4, 4], W, H);
+
+      // 2. Superficie 3D
+      drawSurfaceMesh(W, H);
+
+      // 3. Dibujar los 3 caminos sobre la superficie
+      drawPathCurve('x', activePath === 'x' ? '#2563eb' : 'rgba(37, 99, 235, 0.35)', activePath === 'x' ? 4 : 2, W, H);
+      drawPathCurve('y', activePath === 'y' ? '#059669' : 'rgba(5, 150, 105, 0.35)', activePath === 'y' ? 4 : 2, W, H);
+      const diagColor = scenario === 'trap' ? '#e11d48' : '#7c3aed';
+      const diagDimColor = scenario === 'trap' ? 'rgba(225, 29, 72, 0.35)' : 'rgba(124, 58, 237, 0.35)';
+      drawPathCurve('diag', activePath === 'diag' ? diagColor : diagDimColor, activePath === 'diag' ? 4 : 2, W, H);
+      if (activePath === 'm') drawPathCurve('m', '#d97706', 4, W, H);
+
+      // 4. Postes verticales de referencia en (0,0) para altura 3 y altura 4
+      const pBase = project(0, 0, 1.8, W, H);
+      const pThree = project(0, 0, 3.0, W, H);
+      const pFour = project(0, 0, 4.0, W, H);
+
+      drawLine3D({ x: 0, y: 0, z: 1.8 }, { x: 0, y: 0, z: 4.2 }, '#475569', 1.5, [3, 3], W, H);
+
+      // Punto de altura 3 en (0,0)
+      ctx.beginPath();
+      ctx.arc(pThree.px, pThree.py, 6, 0, Math.PI * 2);
+      ctx.fillStyle = '#f59e0b';
+      ctx.fill();
+      ctx.strokeStyle = '#0f172a';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      ctx.font = 'bold 12px JetBrains Mono';
+      ctx.fillStyle = '#0f172a';
+      ctx.fillText('Altura 3', pThree.px + 10, pThree.py + 4);
+
+      if (scenario === 'trap') {
+        ctx.beginPath();
+        ctx.arc(pFour.px, pFour.py, 5, 0, Math.PI * 2);
+        ctx.fillStyle = '#e11d48';
+        ctx.fill();
+        ctx.fillStyle = '#be123c';
+        ctx.fillText('Altura 4 (Diagonal)', pFour.px + 10, pFour.py + 4);
+      }
+
+      // 5. Bola móvil en el camino activo
+      const pos = getCoords(activePath, tParam);
+      const zVal = surfaceZ(pos.x, pos.y);
+      const pBall = project(pos.x, pos.y, zVal, W, H);
+      const pShadow = project(pos.x, pos.y, 1.8, W, H);
+
+      // Línea vertical desde el suelo hasta la bola para ver su altura
+      ctx.save();
+      ctx.beginPath();
+      ctx.setLineDash([3, 3]);
+      ctx.moveTo(pShadow.px, pShadow.py);
+      ctx.lineTo(pBall.px, pBall.py);
+      ctx.strokeStyle = '#0f172a';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+      ctx.restore();
+
+      // Sombra en el suelo
+      ctx.beginPath();
+      ctx.arc(pShadow.px, pShadow.py, 4, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(15, 23, 42, 0.35)';
+      ctx.fill();
+
+      // Bola principal
+      let ballColor = '#2563eb';
+      if (activePath === 'y') ballColor = '#059669';
+      if (activePath === 'diag') ballColor = scenario === 'trap' ? '#e11d48' : '#7c3aed';
+      if (activePath === 'm') ballColor = '#d97706';
+
+      ctx.beginPath();
+      ctx.arc(pBall.px, pBall.py, 9, 0, Math.PI * 2);
+      ctx.fillStyle = ballColor;
+      ctx.fill();
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 2.5;
+      ctx.stroke();
+    }
+
+    // Actualizar textos y estado de la interfaz
+    function updateUI() {
+      const pos = getCoords(activePath, tParam);
+      const zVal = surfaceZ(pos.x, pos.y);
+
+      distSlider.value = tParam.toFixed(2);
+      distLabel.textContent = `t = ${tParam.toFixed(2)}`;
+      heightReadout.textContent = zVal.toFixed(2);
+      coordsReadout.textContent = `Posición: (x = ${pos.x.toFixed(2)}, y = ${pos.y.toFixed(2)})`;
+
+      // Colores y etiquetas del camino activo
+      heightReadout.className = 'font-mono-calc text-3xl font-extrabold ';
+      pathBadge.className = 'text-xs font-bold px-2.5 py-1 rounded-lg ';
+
+      if (activePath === 'x') {
+        heightReadout.classList.add('text-blue-600');
+        pathBadge.classList.add('bg-blue-100', 'text-blue-800');
+        pathBadge.textContent = '1. Camino Iterado X';
+      } else if (activePath === 'y') {
+        heightReadout.classList.add('text-emerald-600');
+        pathBadge.classList.add('bg-emerald-100', 'text-emerald-800');
+        pathBadge.textContent = '2. Camino Iterado Y';
+      } else if (activePath === 'm') {
+        heightReadout.classList.add('text-amber-600');
+        pathBadge.classList.add('bg-amber-100', 'text-amber-900');
+        pathBadge.textContent = '4. Recta y = ' + fmt(mVal) + '·x';
+      } else {
+        if (scenario === 'trap') {
+          heightReadout.classList.add('text-rose-600');
+          pathBadge.classList.add('bg-rose-100', 'text-rose-800');
+          pathBadge.textContent = '3. Camino Diagonal (¡Sube a 4!)';
+        } else {
+          heightReadout.classList.add('text-purple-600');
+          pathBadge.classList.add('bg-purple-100', 'text-purple-800');
+          pathBadge.textContent = '3. Camino Diagonal (Baja a 3)';
+        }
+      }
+
+      // Resaltado de botones
+      btnPathX.classList.toggle('ring-2', activePath === 'x');
+      btnPathX.classList.toggle('ring-blue-300', activePath === 'x');
+
+      btnPathY.classList.toggle('ring-2', activePath === 'y');
+      btnPathY.classList.toggle('ring-emerald-300', activePath === 'y');
+
+      btnPathDiag.classList.toggle('ring-2', activePath === 'diag');
+      btnPathDiag.classList.toggle('ring-rose-300', activePath === 'diag');
+
+      pintarCuentas();
+      render();
+    }
+
+    // Números con coma decimal y sin ceros sobrantes
+    function fmt(n) {
+      return String(Math.round(n * 100) / 100).replace('.', ',');
+    }
+
+    // Las cuentas del camino activo, una operación por línea
+    function pintarCuentas() {
+      const L = [];
+      const m = activePath === 'x' ? 0 : activePath === 'y' ? null : activePath === 'diag' ? 1 : mVal;
+      if (scenario === 'trap') {
+        if (activePath === 'y') {
+          L.push('Camino: x = 0 (eje Y)');
+          L.push('f(0, y) = 3 + 2·0·y / (0² + y²)');
+          L.push('f(0, y) = 3 + 0 / y²');
+          L.push('f(0, y) = 3 + 0');
+          L.push('<b>Llega a 3</b>');
+        } else if (m === 0) {
+          L.push('Camino: y = 0 (eje X)');
+          L.push('f(x, 0) = 3 + 2·x·0 / (x² + 0²)');
+          L.push('f(x, 0) = 3 + 0 / x²');
+          L.push('f(x, 0) = 3 + 0');
+          L.push('<b>Llega a 3</b>');
+        } else {
+          const mm = fmt(m);
+          const num = 2 * m;
+          const den = 1 + m * m;
+          L.push('Camino: y = ' + (m === 1 ? 'x' : mm + '·x'));
+          L.push('Cambio y por ' + (m === 1 ? 'x' : mm + '·x') + ':');
+          L.push('f = 3 + 2·x·(' + (m === 1 ? 'x' : mm + 'x') + ') / (x² + (' + (m === 1 ? 'x' : mm + 'x') + ')²)');
+          L.push('Arriba: 2·' + mm + '·x² = ' + fmt(num) + 'x²');
+          L.push('Abajo: x² + ' + fmt(m * m) + 'x² = ' + fmt(den) + 'x²');
+          L.push('Las x² se van:');
+          L.push('f = 3 + ' + fmt(num) + ' / ' + fmt(den));
+          L.push('f = 3 + ' + fmt(num / den));
+          L.push('<b>Llega a ' + fmt(3 + num / den) + '</b>');
+        }
+      } else {
+        const camino = activePath === 'y' ? 'x = 0 (eje Y)' : m === 0 ? 'y = 0 (eje X)' : 'y = ' + (m === 1 ? 'x' : fmt(m) + '·x');
+        L.push('Camino: ' + camino);
+        L.push('f = 3 + 0,6·(x² + y²)');
+        L.push('Cuando nos acercamos a (0, 0):');
+        L.push('x² + y² se hace 0');
+        L.push('0,6 · 0 = 0');
+        L.push('f = 3 + 0');
+        L.push('<b>Llega a 3</b>');
+      }
+      document.getElementById('cuentas').innerHTML = L.join('<br>');
+    }
+
+    // Cambiar escenario (Trampa vs Bueno)
+    function setScenario(newScenario) {
+      stopAuto();
+      scenario = newScenario;
+
+      if (scenario === 'trap') {
+        document.getElementById('formulaHeader').textContent = 'f(x, y) = 3 + 2xy / (x² + y²)';
+        modeTrapBtn.className = 'px-3 py-1.5 rounded-lg bg-rose-600 text-white shadow-sm transition';
+        modeGoodBtn.className = 'px-3 py-1.5 rounded-lg text-slate-600 hover:text-slate-900 transition';
+
+        btnPathDiag.className = 'p-2.5 rounded-xl font-bold text-xs sm:text-sm bg-rose-600 hover:bg-rose-700 text-white shadow-sm transition flex flex-col items-center justify-center';
+        diagBtnSub.textContent = '¡Sube a altura 4!';
+        diagBtnSub.className = 'text-[11px] font-normal text-rose-100';
+
+        diagCard.className = 'cursor-pointer rounded-xl border-2 border-rose-300 bg-rose-50 p-3 hover:border-rose-500 transition flex items-center justify-between shadow-sm';
+        diagDot.className = 'w-3 h-3 rounded-full bg-rose-600';
+        diagTitle.className = 'text-xs font-extrabold uppercase text-rose-950';
+        diagDesc.textContent = 'Subes por la montaña central y llegas a otra altura.';
+        diagDesc.className = 'text-xs text-rose-900 mt-0.5';
+        diagSubLabel.textContent = '¡Llega a!';
+        diagSubLabel.className = 'text-[10px] font-bold uppercase text-rose-600 block';
+        diagResVal.textContent = '4.00';
+        diagResVal.className = 'font-mono-calc text-xl font-extrabold text-rose-600';
+      } else {
+        document.getElementById('formulaHeader').textContent = 'f(x, y) = 3 + 0,6·(x² + y²)';
+        modeGoodBtn.className = 'px-3 py-1.5 rounded-lg bg-purple-600 text-white shadow-sm transition';
+        modeTrapBtn.className = 'px-3 py-1.5 rounded-lg text-slate-600 hover:text-slate-900 transition';
+
+        btnPathDiag.className = 'p-2.5 rounded-xl font-bold text-xs sm:text-sm bg-purple-600 hover:bg-purple-700 text-white shadow-sm transition flex flex-col items-center justify-center';
+        diagBtnSub.textContent = 'También llega a 3';
+        diagBtnSub.className = 'text-[11px] font-normal text-purple-100';
+
+        diagCard.className = 'cursor-pointer rounded-xl border-2 border-purple-200 bg-purple-50/70 p-3 hover:border-purple-400 transition flex items-center justify-between';
+        diagDot.className = 'w-3 h-3 rounded-full bg-purple-600';
+        diagTitle.className = 'text-xs font-extrabold uppercase text-purple-950';
+        diagDesc.textContent = 'Aquí no hay montaña: la diagonal también baja hasta 3.';
+        diagDesc.className = 'text-xs text-purple-900 mt-0.5';
+        diagSubLabel.textContent = 'Llega a';
+        diagSubLabel.className = 'text-[10px] font-bold uppercase text-purple-600 block';
+        diagResVal.textContent = '3.00';
+        diagResVal.className = 'font-mono-calc text-xl font-extrabold text-purple-700';
+      }
+
+      updateUI();
+    }
+
+    // Elegir un camino y animar la bola hacia (0, 0)
+    function selectPath(path) {
+      stopAuto();
+      activePath = path;
+      tParam = 1.0;
+      animateSingleApproach();
+    }
+
+    function animateSingleApproach() {
+      function step() {
+        tParam -= 0.018;
+        if (tParam <= 0.01) {
+          tParam = 0.01;
+          updateUI();
+          return;
+        }
+        updateUI();
+        animFrame = requestAnimationFrame(step);
+      }
+      animFrame = requestAnimationFrame(step);
+    }
+
+    // Probar los 3 caminos automáticamente uno tras otro
+    function playAllThree() {
+      if (isAutoPlaying) {
+        stopAuto();
+        return;
+      }
+      isAutoPlaying = true;
+      allBtnTitle.textContent = '⏸ Pausar';
+      autoQueue = ['x', 'y', 'diag'];
+      runNextInQueue();
+    }
+
+    function runNextInQueue() {
+      if (!isAutoPlaying || autoQueue.length === 0) {
+        stopAuto();
+        return;
+      }
+      activePath = autoQueue.shift();
+      tParam = 1.0;
+
+      function step() {
+        if (!isAutoPlaying) return;
+        tParam -= 0.016;
+        if (tParam <= 0.01) {
+          tParam = 0.01;
+          updateUI();
+          setTimeout(() => {
+            if (isAutoPlaying) runNextInQueue();
+          }, 700);
+          return;
+        }
+        updateUI();
+        animFrame = requestAnimationFrame(step);
+      }
+      animFrame = requestAnimationFrame(step);
+    }
+
+    function stopAuto() {
+      isAutoPlaying = false;
+      allBtnTitle.textContent = '▶ Probar todos';
+      if (animFrame) {
+        cancelAnimationFrame(animFrame);
+        animFrame = null;
+      }
+    }
+
+    // Eventos
+    distSlider.addEventListener('input', (e) => {
+      stopAuto();
+      tParam = parseFloat(e.target.value);
+      updateUI();
+    });
+
+    btnPathX.addEventListener('click', () => selectPath('x'));
+    btnPathY.addEventListener('click', () => selectPath('y'));
+    btnPathDiag.addEventListener('click', () => selectPath('diag'));
+    btnAllPaths.addEventListener('click', playAllThree);
+    document.getElementById('btnPathM').addEventListener('click', () => selectPath('m'));
+    document.getElementById('mSlider').addEventListener('input', (e) => {
+      mVal = parseFloat(e.target.value);
+      document.getElementById('mLabel').textContent = 'm = ' + fmt(mVal);
+      if (activePath === 'm') updateUI();
+    });
+
+    modeTrapBtn.addEventListener('click', () => setScenario('trap'));
+    modeGoodBtn.addEventListener('click', () => setScenario('good'));
+
+    window.addEventListener('resize', render);
+
+    // Inicio
+    window.onload = function () {
+      // Enlace directo: simulador-limites-iterados.html#bueno abre el caso bueno
+      setScenario(location.hash === '#bueno' ? 'good' : 'trap');
+      selectPath('x');
+    };
+  </script>
+</body>
+</html>

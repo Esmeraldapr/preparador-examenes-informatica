@@ -1,0 +1,1180 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulador Interactivo de Impedancia RLC (Zeq)</title>
+    <link rel="icon" type="image/png" href="img/favicon-64.png">
+    <!-- Carga de Tailwind CSS para el diseño responsivo y moderno -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Carga de la fuente Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Estilos personalizados para deslizadores y animaciones de flujo */
+        input[type="range"] {
+            -webkit-appearance: none;
+            appearance: none;
+            height: 6px;
+            border-radius: 999px;
+            outline: none;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #ffffff;
+            border: 3px solid currentColor;
+            cursor: pointer;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+            transition: transform 0.15s ease;
+        }
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.15);
+        }
+        @keyframes pulseGlow {
+            0%, 100% { opacity: 0.85; }
+            50% { opacity: 1; }
+        }
+        .animate-glow {
+            animation: pulseGlow 2s infinite ease-in-out;
+        }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen antialiased selection:bg-indigo-500 selection:text-white">
+
+    <!-- Barra Superior -->
+    <header class="border-b border-slate-800/80 bg-slate-900/90 backdrop-blur-md sticky top-0 z-30">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 py-3.5 flex flex-wrap items-center justify-between gap-3">
+            <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-cyan-500 flex items-center justify-center font-mono font-bold text-white shadow-lg shadow-indigo-500/20">
+                    Zeq
+                </div>
+                <div>
+                    <h1 class="text-base sm:text-lg font-bold tracking-tight text-white">Laboratorio de Impedancia RLC</h1>
+                    <p class="text-xs text-slate-400">Comprueba visualmente cuándo cambia la fórmula y cuándo NO</p>
+                </div>
+            </div>
+
+            <!-- Botones de modo: Simulador vs Ponte a prueba -->
+            <div class="flex items-center bg-slate-800/90 p-1 rounded-xl border border-slate-700/70">
+                <button id="btnTabSim" onclick="switchTab('sim')" class="px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition-all bg-indigo-600 text-white shadow">
+                    Simulador Interactivo
+                </button>
+                <button id="btnTabQuiz" onclick="switchTab('quiz')" class="px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition-all text-slate-300 hover:text-white flex items-center gap-1.5">
+                    <span>Ponte a prueba</span>
+                    <span id="quizBadge" class="bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[11px] px-1.5 py-0.2 rounded-full font-mono">0/4</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- CONTENIDO PRINCIPAL: SIMULADOR -->
+    <main id="viewSim" class="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-6">
+
+        <!-- 1. SELECTOR DE TOPOLOGÍA DEL CIRCUITO -->
+        <section class="bg-slate-900/80 border border-slate-800 rounded-2xl p-4 sm:p-5 shadow-xl">
+            <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                <div>
+                    <span class="text-[11px] font-bold uppercase tracking-wider text-indigo-400">Paso 1 · Elige la configuración</span>
+                    <h2 class="text-sm sm:text-base font-semibold text-slate-200 mt-0.5">Tipo de conexión y componentes activos</h2>
+                </div>
+
+                <!-- Botones de topología -->
+                <div class="flex flex-wrap gap-2">
+                    <button onclick="setTopology('series')" data-topo="series" class="topo-btn px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold border transition-all">
+                        RLC Serie
+                    </button>
+                    <button onclick="setTopology('parallel')" data-topo="parallel" class="topo-btn px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold border transition-all">
+                        RLC Paralelo
+                    </button>
+                    <button onclick="setTopology('rl')" data-topo="rl" class="topo-btn px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold border transition-all">
+                        RL Serie (sin C)
+                    </button>
+                    <button onclick="setTopology('rc')" data-topo="rc" class="topo-btn px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold border transition-all">
+                        RC Serie (sin L)
+                    </button>
+                    <button onclick="setTopology('lc')" data-topo="lc" class="topo-btn px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold border transition-all">
+                        LC Serie (sin R)
+                    </button>
+                </div>
+            </div>
+
+            <!-- Barra especial para permutar el orden en Serie -->
+            <div id="orderControlBar" class="mt-4 pt-4 border-t border-slate-800/90 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div class="flex items-center gap-2.5">
+                    <span class="inline-flex items-center justify-center w-6 h-6 rounded-lg bg-emerald-500/15 text-emerald-400 text-xs font-bold border border-emerald-500/30">⇄</span>
+                    <div>
+                        <p class="text-xs sm:text-sm font-medium text-slate-200">
+                            Orden visual en serie: <span id="currentOrderLabel" class="font-mono font-bold text-cyan-400">L — R — C</span>
+                        </p>
+                        <p class="text-xs text-slate-400">Prueba a poner el condensador delante o cambiar el orden: la fórmula y <span class="font-mono text-slate-300">Zeq</span> permanecen idénticos.</p>
+                    </div>
+                </div>
+                <div class="flex flex-wrap items-center gap-2">
+                    <button onclick="cycleSeriesOrder()" class="px-4 py-2 rounded-xl bg-cyan-500/15 hover:bg-cyan-500/25 text-cyan-300 border border-cyan-500/40 text-xs sm:text-sm font-semibold transition-all active:scale-95 flex items-center gap-2 shadow-sm">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                        Cambiar orden de componentes
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- 2. ZONA VISUAL PRINCIPAL: ESQUEMA ELÉCTRICO + DIAGRAMA FASORIAL -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+            <!-- Esquema del Circuito (7 columnas en desktop) -->
+            <section class="lg:col-span-7 bg-slate-900/80 border border-slate-800 rounded-2xl p-4 sm:p-5 flex flex-col justify-between shadow-xl">
+                <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+                    <div>
+                        <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Esquema Eléctrico en Tiempo Real</span>
+                        <h3 id="circuitTitle" class="text-sm sm:text-base font-bold text-white">Circuito RLC en Serie</h3>
+                    </div>
+                    <!-- Badge de estado del circuito -->
+                    <div id="regimeBadge" class="px-3 py-1 rounded-full text-xs font-semibold border">
+                        Circuito Inductivo (XL > XC)
+                    </div>
+                </div>
+
+                <!-- Canvas del Esquema Eléctrico -->
+                <div class="relative w-full h-64 sm:h-72 bg-slate-950/90 rounded-xl border border-slate-800/90 overflow-hidden">
+                    <canvas id="circuitCanvas" class="w-full h-full block"></canvas>
+                </div>
+
+                <!-- Leyenda de colores y valores instantáneos -->
+                <div class="grid grid-cols-3 gap-2.5 mt-4">
+                    <div id="cardR" class="bg-emerald-950/30 border border-emerald-500/30 rounded-xl p-2.5 sm:p-3 transition-opacity">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-bold text-emerald-400">Resistencia (R)</span>
+                            <span class="w-2.5 h-2.5 rounded-full bg-emerald-400"></span>
+                        </div>
+                        <p id="valRDisplay" class="font-mono text-sm sm:text-base font-bold text-white mt-1">30.0 Ω</p>
+                        <p class="text-[11px] text-emerald-300/70">Parte real (+R)</p>
+                    </div>
+
+                    <div id="cardL" class="bg-sky-950/30 border border-sky-500/30 rounded-xl p-2.5 sm:p-3 transition-opacity">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-bold text-sky-400">Bobina (XL)</span>
+                            <span class="w-2.5 h-2.5 rounded-full bg-sky-400"></span>
+                        </div>
+                        <p id="valXLDisplay" class="font-mono text-sm sm:text-base font-bold text-white mt-1">31.4 Ω</p>
+                        <p class="text-[11px] text-sky-300/70">ω·L (+jXL)</p>
+                    </div>
+
+                    <div id="cardC" class="bg-amber-950/30 border border-amber-500/30 rounded-xl p-2.5 sm:p-3 transition-opacity">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-bold text-amber-400">Condensador (XC)</span>
+                            <span class="w-2.5 h-2.5 rounded-full bg-amber-400"></span>
+                        </div>
+                        <p id="valXCDisplay" class="font-mono text-sm sm:text-base font-bold text-white mt-1">26.5 Ω</p>
+                        <p class="text-[11px] text-amber-300/70">1/(ω·C) (-jXC)</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Diagrama Fasorial Plano Complejo (5 columnas en desktop) -->
+            <section class="lg:col-span-5 bg-slate-900/80 border border-slate-800 rounded-2xl p-4 sm:p-5 flex flex-col justify-between shadow-xl">
+                <div class="flex items-center justify-between mb-3">
+                    <div>
+                        <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Plano Complejo (Re / Im)</span>
+                        <h3 id="phasorTitle" class="text-sm sm:text-base font-bold text-white">Diagrama Fasorial de Zeq</h3>
+                    </div>
+                    <span class="text-xs font-mono text-slate-400 bg-slate-800 px-2.5 py-1 rounded-lg border border-slate-700">
+                        φ = <span id="angleDisplay" class="text-white font-bold">9.3°</span>
+                    </span>
+                </div>
+
+                <!-- Canvas del Diagrama Fasorial -->
+                <div class="relative w-full h-64 sm:h-72 bg-slate-950/90 rounded-xl border border-slate-800/90 overflow-hidden">
+                    <canvas id="phasorCanvas" class="w-full h-full block"></canvas>
+                </div>
+
+                <!-- Resumen polar y binómico -->
+                <div class="grid grid-cols-2 gap-2.5 mt-4">
+                    <div class="bg-slate-800/70 border border-slate-700/80 rounded-xl p-2.5 sm:p-3">
+                        <span class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">Forma Binómica</span>
+                        <p id="binomDisplay" class="font-mono text-xs sm:text-sm font-bold text-indigo-300 mt-1 truncate">30.00 + j4.89 Ω</p>
+                    </div>
+                    <div class="bg-slate-800/70 border border-slate-700/80 rounded-xl p-2.5 sm:p-3">
+                        <span class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">Módulo y Fase</span>
+                        <p id="polarDisplay" class="font-mono text-xs sm:text-sm font-bold text-fuchsia-300 mt-1 truncate">30.40 Ω ∠ 9.3°</p>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <!-- 3. DESLIZADORES DE PARÁMETROS + DESGLOSE MATEMÁTICO PASO A PASO -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+            <!-- Panel de Controles Deslizantes (5 columnas) -->
+            <section class="lg:col-span-5 bg-slate-900/80 border border-slate-800 rounded-2xl p-4 sm:p-5 space-y-5 shadow-xl">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <span class="text-[11px] font-bold uppercase tracking-wider text-indigo-400">Paso 2 · Ajusta los valores</span>
+                        <h3 class="text-sm sm:text-base font-bold text-white">Variables del Circuito</h3>
+                    </div>
+                    <button onclick="setResonance()" class="px-3 py-1.5 rounded-lg bg-fuchsia-500/15 hover:bg-fuchsia-500/25 text-fuchsia-300 border border-fuchsia-500/40 text-xs font-semibold transition-all active:scale-95">
+                        Forzar Resonancia (XL = XC)
+                    </button>
+                </div>
+
+                <!-- Slider R -->
+                <div id="sliderBoxR" class="space-y-1.5">
+                    <div class="flex justify-between text-xs sm:text-sm">
+                        <label for="sliderR" class="font-semibold text-emerald-400">Resistencia (R)</label>
+                        <span id="labelR" class="font-mono font-bold text-white">30 Ω</span>
+                    </div>
+                    <input id="sliderR" type="range" min="1" max="100" step="1" value="30" class="w-full bg-slate-800 text-emerald-400">
+                </div>
+
+                <!-- Slider L -->
+                <div id="sliderBoxL" class="space-y-1.5">
+                    <div class="flex justify-between text-xs sm:text-sm">
+                        <label for="sliderL" class="font-semibold text-sky-400">Inductancia (L)</label>
+                        <span id="labelL" class="font-mono font-bold text-white">100 mH (0.100 H)</span>
+                    </div>
+                    <input id="sliderL" type="range" min="1" max="200" step="1" value="100" class="w-full bg-slate-800 text-sky-400">
+                </div>
+
+                <!-- Slider C -->
+                <div id="sliderBoxC" class="space-y-1.5">
+                    <div class="flex justify-between text-xs sm:text-sm">
+                        <label for="sliderC" class="font-semibold text-amber-400">Capacitancia (C)</label>
+                        <span id="labelC" class="font-mono font-bold text-white">120 µF (1.20×10⁻⁴ F)</span>
+                    </div>
+                    <input id="sliderC" type="range" min="1" max="200" step="1" value="120" class="w-full bg-slate-800 text-amber-400">
+                </div>
+
+                <!-- Slider Frecuencia f y Omega -->
+                <div class="pt-3 border-t border-slate-800 space-y-1.5">
+                    <div class="flex justify-between text-xs sm:text-sm">
+                        <label for="sliderF" class="font-semibold text-indigo-300">Frecuencia (f) / Pulsación (ω)</label>
+                        <span id="labelF" class="font-mono font-bold text-white">50 Hz · ω = 314.2 rad/s</span>
+                    </div>
+                    <input id="sliderF" type="range" min="10" max="200" step="1" value="50" class="w-full bg-slate-800 text-indigo-400">
+                    <div class="flex justify-between text-[11px] text-slate-400 font-mono">
+                        <span>10 Hz (62.8 rad/s)</span>
+                        <span>ω = 2·π·f</span>
+                        <span>200 Hz (1256.6 rad/s)</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Panel Matemático Paso a Paso (7 columnas) -->
+            <section class="lg:col-span-7 bg-slate-900/80 border border-slate-800 rounded-2xl p-4 sm:p-5 flex flex-col justify-between shadow-xl space-y-4">
+                <div>
+                    <span class="text-[11px] font-bold uppercase tracking-wider text-indigo-400">Paso 3 · Deducción y Sustitución</span>
+                    <h3 class="text-sm sm:text-base font-bold text-white mt-0.5">Desarrollo de la Impedancia Equivalente (Zeq)</h3>
+                </div>
+
+                <!-- Caja con la fórmula maestra destacada -->
+                <div class="bg-slate-950 border border-indigo-500/30 rounded-xl p-4 space-y-2">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-semibold text-indigo-300">Fórmula aplicable a esta topología:</span>
+                        <span id="formulaTag" class="text-[11px] font-mono px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                            Suma directa (Serie)
+                        </span>
+                    </div>
+                    <div id="masterFormula" class="font-mono text-base sm:text-lg font-bold text-white overflow-x-auto py-1">
+                        Zeq = R + j(ωL - 1/(ωC))
+                    </div>
+                    <p id="formulaExplanation" class="text-xs text-slate-400 leading-relaxed">
+                        Al estar en serie, la corriente es la misma por todos los elementos y sus impedancias se suman sin importar el orden en el que estén dibujados.
+                    </p>
+                </div>
+
+                <!-- Pasos de cálculo en tiempo real -->
+                <div class="space-y-2.5 font-mono text-xs sm:text-sm">
+                    <div class="bg-slate-800/50 border border-slate-700/60 rounded-xl p-3">
+                        <span class="text-slate-400 block text-[11px] font-sans font-semibold uppercase mb-1">1. Impedancias individuales:</span>
+                        <div id="step1Text" class="text-slate-200 leading-relaxed"></div>
+                    </div>
+
+                    <div class="bg-slate-800/50 border border-slate-700/60 rounded-xl p-3">
+                        <span class="text-slate-400 block text-[11px] font-sans font-semibold uppercase mb-1">2. Sustitución en la fórmula:</span>
+                        <div id="step2Text" class="text-slate-200 leading-relaxed"></div>
+                    </div>
+
+                    <div class="bg-indigo-950/40 border border-indigo-500/40 rounded-xl p-3">
+                        <span class="text-indigo-300 block text-[11px] font-sans font-semibold uppercase mb-1">3. Resultado final:</span>
+                        <div id="step3Text" class="text-white font-bold leading-relaxed"></div>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <!-- VISTA ALTERNATIVA: MINI MODO PONTE A PRUEBA -->
+    <section id="viewQuiz" class="hidden max-w-4xl mx-auto px-4 sm:px-6 py-8 space-y-6">
+        <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 sm:p-7 shadow-2xl space-y-6">
+            <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 pb-4">
+                <div>
+                    <span class="text-xs font-bold uppercase tracking-wider text-emerald-400">Entrenamiento tipo examen</span>
+                    <h2 class="text-lg sm:text-xl font-bold text-white mt-0.5">¿Cambia o no cambia la fórmula?</h2>
+                </div>
+                <div class="flex items-center gap-3">
+                    <span id="quizProgressText" class="text-xs font-mono text-slate-400">Pregunta 1 de 4</span>
+                    <button onclick="resetQuiz()" class="text-xs px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700">
+                        Reiniciar
+                    </button>
+                </div>
+            </div>
+
+            <!-- Diagrama SVG de la pregunta -->
+            <div class="bg-slate-950 border border-slate-800 rounded-xl p-4 flex flex-col items-center">
+                <div id="quizDiagram" class="w-full max-w-lg h-40 flex items-center justify-center"></div>
+            </div>
+
+            <!-- Enunciado -->
+            <div>
+                <p id="quizQuestionText" class="text-sm sm:text-base font-semibold text-slate-100 leading-relaxed"></p>
+            </div>
+
+            <!-- Opciones -->
+            <div id="quizOptions" class="grid grid-cols-1 gap-3"></div>
+
+            <!-- Retroalimentación inmediata -->
+            <div id="quizFeedback" class="hidden rounded-xl p-4 border text-xs sm:text-sm leading-relaxed"></div>
+
+            <!-- Botón siguiente -->
+            <div class="flex justify-end pt-2">
+                <button id="btnNextQuestion" onclick="nextQuestion()" class="hidden px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold transition-all">
+                    Siguiente pregunta →
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <script>
+        // =========================================================================
+        // 1. ESTADO GLOBAL DE LA SIMULACIÓN
+        // =========================================================================
+        const state = {
+            topology: 'series', // 'series' | 'parallel' | 'rl' | 'rc' | 'lc'
+            seriesOrders: [
+                ['L', 'R', 'C'], // Igual que la captura del examen
+                ['C', 'R', 'L'], // Condensador delante
+                ['R', 'L', 'C'], // Orden clásico
+                ['C', 'L', 'R']  // Condensador y bobina delante
+            ],
+            orderIndex: 0,
+            R: 30,      // Ohmios (Ω)
+            L_mH: 100,  // Milihenrios (mH)
+            C_uF: 120,  // Microfaradios (µF)
+            f: 50,      // Hercios (Hz)
+            phaseAnim: 0
+        };
+
+        // =========================================================================
+        // 2. CÁLCULOS ELECTROTÉCNICOS EN TIEMPO REAL
+        // =========================================================================
+        function computeImpedance() {
+            const omega = 2 * Math.PI * state.f;
+            const L = state.L_mH * 1e-3;
+            const C = state.C_uF * 1e-6;
+
+            const XL = omega * L;
+            const XC = 1 / (omega * C);
+
+            let Re = 0;
+            let Im = 0;
+            let mag = 0;
+            let angleDeg = 0;
+
+            if (state.topology === 'series') {
+                Re = state.R;
+                Im = XL - XC;
+            } else if (state.topology === 'rl') {
+                Re = state.R;
+                Im = XL;
+            } else if (state.topology === 'rc') {
+                Re = state.R;
+                Im = -XC;
+            } else if (state.topology === 'lc') {
+                Re = 0;
+                Im = XL - XC;
+            } else if (state.topology === 'parallel') {
+                // Admitancia total Y = G + jB = 1/R + j(1/XC - 1/XL)
+                const G = 1 / state.R;
+                const B = (1 / XC) - (1 / XL); // ωC - 1/(ωL)
+                const Y2 = G * G + B * B;
+                // Zeq = 1 / Y = (G - jB) / (G^2 + B^2)
+                Re = G / Y2;
+                Im = -B / Y2;
+            }
+
+            mag = Math.hypot(Re, Im);
+            angleDeg = Math.atan2(Im, Re) * (180 / Math.PI);
+
+            return { omega, L, C, XL, XC, Re, Im, mag, angleDeg };
+        }
+
+        // =========================================================================
+        // 3. INTERACCIÓN CON CONTROLES Y TOPOLOGÍA
+        // =========================================================================
+        function setTopology(topo) {
+            state.topology = topo;
+
+            // Actualizar estilos de botones
+            document.querySelectorAll('.topo-btn').forEach(btn => {
+                const isActive = btn.dataset.topo === topo;
+                if (isActive) {
+                    btn.className = 'topo-btn px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold border transition-all bg-indigo-600 text-white border-indigo-400 shadow-lg shadow-indigo-500/20';
+                } else {
+                    btn.className = 'topo-btn px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold border transition-all bg-slate-800/80 text-slate-300 border-slate-700 hover:bg-slate-800 hover:text-white';
+                }
+            });
+
+            // Mostrar barra de permutación de orden solo en RLC serie (o parciales serie)
+            const orderBar = document.getElementById('orderControlBar');
+            if (topo === 'parallel') {
+                orderBar.classList.add('hidden');
+            } else {
+                orderBar.classList.remove('hidden');
+            }
+
+            // Atenuar tarjetas/sliders de componentes inactivos
+            const hasR = topo !== 'lc';
+            const hasL = topo !== 'rc';
+            const hasC = topo !== 'rl';
+
+            toggleComponentUI('R', hasR);
+            toggleComponentUI('L', hasL);
+            toggleComponentUI('C', hasC);
+
+            updateAll();
+        }
+
+        function toggleComponentUI(comp, active) {
+            const card = document.getElementById('card' + comp);
+            const sliderBox = document.getElementById('sliderBox' + comp);
+            if (active) {
+                card.classList.remove('opacity-35');
+                sliderBox.classList.remove('opacity-40', 'pointer-events-none');
+            } else {
+                card.classList.add('opacity-35');
+                sliderBox.classList.add('opacity-40', 'pointer-events-none');
+            }
+        }
+
+        function cycleSeriesOrder() {
+            state.orderIndex = (state.orderIndex + 1) % state.seriesOrders.length;
+            updateAll();
+        }
+
+        function setResonance() {
+            // Ajusta f para que ωL = 1/(ωC) -> f = 1 / (2π√(LC))
+            if (state.topology === 'rl' || state.topology === 'rc') {
+                setTopology('series');
+            }
+            const L = state.L_mH * 1e-3;
+            const C = state.C_uF * 1e-6;
+            let fRes = 1 / (2 * Math.PI * Math.sqrt(L * C));
+            // Si fRes sale del rango del slider [10, 200], ajustamos C a 100 µF y L a 101 mH (~50 Hz)
+            if (fRes < 10 || fRes > 200) {
+                state.L_mH = 101;
+                state.C_uF = 100;
+                document.getElementById('sliderL').value = 101;
+                document.getElementById('sliderC').value = 100;
+                fRes = 1 / (2 * Math.PI * Math.sqrt(0.101 * 100e-6));
+            }
+            state.f = Math.round(fRes);
+            document.getElementById('sliderF').value = state.f;
+            updateAll();
+        }
+
+        // Listeners de deslizadores
+        document.getElementById('sliderR').addEventListener('input', e => {
+            state.R = Number(e.target.value);
+            updateAll();
+        });
+        document.getElementById('sliderL').addEventListener('input', e => {
+            state.L_mH = Number(e.target.value);
+            updateAll();
+        });
+        document.getElementById('sliderC').addEventListener('input', e => {
+            state.C_uF = Number(e.target.value);
+            updateAll();
+        });
+        document.getElementById('sliderF').addEventListener('input', e => {
+            state.f = Number(e.target.value);
+            updateAll();
+        });
+
+        // =========================================================================
+        // 4. ACTUALIZACIÓN DE TEXTOS, FÓRMULAS Y BADGES
+        // =========================================================================
+        function getActiveOrder() {
+            const fullOrder = state.seriesOrders[state.orderIndex];
+            if (state.topology === 'rl') return fullOrder.filter(x => x !== 'C');
+            if (state.topology === 'rc') return fullOrder.filter(x => x !== 'L');
+            if (state.topology === 'lc') return fullOrder.filter(x => x !== 'R');
+            return fullOrder;
+        }
+
+        function formatComplex(re, im) {
+            const sign = im >= 0 ? '+' : '-';
+            return `${re.toFixed(2)} ${sign} j${Math.abs(im).toFixed(2)} Ω`;
+        }
+
+        function updateAll() {
+            const calc = computeImpedance();
+            const order = getActiveOrder();
+
+            // Etiquetas de deslizadores
+            document.getElementById('labelR').textContent = `${state.R} Ω`;
+            document.getElementById('labelL').textContent = `${state.L_mH} mH (${(state.L_mH / 1000).toFixed(3)} H)`;
+            document.getElementById('labelC').textContent = `${state.C_uF} µF`;
+            document.getElementById('labelF').textContent = `${state.f} Hz · ω = ${calc.omega.toFixed(1)} rad/s`;
+
+            // Orden visual
+            document.getElementById('currentOrderLabel').textContent = order.join(' — ');
+
+            // Tarjetas de valores
+            document.getElementById('valRDisplay').textContent = state.topology === 'lc' ? '0 Ω (no hay)' : `${state.R.toFixed(1)} Ω`;
+            document.getElementById('valXLDisplay').textContent = state.topology === 'rc' ? '0 Ω (no hay)' : `${calc.XL.toFixed(2)} Ω`;
+            document.getElementById('valXCDisplay').textContent = state.topology === 'rl' ? '0 Ω (no hay)' : `${calc.XC.toFixed(2)} Ω`;
+
+            // Resultados fasoriales
+            document.getElementById('binomDisplay').textContent = formatComplex(calc.Re, calc.Im);
+            document.getElementById('polarDisplay').textContent = `${calc.mag.toFixed(2)} Ω ∠ ${calc.angleDeg.toFixed(1)}°`;
+            document.getElementById('angleDisplay').textContent = `${calc.angleDeg.toFixed(1)}°`;
+
+            // Badge de comportamiento (Inductivo / Capacitivo / Resonancia)
+            const badge = document.getElementById('regimeBadge');
+            if (Math.abs(calc.Im) < 0.25) {
+                badge.textContent = '¡Resonancia! (Im ≈ 0 → Zeq puramente resistiva)';
+                badge.className = 'px-3 py-1 rounded-full text-xs font-semibold border bg-fuchsia-500/20 text-fuchsia-300 border-fuchsia-500/40 animate-glow';
+            } else if (calc.Im > 0) {
+                badge.textContent = 'Comportamiento Inductivo (φ > 0°)';
+                badge.className = 'px-3 py-1 rounded-full text-xs font-semibold border bg-sky-500/15 text-sky-300 border-sky-500/40';
+            } else {
+                badge.textContent = 'Comportamiento Capacitivo (φ < 0°)';
+                badge.className = 'px-3 py-1 rounded-full text-xs font-semibold border bg-amber-500/15 text-amber-300 border-amber-500/40';
+            }
+
+            // Títulos y fórmulas según topología
+            const circuitTitle = document.getElementById('circuitTitle');
+            const masterFormula = document.getElementById('masterFormula');
+            const formulaTag = document.getElementById('formulaTag');
+            const formulaExp = document.getElementById('formulaExplanation');
+            const step1 = document.getElementById('step1Text');
+            const step2 = document.getElementById('step2Text');
+            const step3 = document.getElementById('step3Text');
+
+            if (state.topology === 'series') {
+                circuitTitle.textContent = `Circuito RLC en Serie (${order.join('-')})`;
+                formulaTag.textContent = 'Suma directa (Serie)';
+                masterFormula.innerHTML = `<span class="text-white">Zeq</span> = <span class="text-emerald-400">R</span> + j(<span class="text-sky-400">ωL</span> - <span class="text-amber-400">1/(ωC)</span>)`;
+                formulaExp.textContent = `Aunque cambies el orden a ${order.join('-')}, al estar en serie las impedancias se suman: Z_R + Z_L + Z_C = R + jωL - j/(ωC). La fórmula NO cambia.`;
+                step1.innerHTML = `Z_R = <span class="text-emerald-400">${state.R} Ω</span> <br> Z_L = <span class="text-sky-400">+j${calc.XL.toFixed(2)} Ω</span> <br> Z_C = <span class="text-amber-400">-j${calc.XC.toFixed(2)} Ω</span>`;
+                step2.innerHTML = `Zeq = <span class="text-emerald-400">${state.R}</span> + j(<span class="text-sky-400">${calc.XL.toFixed(2)}</span> - <span class="text-amber-400">${calc.XC.toFixed(2)}</span>)`;
+                step3.innerHTML = `Zeq = ${formatComplex(calc.Re, calc.Im)} <br> |Zeq| = ${calc.mag.toFixed(2)} Ω ∠ ${calc.angleDeg.toFixed(1)}°`;
+            } else if (state.topology === 'parallel') {
+                circuitTitle.textContent = 'Circuito RLC en Paralelo';
+                formulaTag.textContent = 'Suma de inversas / Admitancias (Paralelo)';
+                masterFormula.innerHTML = `<span class="text-white">1 / Zeq</span> = <span class="text-emerald-400">1/R</span> + j(<span class="text-amber-400">ωC</span> - <span class="text-sky-400">1/(ωL)</span>)`;
+                formulaExp.textContent = '¡Aquí SÍ cambia la fórmula! Al estar en paralelo comparten la misma tensión, por lo que se suman las admitancias (inversas de impedancia) y los signos de L y C se invierten.';
+                const G = 1 / state.R;
+                const BC = 1 / calc.XC;
+                const BL = 1 / calc.XL;
+                step1.innerHTML = `G = 1/R = <span class="text-emerald-400">${G.toFixed(4)} S</span> <br> B_C = ωC = <span class="text-amber-400">+j${BC.toFixed(4)} S</span> <br> B_L = -1/(ωL) = <span class="text-sky-400">-j${BL.toFixed(4)} S</span>`;
+                step2.innerHTML = `Y_eq = ${G.toFixed(4)} + j(${BC.toFixed(4)} - ${BL.toFixed(4)})<br>Y_eq = ${G.toFixed(4)} ${BC - BL >= 0 ? '+' : '-'} j${Math.abs(BC - BL).toFixed(4)} S`;
+                step3.innerHTML = `Zeq = 1 / Y_eq<br>Zeq = ${formatComplex(calc.Re, calc.Im)} <br> |Zeq| = ${calc.mag.toFixed(2)} Ω ∠ ${calc.angleDeg.toFixed(1)}°`;
+            } else if (state.topology === 'rl') {
+                circuitTitle.textContent = `Circuito RL en Serie (${order.join('-')})`;
+                formulaTag.textContent = 'Serie sin condensador (XC = 0)';
+                masterFormula.innerHTML = `<span class="text-white">Zeq</span> = <span class="text-emerald-400">R</span> + j<span class="text-sky-400">ωL</span>`;
+                formulaExp.textContent = 'Al no haber condensador, el término -1/(ωC) desaparece de la fórmula en serie. Da igual si dibujas R-L o L-R.';
+                step1.innerHTML = `Z_R = <span class="text-emerald-400">${state.R} Ω</span> <br> Z_L = <span class="text-sky-400">+j${calc.XL.toFixed(2)} Ω</span>`;
+                step2.innerHTML = `Zeq = <span class="text-emerald-400">${state.R}</span> + j<span class="text-sky-400">${calc.XL.toFixed(2)}</span>`;
+                step3.innerHTML = `Zeq = ${formatComplex(calc.Re, calc.Im)} <br> |Zeq| = ${calc.mag.toFixed(2)} Ω ∠ ${calc.angleDeg.toFixed(1)}°`;
+            } else if (state.topology === 'rc') {
+                circuitTitle.textContent = `Circuito RC en Serie (${order.join('-')})`;
+                formulaTag.textContent = 'Serie sin bobina (XL = 0)';
+                masterFormula.innerHTML = `<span class="text-white">Zeq</span> = <span class="text-emerald-400">R</span> - j<span class="text-amber-400">1/(ωC)</span>`;
+                formulaExp.textContent = 'Al no haber bobina, el término +ωL desaparece y queda solo la resistencia menos la reactancia capacitiva, sin importar si C va antes o después de R.';
+                step1.innerHTML = `Z_R = <span class="text-emerald-400">${state.R} Ω</span> <br> Z_C = <span class="text-amber-400">-j${calc.XC.toFixed(2)} Ω</span>`;
+                step2.innerHTML = `Zeq = <span class="text-emerald-400">${state.R}</span> - j<span class="text-amber-400">${calc.XC.toFixed(2)}</span>`;
+                step3.innerHTML = `Zeq = ${formatComplex(calc.Re, calc.Im)} <br> |Zeq| = ${calc.mag.toFixed(2)} Ω ∠ ${calc.angleDeg.toFixed(1)}°`;
+            } else if (state.topology === 'lc') {
+                circuitTitle.textContent = `Circuito LC Ideal en Serie (${order.join('-')})`;
+                formulaTag.textContent = 'Serie sin resistencia (R = 0)';
+                masterFormula.innerHTML = `<span class="text-white">Zeq</span> = j(<span class="text-sky-400">ωL</span> - <span class="text-amber-400">1/(ωC)</span>)`;
+                formulaExp.textContent = 'Sin resistencia (R = 0), la impedancia es puramente imaginaria: sigue restándose 1/(ωC) de ωL tanto si pones L-C como C-L.';
+                step1.innerHTML = `Z_L = <span class="text-sky-400">+j${calc.XL.toFixed(2)} Ω</span> <br> Z_C = <span class="text-amber-400">-j${calc.XC.toFixed(2)} Ω</span>`;
+                step2.innerHTML = `Zeq = j(<span class="text-sky-400">${calc.XL.toFixed(2)}</span> - <span class="text-amber-400">${calc.XC.toFixed(2)}</span>)`;
+                step3.innerHTML = `Zeq = ${formatComplex(calc.Re, calc.Im)} <br> |Zeq| = ${calc.mag.toFixed(2)} Ω ∠ ${calc.angleDeg.toFixed(1)}°`;
+            }
+
+            drawPhasorDiagram(calc);
+        }
+
+        // =========================================================================
+        // 5. DIBUJO DEL ESQUEMA ELÉCTRICO ANIMADO (CANVAS 1)
+        // =========================================================================
+        function setupCanvas(canvas) {
+            const rect = canvas.getBoundingClientRect();
+            const dpr = window.devicePixelRatio || 1;
+            if (canvas.width !== Math.round(rect.width * dpr) || canvas.height !== Math.round(rect.height * dpr)) {
+                canvas.width = Math.round(rect.width * dpr);
+                canvas.height = Math.round(rect.height * dpr);
+            }
+            const ctx = canvas.getContext('2d');
+            ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+            return { ctx, w: rect.width, h: rect.height };
+        }
+
+        function drawComponentSymbol(ctx, type, x, y, calc) {
+            ctx.save();
+            ctx.lineWidth = 3;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+
+            if (type === 'R') {
+                ctx.strokeStyle = '#34d399'; // Emerald 400
+                ctx.fillStyle = '#34d399';
+                ctx.beginPath();
+                ctx.moveTo(x - 36, y);
+                const zig = [-27, -18, -9, 0, 9, 18, 27];
+                zig.forEach((zx, i) => {
+                    ctx.lineTo(x + zx, y + (i % 2 === 0 ? -11 : 11));
+                });
+                ctx.lineTo(x + 36, y);
+                ctx.stroke();
+
+                ctx.font = 'bold 13px Inter, sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText('R', x, y - 22);
+                ctx.font = '11px JetBrains Mono, monospace';
+                ctx.fillStyle = '#a7f3d0';
+                ctx.fillText(`${state.R} Ω`, x, y + 28);
+            } else if (type === 'L') {
+                ctx.strokeStyle = '#38bdf8'; // Sky 400
+                ctx.fillStyle = '#38bdf8';
+                ctx.beginPath();
+                ctx.moveTo(x - 36, y);
+                for (let i = 0; i < 4; i++) {
+                    const cx = x - 27 + i * 18;
+                    ctx.arc(cx, y, 9, Math.PI, 0, false);
+                }
+                ctx.lineTo(x + 36, y);
+                ctx.stroke();
+
+                ctx.font = 'bold 13px Inter, sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText('L', x, y - 22);
+                ctx.font = '11px JetBrains Mono, monospace';
+                ctx.fillStyle = '#bae6fd';
+                ctx.fillText(`+j${calc.XL.toFixed(1)}Ω`, x, y + 28);
+            } else if (type === 'C') {
+                ctx.strokeStyle = '#fbbf24'; // Amber 400
+                ctx.fillStyle = '#fbbf24';
+                // Cables hasta placas
+                ctx.beginPath();
+                ctx.moveTo(x - 36, y);
+                ctx.lineTo(x - 7, y);
+                ctx.moveTo(x + 7, y);
+                ctx.lineTo(x + 36, y);
+                ctx.stroke();
+
+                // Placas del condensador
+                ctx.lineWidth = 3.5;
+                ctx.beginPath();
+                ctx.moveTo(x - 7, y - 16);
+                ctx.lineTo(x - 7, y + 16);
+                ctx.moveTo(x + 7, y - 16);
+                ctx.lineTo(x + 7, y + 16);
+                ctx.stroke();
+
+                ctx.font = 'bold 13px Inter, sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText('C', x, y - 22);
+                ctx.font = '11px JetBrains Mono, monospace';
+                ctx.fillStyle = '#fde68a';
+                ctx.fillText(`-j${calc.XC.toFixed(1)}Ω`, x, y + 28);
+            }
+            ctx.restore();
+        }
+
+        function drawCircuitCanvas() {
+            const canvas = document.getElementById('circuitCanvas');
+            if (!canvas) return;
+            const { ctx, w, h } = setupCanvas(canvas);
+            const calc = computeImpedance();
+
+            ctx.clearRect(0, 0, w, h);
+
+            // Cuadrícula sutil tipo papel milimetrado técnico
+            ctx.strokeStyle = 'rgba(148, 163, 184, 0.06)';
+            ctx.lineWidth = 1;
+            const grid = 20;
+            for (let gx = 0; gx < w; gx += grid) {
+                ctx.beginPath(); ctx.moveTo(gx, 0); ctx.lineTo(gx, h); ctx.stroke();
+            }
+            for (let gy = 0; gy < h; gy += grid) {
+                ctx.beginPath(); ctx.moveTo(0, gy); ctx.lineTo(w, gy); ctx.stroke();
+            }
+
+            // Oscilación senoidal animada de corriente AC
+            state.phaseAnim += 0.055 * (state.f / 50);
+            const currentWave = Math.sin(state.phaseAnim);
+
+            if (state.topology !== 'parallel') {
+                // MODO SERIE (con orden dinámico)
+                const order = getActiveOrder();
+                const marginX = Math.max(36, w * 0.1);
+                const startX = marginX;
+                const endX = w - marginX;
+                const midY = h * 0.5;
+
+                // Cable conductor continuo
+                ctx.strokeStyle = '#64748b';
+                ctx.lineWidth = 2.5;
+                ctx.beginPath();
+                ctx.moveTo(startX, midY);
+                ctx.lineTo(endX, midY);
+                ctx.stroke();
+
+                // Partículas animadas de corriente alterna (van y vienen)
+                const numDots = 10;
+                ctx.fillStyle = 'rgba(129, 140, 248, 0.85)';
+                for (let i = 0; i < numDots; i++) {
+                    const basePos = startX + ((endX - startX) / numDots) * (i + 0.5);
+                    const offset = currentWave * 14;
+                    const px = Math.min(endX - 8, Math.max(startX + 8, basePos + offset));
+                    ctx.beginPath();
+                    ctx.arc(px, midY, 2.5, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+
+                // Bornes A y B
+                [startX, endX].forEach((bx, idx) => {
+                    ctx.fillStyle = '#0f172a';
+                    ctx.strokeStyle = '#e2e8f0';
+                    ctx.lineWidth = 2.5;
+                    ctx.beginPath();
+                    ctx.arc(bx, midY, 6, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.stroke();
+
+                    ctx.fillStyle = '#94a3b8';
+                    ctx.font = 'bold 12px Inter, sans-serif';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(idx === 0 ? 'A' : 'B', bx, midY - 14);
+                });
+
+                // Dibujar componentes en su orden actual
+                const count = order.length;
+                order.forEach((comp, idx) => {
+                    const cx = startX + ((endX - startX) / (count + 1)) * (idx + 1);
+                    // Borrar trozo de cable detrás del componente
+                    ctx.fillStyle = '#020617';
+                    ctx.fillRect(cx - 35, midY - 18, 70, 36);
+                    drawComponentSymbol(ctx, comp, cx, midY, calc);
+                });
+
+                // Etiqueta inferior aclaratoria
+                ctx.fillStyle = '#94a3b8';
+                ctx.font = '12px Inter, sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText(`Misma corriente I(t) atraviesa ${order.join(' → ')} en serie`, w / 2, h - 16);
+
+            } else {
+                // MODO PARALELO (3 ramas horizontales entre dos nodos verticales)
+                const leftBus = Math.max(70, w * 0.24);
+                const rightBus = w - Math.max(70, w * 0.24);
+                const startX = Math.max(30, leftBus - 45);
+                const endX = Math.min(w - 30, rightBus + 45);
+                const midY = h * 0.5;
+                const branchYs = [h * 0.23, h * 0.5, h * 0.77];
+                const comps = ['R', 'L', 'C'];
+
+                ctx.strokeStyle = '#64748b';
+                ctx.lineWidth = 2.5;
+
+                // Cables de entrada/salida y buses verticales
+                ctx.beginPath();
+                ctx.moveTo(startX, midY);
+                ctx.lineTo(leftBus, midY);
+                ctx.moveTo(rightBus, midY);
+                ctx.lineTo(endX, midY);
+                ctx.moveTo(leftBus, branchYs[0]);
+                ctx.lineTo(leftBus, branchYs[2]);
+                ctx.moveTo(rightBus, branchYs[0]);
+                ctx.lineTo(rightBus, branchYs[2]);
+                ctx.stroke();
+
+                // Ramas
+                branchYs.forEach((by, idx) => {
+                    ctx.strokeStyle = '#64748b';
+                    ctx.lineWidth = 2.5;
+                    ctx.beginPath();
+                    ctx.moveTo(leftBus, by);
+                    ctx.lineTo(rightBus, by);
+                    ctx.stroke();
+
+                    const cx = (leftBus + rightBus) / 2;
+                    ctx.fillStyle = '#020617';
+                    ctx.fillRect(cx - 35, by - 16, 70, 32);
+                    drawComponentSymbol(ctx, comps[idx], cx, by, calc);
+
+                    // Nodos de unión
+                    [leftBus, rightBus].forEach(nx => {
+                        ctx.fillStyle = '#818cf8';
+                        ctx.beginPath();
+                        ctx.arc(nx, by, 3.5, 0, Math.PI * 2);
+                        ctx.fill();
+                    });
+                });
+
+                // Bornes A y B
+                [startX, endX].forEach((bx, idx) => {
+                    ctx.fillStyle = '#0f172a';
+                    ctx.strokeStyle = '#e2e8f0';
+                    ctx.lineWidth = 2.5;
+                    ctx.beginPath();
+                    ctx.arc(bx, midY, 6, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.stroke();
+
+                    ctx.fillStyle = '#94a3b8';
+                    ctx.font = 'bold 12px Inter, sans-serif';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(idx === 0 ? 'A' : 'B', bx, midY - 14);
+                });
+            }
+        }
+
+        // =========================================================================
+        // 6. DIBUJO DEL DIAGRAMA FASORIAL EN EL PLANO COMPLEJO (CANVAS 2)
+        // =========================================================================
+        function drawArrow(ctx, fromX, fromY, toX, toY, color, width = 2.5, dashed = false) {
+            const headLen = 9;
+            const dx = toX - fromX;
+            const dy = toY - fromY;
+            const len = Math.hypot(dx, dy);
+            if (len < 3) return;
+            const angle = Math.atan2(dy, dx);
+
+            ctx.save();
+            ctx.strokeStyle = color;
+            ctx.fillStyle = color;
+            ctx.lineWidth = width;
+            if (dashed) ctx.setLineDash([5, 4]);
+
+            ctx.beginPath();
+            ctx.moveTo(fromX, fromY);
+            ctx.lineTo(toX, toY);
+            ctx.stroke();
+
+            ctx.setLineDash([]);
+            ctx.beginPath();
+            ctx.moveTo(toX, toY);
+            ctx.lineTo(toX - headLen * Math.cos(angle - Math.PI / 6), toY - headLen * Math.sin(angle - Math.PI / 6));
+            ctx.lineTo(toX - headLen * Math.cos(angle + Math.PI / 6), toY - headLen * Math.sin(angle + Math.PI / 6));
+            ctx.closePath();
+            ctx.fill();
+            ctx.restore();
+        }
+
+        function drawPhasorDiagram(calc) {
+            const canvas = document.getElementById('phasorCanvas');
+            if (!canvas) return;
+            const { ctx, w, h } = setupCanvas(canvas);
+            ctx.clearRect(0, 0, w, h);
+
+            const originX = 48;
+            const originY = h / 2;
+
+            // Ejes Re (horizontal) e Im (vertical)
+            ctx.strokeStyle = 'rgba(148, 163, 184, 0.25)';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.moveTo(20, originY);
+            ctx.lineTo(w - 20, originY);
+            ctx.moveTo(originX, 18);
+            ctx.lineTo(originX, h - 18);
+            ctx.stroke();
+
+            ctx.fillStyle = '#64748b';
+            ctx.font = '11px Inter, sans-serif';
+            ctx.fillText('+j (Inductivo)', originX + 8, 26);
+            ctx.fillText('-j (Capacitivo)', originX + 8, h - 14);
+            ctx.fillText('Re (Ω)', w - 46, originY - 8);
+
+            // Escala dinámica para que siempre quepa bien en el canvas
+            const maxComponent = Math.max(
+                calc.Re,
+                Math.abs(calc.Im),
+                state.topology !== 'parallel' && state.topology !== 'rc' ? calc.XL : 0,
+                state.topology !== 'parallel' && state.topology !== 'rl' ? calc.XC : 0,
+                15
+            );
+            const scaleX = (w - originX - 45) / maxComponent;
+            const scaleY = (h / 2 - 34) / maxComponent;
+            const scale = Math.min(scaleX, scaleY);
+
+            const endReX = originX + calc.Re * scale;
+            const endImY = originY - calc.Im * scale;
+
+            // Si estamos en serie, dibujamos también los vectores individuales +jXL y -jXC
+            if (state.topology !== 'parallel') {
+                if (state.topology !== 'rc') {
+                    const yL = originY - calc.XL * scale;
+                    drawArrow(ctx, originX, originY, originX, yL, 'rgba(56, 189, 248, 0.55)', 2, true);
+                }
+                if (state.topology !== 'rl') {
+                    const yC = originY + calc.XC * scale;
+                    drawArrow(ctx, originX, originY, originX, yC, 'rgba(251, 191, 36, 0.55)', 2, true);
+                }
+            }
+
+            // Vector Real (R o Re(Zeq))
+            if (calc.Re > 0.1) {
+                drawArrow(ctx, originX, originY, endReX, originY, '#34d399', 3);
+            }
+
+            // Proyección imaginaria punteada desde punta de Re hasta Zeq
+            if (Math.abs(calc.Im) > 0.1) {
+                ctx.save();
+                ctx.strokeStyle = 'rgba(148, 163, 184, 0.4)';
+                ctx.setLineDash([4, 4]);
+                ctx.beginPath();
+                ctx.moveTo(endReX, originY);
+                ctx.lineTo(endReX, endImY);
+                ctx.moveTo(originX, endImY);
+                ctx.lineTo(endReX, endImY);
+                ctx.stroke();
+                ctx.restore();
+            }
+
+            // Vector Resultante Zeq
+            drawArrow(ctx, originX, originY, endReX, endImY, '#e879f9', 3.5);
+
+            // Etiqueta Zeq en la punta del fasor
+            ctx.fillStyle = '#f5d0fe';
+            ctx.font = 'bold 12px JetBrains Mono, monospace';
+            const labelOffsetY = calc.Im >= 0 ? -10 : 18;
+            ctx.fillText(`Zeq (${calc.mag.toFixed(1)}Ω)`, Math.min(w - 95, endReX + 8), endImY + labelOffsetY);
+        }
+
+        // Bucle de animación suave para la corriente alterna del esquema
+        function animationLoop() {
+            drawCircuitCanvas();
+            requestAnimationFrame(animationLoop);
+        }
+
+        // =========================================================================
+        // 7. MODO PONTE A PRUEBA (4 PREGUNTAS TIPO EXAMEN)
+        // =========================================================================
+        const quizData = [
+            {
+                question: 'En un circuito serie formado por un condensador C delante, seguido de una resistencia R y una bobina L (orden C - R - L), ¿cuál es la impedancia equivalente Zeq?',
+                svg: `<svg viewBox="0 0 380 100" class="w-full h-full">
+                        <line x1="20" y1="50" x2="85" y2="50" stroke="#94a3b8" stroke-width="2.5"/>
+                        <line x1="85" y1="32" x2="85" y2="68" stroke="#fbbf24" stroke-width="3.5"/>
+                        <line x1="98" y1="32" x2="98" y2="68" stroke="#fbbf24" stroke-width="3.5"/>
+                        <text x="91" y="22" fill="#fbbf24" font-size="13" font-weight="bold" text-anchor="middle">C</text>
+                        <line x1="98" y1="50" x2="155" y2="50" stroke="#94a3b8" stroke-width="2.5"/>
+                        <polyline points="155,50 162,38 174,62 186,38 198,62 210,38 217,50" fill="none" stroke="#34d399" stroke-width="3"/>
+                        <text x="186" y="22" fill="#34d399" font-size="13" font-weight="bold" text-anchor="middle">R</text>
+                        <line x1="217" y1="50" x2="265" y2="50" stroke="#94a3b8" stroke-width="2.5"/>
+                        <path d="M265,50 A9,9 0 0,1 283,50 A9,9 0 0,1 301,50 A9,9 0 0,1 319,50" fill="none" stroke="#38bdf8" stroke-width="3"/>
+                        <text x="292" y="22" fill="#38bdf8" font-size="13" font-weight="bold" text-anchor="middle">L</text>
+                        <line x1="319" y1="50" x2="360" y2="50" stroke="#94a3b8" stroke-width="2.5"/>
+                      </svg>`,
+                options: [
+                    'Zeq = R + j(1/(ωC) - ωL)',
+                    'Zeq = R + j(ωL - 1/(ωC))',
+                    'Zeq = 1/(ωC) + j(R - ωL)',
+                    'Zeq = R + j(ωL + 1/(ωC))'
+                ],
+                correct: 1,
+                explanation: '¡Exacto! El orden en serie NO altera la suma: Z_C + Z_R + Z_L = -j/(ωC) + R + jωL = R + j(ωL - 1/(ωC)).'
+            },
+            {
+                question: 'Ahora conectamos R, L y C en PARALELO entre dos nodos. ¿Qué ocurre con la expresión de la impedancia equivalente?',
+                svg: `<svg viewBox="0 0 380 120" class="w-full h-full">
+                        <line x1="40" y1="60" x2="100" y2="60" stroke="#94a3b8" stroke-width="2.5"/>
+                        <line x1="100" y1="22" x2="100" y2="98" stroke="#94a3b8" stroke-width="2.5"/>
+                        <line x1="280" y1="22" x2="280" y2="98" stroke="#94a3b8" stroke-width="2.5"/>
+                        <line x1="280" y1="60" x2="340" y2="60" stroke="#94a3b8" stroke-width="2.5"/>
+                        <line x1="100" y1="22" x2="280" y2="22" stroke="#34d399" stroke-width="2.5"/>
+                        <text x="190" y="16" fill="#34d399" font-size="12" font-weight="bold" text-anchor="middle">R</text>
+                        <line x1="100" y1="60" x2="280" y2="60" stroke="#38bdf8" stroke-width="2.5"/>
+                        <text x="190" y="54" fill="#38bdf8" font-size="12" font-weight="bold" text-anchor="middle">L</text>
+                        <line x1="100" y1="98" x2="280" y2="98" stroke="#fbbf24" stroke-width="2.5"/>
+                        <text x="190" y="92" fill="#fbbf24" font-size="12" font-weight="bold" text-anchor="middle">C</text>
+                      </svg>`,
+                options: [
+                    'Sigue siendo Zeq = R + j(ωL - 1/(ωC))',
+                    'Se suman las admitancias: 1/Zeq = 1/R + j(ωC - 1/(ωL))',
+                    'Zeq = R - j(ωL - 1/(ωC))',
+                    '1/Zeq = R + j(ωL + 1/(ωC))'
+                ],
+                correct: 1,
+                explanation: 'Correcto: en paralelo se suman las inversas (admitancias): 1/Zeq = 1/R + 1/(jωL) + jωC = 1/R + j(ωC - 1/(ωL)).'
+            },
+            {
+                question: 'Tenemos un circuito serie formado únicamente por un condensador C y una resistencia R (sin bobina). ¿Cuál es su Zeq?',
+                svg: `<svg viewBox="0 0 380 100" class="w-full h-full">
+                        <line x1="40" y1="50" x2="125" y2="50" stroke="#94a3b8" stroke-width="2.5"/>
+                        <line x1="125" y1="32" x2="125" y2="68" stroke="#fbbf24" stroke-width="3.5"/>
+                        <line x1="138" y1="32" x2="138" y2="68" stroke="#fbbf24" stroke-width="3.5"/>
+                        <text x="131" y="22" fill="#fbbf24" font-size="13" font-weight="bold" text-anchor="middle">C</text>
+                        <line x1="138" y1="50" x2="220" y2="50" stroke="#94a3b8" stroke-width="2.5"/>
+                        <polyline points="220,50 227,38 239,62 251,38 263,62 275,38 282,50" fill="none" stroke="#34d399" stroke-width="3"/>
+                        <text x="251" y="22" fill="#34d399" font-size="13" font-weight="bold" text-anchor="middle">R</text>
+                        <line x1="282" y1="50" x2="340" y2="50" stroke="#94a3b8" stroke-width="2.5"/>
+                      </svg>`,
+                options: [
+                    'Zeq = R + j/(ωC)',
+                    'Zeq = R - j/(ωC)',
+                    'Zeq = -R + j/(ωC)',
+                    'Zeq = R + jωC'
+                ],
+                correct: 1,
+                explanation: '¡Bien! La impedancia del condensador es Z_C = 1/(jωC) = -j/(ωC), y como no hay bobina (L=0), queda Zeq = R - j/(ωC).'
+            },
+            {
+                question: 'En un circuito RLC serie en resonancia (cuando ωL = 1/(ωC)), ¿cuánto vale la impedancia equivalente Zeq?',
+                svg: `<svg viewBox="0 0 380 100" class="w-full h-full">
+                        <text x="190" y="45" fill="#e879f9" font-size="15" font-weight="bold" text-anchor="middle">ωL = 1 / (ωC)</text>
+                        <text x="190" y="70" fill="#94a3b8" font-size="12" text-anchor="middle">XL y XC tienen el mismo módulo en serie</text>
+                      </svg>`,
+                options: [
+                    'Zeq = 0 Ω (cortocircuito)',
+                    'Zeq = R (puramente resistiva)',
+                    'Zeq = j2ωL',
+                    'Zeq = ∞'
+                ],
+                correct: 1,
+                explanation: '¡Clavado! Al ser ωL = 1/(ωC), la parte imaginaria j(ωL - 1/(ωC)) se anula (0) y queda Zeq = R.'
+            }
+        ];
+
+        let currentQ = 0;
+        let score = 0;
+        let answered = false;
+
+        function switchTab(tab) {
+            const viewSim = document.getElementById('viewSim');
+            const viewQuiz = document.getElementById('viewQuiz');
+            const btnSim = document.getElementById('btnTabSim');
+            const btnQuiz = document.getElementById('btnTabQuiz');
+
+            if (tab === 'sim') {
+                viewSim.classList.remove('hidden');
+                viewQuiz.classList.add('hidden');
+                btnSim.className = 'px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition-all bg-indigo-600 text-white shadow';
+                btnQuiz.className = 'px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition-all text-slate-300 hover:text-white flex items-center gap-1.5';
+                updateAll();
+            } else {
+                viewSim.classList.add('hidden');
+                viewQuiz.classList.remove('hidden');
+                btnQuiz.className = 'px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition-all bg-indigo-600 text-white shadow flex items-center gap-1.5';
+                btnSim.className = 'px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition-all text-slate-300 hover:text-white';
+                renderQuestion();
+            }
+        }
+
+        function renderQuestion() {
+            answered = false;
+            const q = quizData[currentQ];
+            document.getElementById('quizProgressText').textContent = `Pregunta ${currentQ + 1} de ${quizData.length}`;
+            document.getElementById('quizDiagram').innerHTML = q.svg;
+            document.getElementById('quizQuestionText').textContent = q.question;
+            document.getElementById('quizFeedback').classList.add('hidden');
+            document.getElementById('btnNextQuestion').classList.add('hidden');
+
+            const optBox = document.getElementById('quizOptions');
+            optBox.innerHTML = '';
+            q.options.forEach((opt, idx) => {
+                const btn = document.createElement('button');
+                btn.className = 'w-full text-left px-4 py-3 rounded-xl bg-slate-800/80 hover:bg-slate-800 border border-slate-700 font-mono text-xs sm:text-sm text-slate-200 transition-all flex items-center gap-3';
+                btn.innerHTML = `<span class="w-6 h-6 rounded-lg bg-slate-700 flex items-center justify-center font-sans font-bold text-xs">${String.fromCharCode(65 + idx)}</span><span>${opt}</span>`;
+                btn.onclick = () => selectAnswer(idx, btn);
+                optBox.appendChild(btn);
+            });
+        }
+
+        function selectAnswer(idx, clickedBtn) {
+            if (answered) return;
+            answered = true;
+            const q = quizData[currentQ];
+            const buttons = document.getElementById('quizOptions').querySelectorAll('button');
+            const feedback = document.getElementById('quizFeedback');
+
+            buttons.forEach((b, i) => {
+                b.disabled = true;
+                if (i === q.correct) {
+                    b.className = 'w-full text-left px-4 py-3 rounded-xl bg-emerald-950/60 border border-emerald-500 font-mono text-xs sm:text-sm text-emerald-200 flex items-center gap-3';
+                } else if (i === idx) {
+                    b.className = 'w-full text-left px-4 py-3 rounded-xl bg-rose-950/60 border border-rose-500 font-mono text-xs sm:text-sm text-rose-200 flex items-center gap-3';
+                }
+            });
+
+            if (idx === q.correct) {
+                score++;
+                document.getElementById('quizBadge').textContent = `${score}/${quizData.length}`;
+                feedback.className = 'rounded-xl p-4 border text-xs sm:text-sm leading-relaxed bg-emerald-950/40 border-emerald-500/40 text-emerald-200';
+            } else {
+                feedback.className = 'rounded-xl p-4 border text-xs sm:text-sm leading-relaxed bg-rose-950/40 border-rose-500/40 text-rose-200';
+            }
+            feedback.textContent = q.explanation;
+            feedback.classList.remove('hidden');
+
+            const nextBtn = document.getElementById('btnNextQuestion');
+            nextBtn.textContent = currentQ < quizData.length - 1 ? 'Siguiente pregunta →' : 'Volver a empezar ↺';
+            nextBtn.classList.remove('hidden');
+        }
+
+        function nextQuestion() {
+            if (currentQ < quizData.length - 1) {
+                currentQ++;
+                renderQuestion();
+            } else {
+                resetQuiz();
+            }
+        }
+
+        function resetQuiz() {
+            currentQ = 0;
+            score = 0;
+            document.getElementById('quizBadge').textContent = `0/${quizData.length}`;
+            renderQuestion();
+        }
+
+        // =========================================================================
+        // 8. INICIALIZACIÓN AL CARGAR LA VENTANA
+        // =========================================================================
+        window.addEventListener('resize', () => {
+            updateAll();
+        });
+
+        window.onload = function () {
+            // Enlaces directos desde las preguntas: #paralelo, #rl, #rc, #lc, #resonancia, #prueba
+            const h = (location.hash || '').replace('#', '');
+            const mapa = { serie: 'series', paralelo: 'parallel', rl: 'rl', rc: 'rc', lc: 'lc' };
+            setTopology(mapa[h] || 'series');
+            if (h === 'resonancia') setResonance();
+            animationLoop();
+            if (h === 'prueba') switchTab('quiz');
+        };
+    </script>
+</body>
+</html>
