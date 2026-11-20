@@ -1,0 +1,808 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Simulador: derivadas parciales, gradiente y curvas de nivel</title>
+  <link rel="icon" type="image/png" href="img/favicon-64.png" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet" />
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+    }
+    .font-mono-calc {
+      font-family: 'JetBrains Mono', monospace;
+    }
+    input[type="range"] {
+      -webkit-appearance: none;
+      appearance: none;
+      height: 9px;
+      border-radius: 999px;
+      background: #cbd5e1;
+      outline: none;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: #0f172a;
+      border: 3px solid #ffffff;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+      cursor: pointer;
+      transition: transform 0.12s ease;
+    }
+    /* Botón de modo elegido: todo el texto en blanco para que se lea */
+    .modo-activo, .modo-activo * { color: #ffffff !important; }
+    .modo-activo span.rounded-md { background: rgba(255, 255, 255, 0.22) !important; }
+    input[type="range"]::-webkit-slider-thumb:hover {
+      transform: scale(1.12);
+    }
+  </style>
+</head>
+<body class="bg-slate-100 text-slate-900 min-h-screen flex flex-col">
+
+  <!-- Cabecera General -->
+  <header class="bg-slate-900 text-white px-4 py-4 shadow-md">
+    <div class="max-w-7xl mx-auto flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+      <div>
+        <span class="inline-block text-xs font-extrabold uppercase tracking-wider bg-amber-400 text-slate-950 px-2.5 py-0.5 rounded-full mb-1">
+          Laboratorio Visual 3D · Cálculo Multivariable
+        </span>
+        <h1 class="text-xl sm:text-2xl font-extrabold tracking-tight">
+          Derivadas Parciales (<span class="font-mono-calc">∂f/∂x</span>, <span class="font-mono-calc">∂f/∂y</span>) vs. Gradiente (<span class="font-mono-calc">∇f</span>)
+        </h1>
+      </div>
+
+      <!-- Selector de Superficie -->
+      <div class="flex items-center gap-2 bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 max-w-full min-w-0">
+        <label for="surfaceSelect" class="text-xs font-bold text-slate-300 whitespace-nowrap">Superficie:</label>
+        <select id="surfaceSelect" class="bg-slate-900 text-amber-300 font-mono-calc text-xs sm:text-sm font-bold rounded-lg px-2.5 py-1.5 border border-slate-600 outline-none cursor-pointer max-w-full">
+          <option value="hill">f = 4 − 0,3x² − 0,3y² (colina)</option>
+          <option value="bowl">f = 0,3x² + 0,3y² + 0,5 (cuenco)</option>
+          <option value="saddle">f = 0,35x² − 0,35y² + 2,2 (silla)</option>
+          <option value="ex17">f = x²·y + 2y² (examen 2512770)</option>
+          <option value="ex52">f = 3x·y² + y³ (examen 2500130)</option>
+          <option value="p2733">f = x² + 3x·y (práctica)</option>
+        </select>
+      </div>
+    </div>
+  </header>
+
+  <!-- Barra de Modos (Derivada Parcial X, Derivada Parcial Y, Gradiente) -->
+  <div class="max-w-7xl w-full mx-auto px-4 sm:px-6 pt-5">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+      <button id="modeDxBtn" type="button"
+        class="p-3.5 rounded-2xl border-2 text-left transition shadow-sm bg-blue-600 border-blue-700 text-white">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-extrabold uppercase tracking-wider opacity-90">Modo 1 · Corte en X</span>
+          <span class="font-mono-calc text-xs font-bold bg-white/20 px-2 py-0.5 rounded-md">Y = constante</span>
+        </div>
+        <div class="text-base sm:text-lg font-extrabold mt-0.5">
+          Derivada parcial en X (<span class="font-mono-calc">∂f/∂x</span>)
+        </div>
+        <p class="text-xs opacity-90 mt-1">
+          Congela la <span class="font-mono-calc font-bold">Y</span> como un número fijo y mide solo la pendiente al moverte en <span class="font-mono-calc font-bold">X</span>.
+        </p>
+      </button>
+
+      <button id="modeDyBtn" type="button"
+        class="p-3.5 rounded-2xl border-2 text-left transition shadow-sm bg-white border-slate-200 text-slate-800 hover:border-emerald-400">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-extrabold uppercase tracking-wider text-emerald-700">Modo 2 · Corte en Y</span>
+          <span class="font-mono-calc text-xs font-bold bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-md">X = constante</span>
+        </div>
+        <div class="text-base sm:text-lg font-extrabold mt-0.5">
+          Derivada parcial en Y (<span class="font-mono-calc">∂f/∂y</span>)
+        </div>
+        <p class="text-xs text-slate-600 mt-1">
+          Congela la <span class="font-mono-calc font-bold">X</span> como un número fijo y mide solo la pendiente al moverte en <span class="font-mono-calc font-bold">Y</span>.
+        </p>
+      </button>
+
+      <button id="modeGradBtn" type="button"
+        class="p-3.5 rounded-2xl border-2 text-left transition shadow-sm bg-white border-slate-200 text-slate-800 hover:border-purple-400">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-extrabold uppercase tracking-wider text-purple-700">Modo 3 · Las 2 juntas</span>
+          <span class="font-mono-calc text-xs font-bold bg-purple-100 text-purple-800 px-2 py-0.5 rounded-md">Vector (∂f/∂x, ∂f/∂y)</span>
+        </div>
+        <div class="text-base sm:text-lg font-extrabold mt-0.5">
+          Gradiente y Curvas de Nivel (<span class="font-mono-calc">∇f</span>)
+        </div>
+        <p class="text-xs text-slate-600 mt-1">
+          Junta las dos derivadas en un vector que apunta recto cuesta arriba, perpendicular a las curvas de nivel.
+        </p>
+      </button>
+    </div>
+  </div>
+
+  <!-- Contenido Principal -->
+  <main class="max-w-7xl w-full mx-auto p-4 sm:p-6 flex-1 grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+    <!-- Columna Izquierda: Escena 3D Interactiva (7 cols) -->
+    <section class="lg:col-span-7 flex flex-col gap-4">
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 flex flex-col h-full">
+        <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+          <div>
+            <h2 class="text-base font-bold text-slate-800">1. Superficie 3D y Plano de Corte</h2>
+            <p class="text-xs text-slate-500">
+              Arrastra con el ratón o el dedo para girar la montaña. Usa los controles de abajo para mover el punto <span class="font-mono-calc font-bold text-slate-700">(x₀, y₀)</span>.
+            </p>
+          </div>
+          <button id="resetCamBtn" type="button"
+            class="text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-xl border border-slate-300 transition">
+            Restaurar vista 3D
+          </button>
+        </div>
+
+        <!-- Canvas 3D -->
+        <div id="canvas3dWrapper" class="relative w-full h-[380px] sm:h-[430px] bg-slate-50 rounded-xl border border-slate-200 overflow-hidden cursor-grab active:cursor-grabbing">
+          <canvas id="canvas3d" class="w-full h-full block"></canvas>
+
+          <!-- Indicador flotante del punto actual -->
+          <div class="absolute top-3 left-3 bg-white/95 backdrop-blur border border-slate-200 rounded-xl px-3.5 py-2 shadow-sm pointer-events-none">
+            <div class="text-[11px] font-bold uppercase tracking-wider text-slate-500">Punto seleccionado</div>
+            <div id="hudPoint" class="font-mono-calc text-sm font-extrabold text-slate-900 mt-0.5">
+              (x₀ = 1.0, y₀ = 1.5) → z = 3.03
+            </div>
+          </div>
+
+
+        </div>
+
+        <!-- Leyenda inferior -->
+          <div id="legend3d" class="mt-2 flex flex-wrap items-center justify-between gap-2 bg-slate-900/90 text-white text-xs px-3.5 py-2 rounded-xl ">
+            <span id="legendText">El cristal azul congela Y = 1.50. La curva azul es una función normal de una sola letra (X).</span>
+          </div>
+
+        <!-- Controles Deslizantes para X e Y -->
+        <div class="mt-4 pt-3 border-t border-slate-100 grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div class="bg-blue-50/70 border border-blue-200 rounded-xl p-3">
+            <div class="flex items-center justify-between mb-1.5">
+              <label for="sliderX" class="text-xs font-extrabold text-blue-950">
+                Mover coordenada <span class="font-mono-calc text-sm">x₀</span>:
+              </label>
+              <span id="valXLabel" class="font-mono-calc text-xs font-extrabold bg-white border border-blue-300 text-blue-800 px-2.5 py-0.5 rounded-lg">
+                x₀ = 1.00
+              </span>
+            </div>
+            <input id="sliderX" type="range" min="-2.2" max="2.2" step="0.1" value="1.0" class="w-full" />
+          </div>
+
+          <div class="bg-emerald-50/70 border border-emerald-200 rounded-xl p-3">
+            <div class="flex items-center justify-between mb-1.5">
+              <label for="sliderY" class="text-xs font-extrabold text-emerald-950">
+                Mover coordenada <span class="font-mono-calc text-sm">y₀</span>:
+              </label>
+              <span id="valYLabel" class="font-mono-calc text-xs font-extrabold bg-white border border-emerald-300 text-emerald-800 px-2.5 py-0.5 rounded-lg">
+                y₀ = 1.50
+              </span>
+            </div>
+            <input id="sliderY" type="range" min="-2.2" max="2.2" step="0.1" value="1.5" class="w-full" />
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Columna Derecha: Receta Casio + Corte 2D (5 cols) -->
+    <section class="lg:col-span-5 flex flex-col gap-4">
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 flex flex-col justify-between h-full gap-4">
+
+        <!-- Bloque 1: Cómo lo ve tu Casio (Variable congelada en ámbar) -->
+        <div>
+          <div class="flex items-center justify-between mb-2">
+            <h2 class="text-base font-bold text-slate-800">2. Lo que ocurre al congelar una variable</h2>
+            <span class="text-[11px] font-bold bg-amber-100 text-amber-900 px-2.5 py-0.5 rounded-full border border-amber-300">
+              Regla Casio
+            </span>
+          </div>
+
+          <!-- Pantalla Estilo Casio / Fórmula con Constante Resaltada -->
+          <div class="bg-slate-900 text-white rounded-2xl p-4 shadow-inner border border-slate-800">
+            <div id="casioHeader" class="text-[11px] font-extrabold uppercase tracking-wider text-blue-400 mb-1.5">
+              Derivada parcial respecto a X (∂f/∂x)
+            </div>
+
+            <div class="text-xs text-slate-400 mb-1">Fórmula original con dos letras:</div>
+            <div id="origFormulaDisplay" class="font-mono-calc text-sm text-slate-200 mb-3">
+              f(x, y) = 4 − 0.3·x² − 0.3·y²
+            </div>
+
+            <div id="frozenExplanation" class="text-xs text-amber-300 font-semibold mb-1.5">
+              Congelamos y = 1.50 como un número fijo (constante):
+            </div>
+
+            <!-- Fórmula con el número congelado en ámbar -->
+            <div id="frozenFormulaBox" class="bg-slate-800 border border-slate-700 rounded-xl p-3 font-mono-calc text-sm sm:text-base text-white overflow-x-auto">
+              f(x, <span class="bg-amber-400 text-slate-950 font-extrabold px-1.5 py-0.5 rounded">1.5</span>) = 4 − 0.3·x² − 0.3·(<span class="bg-amber-400 text-slate-950 font-extrabold px-1.5 py-0.5 rounded">1.5</span>)²
+            </div>
+
+            <!-- Resultado numérico de la pendiente / gradiente -->
+            <div class="mt-3 pt-3 border-t border-slate-800 flex items-center justify-between">
+              <span id="resultTitle" class="text-xs font-bold text-slate-300">Pendiente en la dirección X:</span>
+              <span id="resultValue" class="font-mono-calc text-lg sm:text-xl font-extrabold text-blue-400">
+                ∂f/∂x = −0.60
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Las cuentas, una operación por línea -->
+        <div class="rounded-2xl border-2 border-amber-300 bg-amber-50 p-4">
+          <div class="text-xs font-extrabold uppercase tracking-wider text-amber-900 mb-2">Las cuentas, paso a paso</div>
+          <div id="cuentas" class="font-mono-calc text-sm text-slate-900 leading-7"></div>
+        </div>
+
+        <!-- Bloque 2: Corte 2D Plano (Para ver que es una derivada normal de 1 variable) -->
+        <div class="flex-1 flex flex-col">
+          <div class="flex items-center justify-between mb-1.5">
+            <h3 id="slice2dTitle" class="text-sm font-bold text-slate-800">
+              3. Vista plana del corte (Curva 1D al congelar Y = 1.50)
+            </h3>
+          </div>
+          <p id="slice2dDesc" class="text-xs text-slate-500 mb-2">
+            Al cortar la montaña con el cristal, te queda una curva normal de una sola variable y su recta tangente.
+          </p>
+
+          <div id="canvas2dWrapper" class="relative w-full h-[195px] bg-slate-50 rounded-xl border border-slate-200 overflow-hidden">
+            <canvas id="canvas2d" class="w-full h-full block"></canvas>
+          </div>
+        </div>
+
+        <!-- Idea clave final (sin referencias a tests) -->
+        <div id="conceptBanner" class="bg-blue-50 border border-blue-200 rounded-xl p-3 text-xs text-blue-950 leading-relaxed">
+          <strong>Idea clave:</strong> Una <strong>derivada parcial</strong> deriva respecto a una sola letra tratando todas las demás como <strong>números constantes</strong> (por eso en la calculadora sustituyes la otra letra por un número fijo).
+        </div>
+
+      </div>
+    </section>
+
+  </main>
+
+  <section class="max-w-7xl w-full mx-auto px-4 sm:px-6 pb-8 grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <div class="bg-amber-50 rounded-2xl border-2 border-amber-300 p-5 text-sm leading-relaxed">
+      <h2 class="text-base font-bold text-amber-900 mb-2">🎯 En el examen</h2>
+      <p>En los exámenes oficiales registrados han caído <strong>5 preguntas</strong> de esto:</p>
+      <ul class="list-disc pl-5 mt-1 space-y-1">
+        <li><strong>2 veces</strong> «calcula el gradiente en (1, 1)». Están en el menú de arriba: x²·y + 2y² da (2, 5) y 3x·y² + y³ da (3, 9).</li>
+        <li>«¿Qué es una derivada parcial?»: derivar en una letra con las demás como números.</li>
+        <li>«¿Qué es el gradiente?»: el vector con las derivadas parciales.</li>
+        <li>«El gradiente es perpendicular a…»: a la curva de nivel que pasa por el punto.</li>
+      </ul>
+    </div>
+    <div class="bg-white rounded-2xl border border-slate-200 p-5 text-sm leading-relaxed">
+      <h2 class="text-base font-bold text-slate-800 mb-2">⚠️ Dónde falla mucha gente</h2>
+      <ul class="list-disc pl-5 space-y-1">
+        <li>En ∂f/∂x, un trozo que solo tiene y (como 2y²) es un número: su derivada es <strong>0</strong>.</li>
+        <li>En x²·y, al derivar en x la y se queda tal cual: <strong>2x·y</strong>.</li>
+        <li>El gradiente se escribe en orden: primero ∂f/∂x y después ∂f/∂y. (5, 2) no es lo mismo que (2, 5).</li>
+        <li>Primero se deriva y <strong>después</strong> se cambian x e y por los números del punto.</li>
+      </ul>
+    </div>
+  </section>
+
+  <script>
+    // ============================================================
+    // Simulador de derivadas parciales y gradiente (web de estudio)
+    // ============================================================
+
+    // Números con coma decimal (máx. 2 decimales); entre paréntesis si son negativos
+    function c(n) {
+      const v = Math.round((Math.abs(n) < 1e-9 ? 0 : n) * 100) / 100;
+      return String(v).replace('.', ',').replace('-', '−');
+    }
+    function p(n) { return n < 0 ? `(${c(n)})` : c(n); }
+
+    // Superficies: función, derivadas y las cuentas que se escriben a mano
+    const SURF = {
+      hill: {
+        txt: '4 − 0,3·x² − 0,3·y²',
+        f: (x, y) => 4 - 0.3 * (x * x + y * y),
+        fx: (x, y) => -0.6 * x,
+        fy: (x, y) => -0.6 * y,
+        dxSteps: ['Derivo 4 → 0', 'Derivo −0,3·x² → −0,6·x', 'Derivo −0,3·y² (y es un número) → 0', '∂f/∂x = −0,6·x'],
+        dxSub: (x, y) => [`∂f/∂x = −0,6 · ${p(x)}`],
+        dySteps: ['Derivo 4 → 0', 'Derivo −0,3·x² (x es un número) → 0', 'Derivo −0,3·y² → −0,6·y', '∂f/∂y = −0,6·y'],
+        dySub: (x, y) => [`∂f/∂y = −0,6 · ${p(y)}`],
+        punto: [1, 1.5]
+      },
+      bowl: {
+        txt: '0,3·x² + 0,3·y² + 0,5',
+        f: (x, y) => 0.3 * (x * x + y * y) + 0.5,
+        fx: (x, y) => 0.6 * x,
+        fy: (x, y) => 0.6 * y,
+        dxSteps: ['Derivo 0,3·x² → 0,6·x', 'Derivo 0,3·y² (y es un número) → 0', 'Derivo 0,5 → 0', '∂f/∂x = 0,6·x'],
+        dxSub: (x, y) => [`∂f/∂x = 0,6 · ${p(x)}`],
+        dySteps: ['Derivo 0,3·x² (x es un número) → 0', 'Derivo 0,3·y² → 0,6·y', 'Derivo 0,5 → 0', '∂f/∂y = 0,6·y'],
+        dySub: (x, y) => [`∂f/∂y = 0,6 · ${p(y)}`],
+        punto: [1, 1.5]
+      },
+      saddle: {
+        txt: '0,35·x² − 0,35·y² + 2,2',
+        f: (x, y) => 0.35 * (x * x - y * y) + 2.2,
+        fx: (x, y) => 0.7 * x,
+        fy: (x, y) => -0.7 * y,
+        dxSteps: ['Derivo 0,35·x² → 0,7·x', 'Derivo −0,35·y² (y es un número) → 0', 'Derivo 2,2 → 0', '∂f/∂x = 0,7·x'],
+        dxSub: (x, y) => [`∂f/∂x = 0,7 · ${p(x)}`],
+        dySteps: ['Derivo 0,35·x² (x es un número) → 0', 'Derivo −0,35·y² → −0,7·y', 'Derivo 2,2 → 0', '∂f/∂y = −0,7·y'],
+        dySub: (x, y) => [`∂f/∂y = −0,7 · ${p(y)}`],
+        punto: [1, 1.5]
+      },
+      ex17: {
+        txt: 'x²·y + 2·y²',
+        f: (x, y) => x * x * y + 2 * y * y,
+        fx: (x, y) => 2 * x * y,
+        fy: (x, y) => x * x + 4 * y,
+        dxSteps: ['Derivo x²·y (y es un número) → 2x·y', 'Derivo 2·y² (no tiene x) → 0', '∂f/∂x = 2·x·y'],
+        dxSub: (x, y) => [`∂f/∂x = 2 · ${p(x)} · ${p(y)}`],
+        dySteps: ['Derivo x²·y (x² es un número) → x²', 'Derivo 2·y² → 4·y', '∂f/∂y = x² + 4·y'],
+        dySub: (x, y) => [`∂f/∂y = ${p(x)}² + 4 · ${p(y)}`, `∂f/∂y = ${c(x * x)} + ${p(4 * y)}`],
+        punto: [1, 1]
+      },
+      ex52: {
+        txt: '3·x·y² + y³',
+        f: (x, y) => 3 * x * y * y + y * y * y,
+        fx: (x, y) => 3 * y * y,
+        fy: (x, y) => 6 * x * y + 3 * y * y,
+        dxSteps: ['Derivo 3·x·y² (3·y² es un número) → 3·y²', 'Derivo y³ (no tiene x) → 0', '∂f/∂x = 3·y²'],
+        dxSub: (x, y) => [`∂f/∂x = 3 · ${p(y)}²`],
+        dySteps: ['Derivo 3·x·y² (3·x es un número) → 6·x·y', 'Derivo y³ → 3·y²', '∂f/∂y = 6·x·y + 3·y²'],
+        dySub: (x, y) => [`∂f/∂y = 6 · ${p(x)} · ${p(y)} + 3 · ${p(y)}²`, `∂f/∂y = ${c(6 * x * y)} + ${p(3 * y * y)}`],
+        punto: [1, 1]
+      },
+      p2733: {
+        txt: 'x² + 3·x·y',
+        f: (x, y) => x * x + 3 * x * y,
+        fx: (x, y) => 2 * x + 3 * y,
+        fy: (x, y) => 3 * x,
+        dxSteps: ['Derivo x² → 2·x', 'Derivo 3·x·y (3·y es un número) → 3·y', '∂f/∂x = 2·x + 3·y'],
+        dxSub: (x, y) => [`∂f/∂x = 2 · ${p(x)} + 3 · ${p(y)}`, `∂f/∂x = ${c(2 * x)} + ${p(3 * y)}`],
+        dySteps: ['Derivo x² (no tiene y) → 0', 'Derivo 3·x·y (3·x es un número) → 3·x', '∂f/∂y = 3·x'],
+        dySub: (x, y) => [`∂f/∂y = 3 · ${p(x)}`],
+        punto: [1, 2]
+      }
+    };
+
+    // Estado de la simulación
+    let state = { surface: 'hill', mode: 'dx', x0: 1.0, y0: 1.5, yaw: 0.65, pitch: 0.46 };
+    let isDragging = false, lastMouseX = 0, lastMouseY = 0;
+
+    const canvas3d = document.getElementById('canvas3d');
+    const ctx3d = canvas3d.getContext('2d');
+    const wrap3d = document.getElementById('canvas3dWrapper');
+    const canvas2d = document.getElementById('canvas2d');
+    const ctx2d = canvas2d.getContext('2d');
+    const wrap2d = document.getElementById('canvas2dWrapper');
+    const sliderX = document.getElementById('sliderX');
+    const sliderY = document.getElementById('sliderY');
+    const surfaceSelect = document.getElementById('surfaceSelect');
+
+    const S = () => SURF[state.surface];
+    const evalZ = (x, y) => S().f(x, y);
+    const evalDx = (x, y) => S().fx(x, y);
+    const evalDy = (x, y) => S().fy(x, y);
+    const fmt = (n) => c(n);
+
+    const minD = -2.4, maxD = 2.4;
+
+    // Escala de alturas: cada función se ajusta para que quepa en el dibujo
+    let zMin = 0, zMax = 4;
+    function calcRango() {
+      zMin = Infinity; zMax = -Infinity;
+      for (let i = 0; i <= 24; i++) for (let j = 0; j <= 24; j++) {
+        const z = evalZ(minD + (maxD - minD) * i / 24, minD + (maxD - minD) * j / 24);
+        zMin = Math.min(zMin, z); zMax = Math.max(zMax, z);
+      }
+      if (zMax - zMin < 1e-6) zMax = zMin + 1;
+    }
+    const zRange = () => zMax - zMin;
+    const zDraw = (z) => ((z - zMin) / zRange()) * 3.2 + 0.4;   // altura en el dibujo
+    const zReal = (d) => ((d - 0.4) / 3.2) * zRange() + zMin;   // al revés
+    const zFloor = () => zReal(0);
+
+    function project3D(x, y, z, W, H) {
+      const cosY = Math.cos(state.yaw), sinY = Math.sin(state.yaw);
+      const rx = x * cosY - y * sinY;
+      const ry = x * sinY + y * cosY;
+      const scale = Math.min(W, H) * 0.145;
+      return { px: W * 0.5 + rx * scale, py: H * 0.56 + ry * scale * state.pitch - (zDraw(z) - 1.5) * scale * 0.85, depth: ry };
+    }
+
+    function drawLine3D(p1, p2, color, width = 1.5, dash = [], W, H) {
+      const a = project3D(p1.x, p1.y, p1.z, W, H), b = project3D(p2.x, p2.y, p2.z, W, H);
+      ctx3d.save(); ctx3d.beginPath(); ctx3d.setLineDash(dash);
+      ctx3d.moveTo(a.px, a.py); ctx3d.lineTo(b.px, b.py);
+      ctx3d.strokeStyle = color; ctx3d.lineWidth = width; ctx3d.stroke(); ctx3d.restore();
+    }
+
+    function drawArrow3D(p1, p2, color, width, label, W, H) {
+      const a = project3D(p1.x, p1.y, p1.z, W, H), b = project3D(p2.x, p2.y, p2.z, W, H);
+      const angle = Math.atan2(b.py - a.py, b.px - a.px), headLen = 11;
+      ctx3d.save(); ctx3d.beginPath(); ctx3d.moveTo(a.px, a.py); ctx3d.lineTo(b.px, b.py);
+      ctx3d.strokeStyle = color; ctx3d.lineWidth = width; ctx3d.stroke();
+      ctx3d.beginPath(); ctx3d.moveTo(b.px, b.py);
+      ctx3d.lineTo(b.px - headLen * Math.cos(angle - Math.PI / 6), b.py - headLen * Math.sin(angle - Math.PI / 6));
+      ctx3d.lineTo(b.px - headLen * Math.cos(angle + Math.PI / 6), b.py - headLen * Math.sin(angle + Math.PI / 6));
+      ctx3d.closePath(); ctx3d.fillStyle = color; ctx3d.fill();
+      if (label) { ctx3d.font = 'bold 12px JetBrains Mono'; ctx3d.fillStyle = color; ctx3d.fillText(label, b.px + 8, b.py - 6); }
+      ctx3d.restore();
+    }
+
+    // Curvas de nivel (sirve para cualquier función): trozos de línea donde f vale `level`
+    function contourSegs(level) {
+      const n = 48, h = (maxD - minD) / n, segs = [];
+      const val = (i, j) => evalZ(minD + i * h, minD + j * h) - level;
+      for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) {
+        const v = [val(i, j), val(i + 1, j), val(i + 1, j + 1), val(i, j + 1)];
+        const pts = [[i, j], [i + 1, j], [i + 1, j + 1], [i, j + 1]];
+        const cuts = [];
+        for (let k = 0; k < 4; k++) {
+          const a = v[k], b = v[(k + 1) % 4];
+          if ((a < 0) !== (b < 0)) {
+            const t = a / (a - b), P = pts[k], Q = pts[(k + 1) % 4];
+            cuts.push([minD + (P[0] + (Q[0] - P[0]) * t) * h, minD + (P[1] + (Q[1] - P[1]) * t) * h]);
+          }
+        }
+        if (cuts.length >= 2) segs.push([cuts[0], cuts[1]]);
+        if (cuts.length === 4) segs.push([cuts[2], cuts[3]]);
+      }
+      return segs;
+    }
+    let niveles = [];
+    function calcNiveles() {
+      niveles = [];
+      for (let k = 1; k <= 6; k++) {
+        const level = zMin + (zRange() * k) / 7;
+        niveles.push({ level, segs: contourSegs(level) });
+      }
+    }
+
+    // Flecha del gradiente: la dirección es la de verdad; el largo se limita para que quepa
+    function gradDibujo(dx, dy) {
+      const m = Math.hypot(dx, dy);
+      const k = m > 1e-9 ? Math.min(1.05, 1.3 / m) : 0;
+      return { gx: dx * k, gy: dy * k, m };
+    }
+
+    function render3D() {
+      const rect = wrap3d.getBoundingClientRect();
+      const dpr = window.devicePixelRatio || 1;
+      canvas3d.width = rect.width * dpr; canvas3d.height = rect.height * dpr;
+      ctx3d.setTransform(dpr, 0, 0, dpr, 0, 0);
+      const W = rect.width, H = rect.height;
+      ctx3d.clearRect(0, 0, W, H);
+      const zF = zFloor();
+
+      // 1. Suelo y ejes
+      const cf = [[minD, minD], [maxD, minD], [maxD, maxD], [minD, maxD]].map(([x, y]) => project3D(x, y, zF, W, H));
+      ctx3d.beginPath(); ctx3d.moveTo(cf[0].px, cf[0].py);
+      for (let i = 1; i < 4; i++) ctx3d.lineTo(cf[i].px, cf[i].py);
+      ctx3d.closePath(); ctx3d.fillStyle = 'rgba(226, 232, 240, 0.55)'; ctx3d.fill();
+      ctx3d.strokeStyle = '#94a3b8'; ctx3d.lineWidth = 1.2; ctx3d.stroke();
+      drawLine3D({ x: minD, y: 0, z: zF }, { x: maxD + 0.35, y: 0, z: zF }, '#2563eb', 1.8, [], W, H);
+      drawLine3D({ x: 0, y: minD, z: zF }, { x: 0, y: maxD + 0.35, z: zF }, '#059669', 1.8, [], W, H);
+      const pXL = project3D(maxD + 0.45, 0, zF, W, H), pYL = project3D(0, maxD + 0.45, zF, W, H);
+      ctx3d.font = 'bold 13px JetBrains Mono';
+      ctx3d.fillStyle = '#1d4ed8'; ctx3d.fillText('X', pXL.px, pXL.py + 4);
+      ctx3d.fillStyle = '#047857'; ctx3d.fillText('Y', pYL.px, pYL.py + 4);
+
+      // 2. Curvas de nivel en el suelo (y sobre la superficie en modo gradiente)
+      const cAlpha = state.mode === 'grad' ? 0.85 : 0.25;
+      const cWidth = state.mode === 'grad' ? 1.8 : 1.0;
+      niveles.forEach(({ level, segs }) => {
+        ctx3d.save(); ctx3d.beginPath();
+        segs.forEach(([a, b]) => {
+          const pa = project3D(a[0], a[1], zF, W, H), pb = project3D(b[0], b[1], zF, W, H);
+          ctx3d.moveTo(pa.px, pa.py); ctx3d.lineTo(pb.px, pb.py);
+        });
+        ctx3d.strokeStyle = `rgba(124, 58, 237, ${cAlpha})`; ctx3d.lineWidth = cWidth; ctx3d.stroke();
+        if (state.mode === 'grad') {
+          ctx3d.beginPath();
+          segs.forEach(([a, b]) => {
+            const pa = project3D(a[0], a[1], level, W, H), pb = project3D(b[0], b[1], level, W, H);
+            ctx3d.moveTo(pa.px, pa.py); ctx3d.lineTo(pb.px, pb.py);
+          });
+          ctx3d.strokeStyle = 'rgba(147, 51, 234, 0.55)'; ctx3d.lineWidth = 1.4; ctx3d.stroke();
+        }
+        ctx3d.restore();
+      });
+
+      // 3. Malla de la superficie (de atrás hacia delante)
+      const gridN = 20, step = (maxD - minD) / gridN, quads = [];
+      for (let i = 0; i < gridN; i++) for (let j = 0; j < gridN; j++) {
+        const x1 = minD + i * step, x2 = x1 + step, y1 = minD + j * step, y2 = y1 + step;
+        const p00 = project3D(x1, y1, evalZ(x1, y1), W, H), p10 = project3D(x2, y1, evalZ(x2, y1), W, H);
+        const p11 = project3D(x2, y2, evalZ(x2, y2), W, H), p01 = project3D(x1, y2, evalZ(x1, y2), W, H);
+        quads.push({ p00, p10, p11, p01, zm: evalZ((x1 + x2) / 2, (y1 + y2) / 2), avgDepth: (p00.depth + p10.depth + p11.depth + p01.depth) / 4 });
+      }
+      quads.sort((a, b) => a.avgDepth - b.avgDepth);
+      quads.forEach((q) => {
+        ctx3d.beginPath(); ctx3d.moveTo(q.p00.px, q.p00.py); ctx3d.lineTo(q.p10.px, q.p10.py);
+        ctx3d.lineTo(q.p11.px, q.p11.py); ctx3d.lineTo(q.p01.px, q.p01.py); ctx3d.closePath();
+        const nz = Math.max(0, Math.min(1, (q.zm - zMin) / zRange()));
+        ctx3d.fillStyle = `rgba(${Math.round(226 - nz * 60)}, ${Math.round(232 - nz * 25)}, ${Math.round(240 + nz * 15)}, 0.58)`;
+        ctx3d.fill(); ctx3d.strokeStyle = 'rgba(100, 116, 139, 0.22)'; ctx3d.lineWidth = 0.7; ctx3d.stroke();
+      });
+
+      const z0 = evalZ(state.x0, state.y0), dx = evalDx(state.x0, state.y0), dy = evalDy(state.x0, state.y0);
+      const zTop = zReal(4.0);
+      const tLenDe = (sl) => Math.min(1.05, Math.abs(sl) > 1e-9 ? (0.3 * zRange()) / Math.abs(sl) : 1.05);
+
+      function plano(pts, fill, stroke) {
+        const q = pts.map(([x, y, z]) => project3D(x, y, z, W, H));
+        ctx3d.save(); ctx3d.beginPath(); ctx3d.moveTo(q[0].px, q[0].py);
+        for (let i = 1; i < q.length; i++) ctx3d.lineTo(q[i].px, q[i].py);
+        ctx3d.closePath(); ctx3d.fillStyle = fill; ctx3d.fill(); ctx3d.strokeStyle = stroke; ctx3d.lineWidth = 1.5; ctx3d.stroke(); ctx3d.restore();
+      }
+      function curva(fn, color) {
+        ctx3d.save(); ctx3d.beginPath();
+        for (let k = 0; k <= 40; k++) {
+          const t = minD + ((maxD - minD) * k) / 40, [x, y] = fn(t), pt = project3D(x, y, evalZ(x, y), W, H);
+          if (k === 0) ctx3d.moveTo(pt.px, pt.py); else ctx3d.lineTo(pt.px, pt.py);
+        }
+        ctx3d.strokeStyle = color; ctx3d.lineWidth = 3.5; ctx3d.stroke(); ctx3d.restore();
+      }
+
+      if (state.mode === 'dx') {
+        plano([[minD, state.y0, zF], [maxD, state.y0, zF], [maxD, state.y0, zTop], [minD, state.y0, zTop]], 'rgba(37, 99, 235, 0.14)', 'rgba(37, 99, 235, 0.55)');
+        curva((t) => [t, state.y0], '#2563eb');
+        const tl = tLenDe(dx);
+        drawArrow3D({ x: state.x0, y: state.y0, z: z0 }, { x: state.x0 + tl, y: state.y0, z: z0 + dx * tl }, '#1d4ed8', 3.5, `Pendiente ∂f/∂x = ${fmt(dx)}`, W, H);
+      } else if (state.mode === 'dy') {
+        plano([[state.x0, minD, zF], [state.x0, maxD, zF], [state.x0, maxD, zTop], [state.x0, minD, zTop]], 'rgba(5, 150, 105, 0.14)', 'rgba(5, 150, 105, 0.55)');
+        curva((t) => [state.x0, t], '#059669');
+        const tl = tLenDe(dy);
+        drawArrow3D({ x: state.x0, y: state.y0, z: z0 }, { x: state.x0, y: state.y0 + tl, z: z0 + dy * tl }, '#047857', 3.5, `Pendiente ∂f/∂y = ${fmt(dy)}`, W, H);
+      } else {
+        const { gx, gy, m } = gradDibujo(dx, dy);
+        if (m > 1e-9) {
+          drawArrow3D({ x: state.x0, y: state.y0, z: zF }, { x: state.x0 + gx, y: state.y0 + gy, z: zF }, '#7c3aed', 3.8, `∇f = (${fmt(dx)}; ${fmt(dy)})`, W, H);
+          drawLine3D({ x: state.x0, y: state.y0, z: zF }, { x: state.x0 + gx, y: state.y0, z: zF }, '#3b82f6', 1.8, [4, 4], W, H);
+          drawLine3D({ x: state.x0 + gx, y: state.y0, z: zF }, { x: state.x0 + gx, y: state.y0 + gy, z: zF }, '#10b981', 1.8, [4, 4], W, H);
+          const dzUp = Math.min(dx * gx + dy * gy, 0.35 * zRange());
+          drawArrow3D({ x: state.x0, y: state.y0, z: z0 }, { x: state.x0 + gx, y: state.y0 + gy, z: z0 + dzUp }, '#9333ea', 3.2, 'Máxima subida', W, H);
+        }
+      }
+
+      // 5. Línea vertical y puntos
+      drawLine3D({ x: state.x0, y: state.y0, z: zF }, { x: state.x0, y: state.y0, z: z0 }, '#0f172a', 1.6, [3, 3], W, H);
+      const pBase = project3D(state.x0, state.y0, zF, W, H);
+      ctx3d.beginPath(); ctx3d.arc(pBase.px, pBase.py, 5, 0, Math.PI * 2); ctx3d.fillStyle = '#0f172a'; ctx3d.fill();
+      const pS = project3D(state.x0, state.y0, z0, W, H);
+      ctx3d.beginPath(); ctx3d.arc(pS.px, pS.py, 7.5, 0, Math.PI * 2);
+      ctx3d.fillStyle = state.mode === 'dx' ? '#2563eb' : state.mode === 'dy' ? '#059669' : '#7c3aed';
+      ctx3d.fill(); ctx3d.strokeStyle = '#ffffff'; ctx3d.lineWidth = 2.5; ctx3d.stroke();
+    }
+
+    function render2D() {
+      const rect = wrap2d.getBoundingClientRect();
+      const dpr = window.devicePixelRatio || 1;
+      canvas2d.width = rect.width * dpr; canvas2d.height = rect.height * dpr;
+      ctx2d.setTransform(dpr, 0, 0, dpr, 0, 0);
+      const W = rect.width, H = rect.height;
+      ctx2d.clearRect(0, 0, W, H);
+
+      if (state.mode === 'grad') {
+        // Mapa desde arriba: curvas de nivel + flecha del gradiente
+        const cx = W * 0.5, cy = H * 0.52, scale = Math.min(W, H) * 0.17;
+        ctx2d.strokeStyle = '#cbd5e1'; ctx2d.lineWidth = 1; ctx2d.beginPath();
+        ctx2d.moveTo(20, cy); ctx2d.lineTo(W - 20, cy); ctx2d.moveTo(cx, 15); ctx2d.lineTo(cx, H - 15); ctx2d.stroke();
+        ctx2d.save(); ctx2d.beginPath(); ctx2d.rect(10, 8, W - 20, H - 16); ctx2d.clip();
+        niveles.forEach(({ segs }) => {
+          ctx2d.beginPath();
+          segs.forEach(([a, b]) => { ctx2d.moveTo(cx + a[0] * scale, cy - a[1] * scale); ctx2d.lineTo(cx + b[0] * scale, cy - b[1] * scale); });
+          ctx2d.strokeStyle = 'rgba(124, 58, 237, 0.45)'; ctx2d.lineWidth = 1.5; ctx2d.stroke();
+        });
+        ctx2d.restore();
+        const px = cx + state.x0 * scale, py = cy - state.y0 * scale;
+        const { gx, gy, m } = gradDibujo(evalDx(state.x0, state.y0), evalDy(state.x0, state.y0));
+        if (m > 1e-9) {
+          const ex = px + gx * scale * 0.9, ey = py - gy * scale * 0.9;
+          ctx2d.beginPath(); ctx2d.moveTo(px, py); ctx2d.lineTo(ex, ey); ctx2d.strokeStyle = '#7c3aed'; ctx2d.lineWidth = 3; ctx2d.stroke();
+          const ang = Math.atan2(ey - py, ex - px);
+          ctx2d.beginPath(); ctx2d.moveTo(ex, ey);
+          ctx2d.lineTo(ex - 9 * Math.cos(ang - 0.5), ey - 9 * Math.sin(ang - 0.5));
+          ctx2d.lineTo(ex - 9 * Math.cos(ang + 0.5), ey - 9 * Math.sin(ang + 0.5));
+          ctx2d.closePath(); ctx2d.fillStyle = '#7c3aed'; ctx2d.fill();
+        }
+        ctx2d.beginPath(); ctx2d.arc(px, py, 5.5, 0, Math.PI * 2); ctx2d.fillStyle = '#0f172a'; ctx2d.fill();
+        ctx2d.font = 'bold 11px JetBrains Mono'; ctx2d.fillStyle = '#5b21b6';
+        ctx2d.fillText(m > 1e-9 ? '∇f forma 90° con la curva de nivel' : '∇f = (0; 0): punto crítico', 12, 18);
+        return;
+      }
+
+      // Corte: curva de una sola letra y su recta tangente
+      const padL = 38, padR = 24, padT = 22, padB = 28, plotW = W - padL - padR, plotH = H - padT - padB;
+      const isDx = state.mode === 'dx';
+      const zLo = zMin - 0.08 * zRange(), zHi = zMax + 0.08 * zRange();
+      const toPx = (v) => padL + ((v - minD) / (maxD - minD)) * plotW;
+      const toPy = (z) => padT + plotH - ((z - zLo) / (zHi - zLo)) * plotH;
+      ctx2d.strokeStyle = '#cbd5e1'; ctx2d.lineWidth = 1; ctx2d.beginPath();
+      if (zLo < 0 && zHi > 0) { ctx2d.moveTo(padL, toPy(0)); ctx2d.lineTo(padL + plotW, toPy(0)); }
+      ctx2d.moveTo(padL, padT + plotH); ctx2d.lineTo(padL + plotW, padT + plotH);
+      ctx2d.moveTo(toPx(0), padT); ctx2d.lineTo(toPx(0), padT + plotH); ctx2d.stroke();
+      const color = isDx ? '#2563eb' : '#059669';
+      const act = isDx ? state.x0 : state.y0;
+      const slope = isDx ? evalDx(state.x0, state.y0) : evalDy(state.x0, state.y0);
+      const z0 = evalZ(state.x0, state.y0);
+      ctx2d.save(); ctx2d.beginPath(); ctx2d.rect(padL, padT - 4, plotW, plotH + 8); ctx2d.clip();
+      ctx2d.beginPath();
+      for (let i = 0; i <= 60; i++) {
+        const v = minD + ((maxD - minD) * i) / 60, z = isDx ? evalZ(v, state.y0) : evalZ(state.x0, v);
+        if (i === 0) ctx2d.moveTo(toPx(v), toPy(z)); else ctx2d.lineTo(toPx(v), toPy(z));
+      }
+      ctx2d.strokeStyle = color; ctx2d.lineWidth = 3; ctx2d.stroke();
+      const sp = Math.min(1.25, Math.abs(slope) > 1e-9 ? (0.35 * zRange()) / Math.abs(slope) : 1.25);
+      ctx2d.setLineDash([5, 4]); ctx2d.beginPath();
+      ctx2d.moveTo(toPx(act - sp), toPy(z0 - slope * sp)); ctx2d.lineTo(toPx(act + sp), toPy(z0 + slope * sp));
+      ctx2d.strokeStyle = '#f59e0b'; ctx2d.lineWidth = 2.5; ctx2d.stroke(); ctx2d.restore();
+      ctx2d.beginPath(); ctx2d.arc(toPx(act), toPy(z0), 6, 0, Math.PI * 2); ctx2d.fillStyle = color; ctx2d.fill();
+      ctx2d.strokeStyle = '#ffffff'; ctx2d.lineWidth = 2; ctx2d.stroke();
+      ctx2d.font = 'bold 11px JetBrains Mono'; ctx2d.fillStyle = '#475569';
+      ctx2d.fillText(isDx ? 'Eje X →' : 'Eje Y →', padL + plotW - 44, padT + plotH - 6);
+      ctx2d.fillStyle = '#b45309';
+      ctx2d.fillText(`Recta tangente (pendiente = ${fmt(slope)})`, padL + 6, padT + 12);
+    }
+
+    // Las cuentas de la caja amarilla, una operación por línea
+    function pintarCuentas(dx, dy) {
+      const s = S(), x = state.x0, y = state.y0, L = [];
+      const pt = `(${c(x)}; ${c(y)})`;
+      L.push(`f(x, y) = ${s.txt}`);
+      if (state.mode === 'dx' || state.mode === 'grad') {
+        L.push('<b style="color:#1d4ed8">∂f/∂x: derivo en x, la y es un número</b>');
+        s.dxSteps.forEach((t) => L.push(t));
+        L.push(`En el punto ${pt}:`);
+        s.dxSub(x, y).forEach((t) => L.push(t));
+        L.push(`<b>∂f/∂x = ${c(dx)}</b>`);
+      }
+      if (state.mode === 'dy' || state.mode === 'grad') {
+        L.push('<b style="color:#047857">∂f/∂y: derivo en y, la x es un número</b>');
+        s.dySteps.forEach((t) => L.push(t));
+        L.push(`En el punto ${pt}:`);
+        s.dySub(x, y).forEach((t) => L.push(t));
+        L.push(`<b>∂f/∂y = ${c(dy)}</b>`);
+      }
+      if (state.mode === 'grad') {
+        L.push('<b style="color:#6d28d9">Gradiente: las dos juntas, en orden</b>');
+        L.push(`∇f = (∂f/∂x; ∂f/∂y)`);
+        L.push(`<b>∇f${pt} = (${c(dx)}; ${c(dy)})</b>`);
+        if (Math.hypot(dx, dy) < 1e-9) {
+          L.push('Las dos valen 0: es un punto crítico');
+          L.push('(cima, fondo o punto de silla)');
+        } else {
+          L.push('Lo que sube por cada paso (largo de la flecha):');
+          L.push(`|∇f| = √(${p(dx)}² + ${p(dy)}²)`);
+          L.push(`|∇f| = √(${c(dx * dx)} + ${c(dy * dy)})`);
+          L.push(`|∇f| = ${c(Math.hypot(dx, dy))}`);
+        }
+      }
+      document.getElementById('cuentas').innerHTML = L.join('<br>');
+    }
+
+    function updateAll() {
+      const z0 = evalZ(state.x0, state.y0), dx = evalDx(state.x0, state.y0), dy = evalDy(state.x0, state.y0);
+      document.getElementById('valXLabel').textContent = `x₀ = ${fmt(state.x0)}`;
+      document.getElementById('valYLabel').textContent = `y₀ = ${fmt(state.y0)}`;
+      document.getElementById('hudPoint').textContent = `(x₀ = ${fmt(state.x0)}; y₀ = ${fmt(state.y0)}) → z = ${fmt(z0)}`;
+
+      const base = 'p-3.5 rounded-2xl border-2 text-left transition shadow-sm ';
+      document.getElementById('modeDxBtn').className = base + (state.mode === 'dx' ? 'modo-activo bg-blue-600 border-blue-700 text-white' : 'bg-white border-slate-200 text-slate-800 hover:border-blue-400');
+      document.getElementById('modeDyBtn').className = base + (state.mode === 'dy' ? 'modo-activo bg-emerald-600 border-emerald-700 text-white' : 'bg-white border-slate-200 text-slate-800 hover:border-emerald-400');
+      document.getElementById('modeGradBtn').className = base + (state.mode === 'grad' ? 'modo-activo bg-purple-600 border-purple-700 text-white' : 'bg-white border-slate-200 text-slate-800 hover:border-purple-400');
+
+      const s = S();
+      document.getElementById('origFormulaDisplay').textContent = `f(x, y) = ${s.txt}`;
+      const casioHeader = document.getElementById('casioHeader');
+      const frozenExp = document.getElementById('frozenExplanation');
+      const frozenBox = document.getElementById('frozenFormulaBox');
+      const resTitle = document.getElementById('resultTitle');
+      const resVal = document.getElementById('resultValue');
+      const legendText = document.getElementById('legendText');
+      const sliceTitle = document.getElementById('slice2dTitle');
+      const sliceDesc = document.getElementById('slice2dDesc');
+      const banner = document.getElementById('conceptBanner');
+      const pill = (v) => `<span class="bg-amber-400 text-slate-950 font-extrabold px-1.5 py-0.5 rounded">${fmt(v)}</span>`;
+
+      if (state.mode === 'dx') {
+        casioHeader.textContent = 'Derivada parcial respecto a X (∂f/∂x)';
+        casioHeader.className = 'text-[11px] font-extrabold uppercase tracking-wider text-blue-400 mb-1.5';
+        frozenExp.textContent = `Congelamos y = ${fmt(state.y0)} como un número (solo se mueve X):`;
+        frozenBox.innerHTML = `f(x, ${pill(state.y0)}) = ${s.txt.replace(/y/g, '(' + pill(state.y0) + ')')}`;
+        resTitle.textContent = `Pendiente en X (en x₀ = ${fmt(state.x0)}):`;
+        resVal.textContent = `∂f/∂x = ${fmt(dx)}`;
+        resVal.className = 'font-mono-calc text-lg sm:text-xl font-extrabold text-blue-400';
+        legendText.textContent = `El cristal azul congela Y = ${fmt(state.y0)}. La flecha azul es la pendiente al avanzar solo en X.`;
+        sliceTitle.textContent = `3. Vista plana del corte (Y = ${fmt(state.y0)} fija)`;
+        sliceDesc.textContent = 'Con la Y como un número, la superficie se convierte en una curva normal de una sola letra (X).';
+        banner.className = 'bg-blue-50 border border-blue-200 rounded-xl p-3 text-xs text-blue-950 leading-relaxed';
+        banner.innerHTML = '<strong>¿Qué es ∂f/∂x?</strong> Derivar respecto a <strong>X</strong> tratando la <strong>Y como un número</strong> fijo.';
+      } else if (state.mode === 'dy') {
+        casioHeader.textContent = 'Derivada parcial respecto a Y (∂f/∂y)';
+        casioHeader.className = 'text-[11px] font-extrabold uppercase tracking-wider text-emerald-400 mb-1.5';
+        frozenExp.textContent = `Congelamos x = ${fmt(state.x0)} como un número (solo se mueve Y):`;
+        frozenBox.innerHTML = `f(${pill(state.x0)}, y) = ${s.txt.replace(/x/g, '(' + pill(state.x0) + ')')}`;
+        resTitle.textContent = `Pendiente en Y (en y₀ = ${fmt(state.y0)}):`;
+        resVal.textContent = `∂f/∂y = ${fmt(dy)}`;
+        resVal.className = 'font-mono-calc text-lg sm:text-xl font-extrabold text-emerald-400';
+        legendText.textContent = `El cristal verde congela X = ${fmt(state.x0)}. La flecha verde es la pendiente al avanzar solo en Y.`;
+        sliceTitle.textContent = `3. Vista plana del corte (X = ${fmt(state.x0)} fija)`;
+        sliceDesc.textContent = 'Con la X como un número, la superficie se convierte en una curva normal de una sola letra (Y).';
+        banner.className = 'bg-emerald-50 border border-emerald-200 rounded-xl p-3 text-xs text-emerald-950 leading-relaxed';
+        banner.innerHTML = '<strong>¿Qué es ∂f/∂y?</strong> Derivar respecto a <strong>Y</strong> tratando la <strong>X como un número</strong> fijo.';
+      } else {
+        casioHeader.textContent = 'Vector gradiente ∇f = (∂f/∂x ; ∂f/∂y)';
+        casioHeader.className = 'text-[11px] font-extrabold uppercase tracking-wider text-purple-400 mb-1.5';
+        frozenExp.textContent = 'El gradiente junta las dos derivadas parciales en un vector:';
+        frozenBox.innerHTML = `∇f(${fmt(state.x0)}; ${fmt(state.y0)}) = ( <span class="text-blue-400 font-bold">∂f/∂x</span> ; <span class="text-emerald-400 font-bold">∂f/∂y</span> )`;
+        resTitle.textContent = 'Vector gradiente en el punto:';
+        resVal.textContent = `∇f = (${fmt(dx)}; ${fmt(dy)})`;
+        resVal.className = 'font-mono-calc text-lg sm:text-xl font-extrabold text-purple-400';
+        legendText.textContent = 'La flecha morada ∇f apunta hacia donde más se sube y forma 90° con las curvas de nivel.';
+        sliceTitle.textContent = '3. Mapa de curvas de nivel desde arriba';
+        sliceDesc.textContent = 'Fíjate: la flecha morada corta siempre en ángulo recto a la curva de nivel que pasa por el punto.';
+        banner.className = 'bg-purple-50 border border-purple-200 rounded-xl p-3 text-xs text-purple-950 leading-relaxed';
+        banner.innerHTML = '<strong>Diferencia clave:</strong> cada <strong>derivada parcial</strong> es un número (una pendiente). El <strong>gradiente</strong> es un vector con las dos, y es perpendicular a las curvas de nivel.';
+      }
+      pintarCuentas(dx, dy);
+      render3D();
+      render2D();
+    }
+
+    function ponerPunto(x, y) {
+      state.x0 = x; state.y0 = y;
+      sliderX.value = x; sliderY.value = y;
+    }
+    function cambiarSuperficie(id) {
+      if (!SURF[id]) return;
+      state.surface = id;
+      surfaceSelect.value = id;
+      calcRango(); calcNiveles();
+      ponerPunto(SURF[id].punto[0], SURF[id].punto[1]);
+    }
+
+    sliderX.addEventListener('input', (e) => { state.x0 = parseFloat(e.target.value); updateAll(); });
+    sliderY.addEventListener('input', (e) => { state.y0 = parseFloat(e.target.value); updateAll(); });
+    surfaceSelect.addEventListener('change', (e) => { cambiarSuperficie(e.target.value); updateAll(); });
+    document.getElementById('modeDxBtn').addEventListener('click', () => { state.mode = 'dx'; updateAll(); });
+    document.getElementById('modeDyBtn').addEventListener('click', () => { state.mode = 'dy'; updateAll(); });
+    document.getElementById('modeGradBtn').addEventListener('click', () => { state.mode = 'grad'; updateAll(); });
+    document.getElementById('resetCamBtn').addEventListener('click', () => { state.yaw = 0.65; state.pitch = 0.46; render3D(); });
+
+    // Girar con ratón y con el dedo
+    function girar(dx, dy) {
+      state.yaw += dx * 0.01;
+      state.pitch = Math.max(0.18, Math.min(0.95, state.pitch + dy * 0.008));
+      render3D();
+    }
+    canvas3d.addEventListener('mousedown', (e) => { isDragging = true; lastMouseX = e.clientX; lastMouseY = e.clientY; });
+    window.addEventListener('mousemove', (e) => {
+      if (!isDragging) return;
+      girar(e.clientX - lastMouseX, e.clientY - lastMouseY);
+      lastMouseX = e.clientX; lastMouseY = e.clientY;
+    });
+    window.addEventListener('mouseup', () => { isDragging = false; });
+    canvas3d.addEventListener('touchstart', (e) => {
+      if (e.touches.length === 1) { isDragging = true; lastMouseX = e.touches[0].clientX; lastMouseY = e.touches[0].clientY; }
+    }, { passive: true });
+    canvas3d.addEventListener('touchmove', (e) => {
+      if (!isDragging || e.touches.length !== 1) return;
+      girar(e.touches[0].clientX - lastMouseX, e.touches[0].clientY - lastMouseY);
+      lastMouseX = e.touches[0].clientX; lastMouseY = e.touches[0].clientY;
+    }, { passive: true });
+    canvas3d.addEventListener('touchend', () => { isDragging = false; });
+    window.addEventListener('resize', () => { render3D(); render2D(); });
+
+    // Enlace directo desde las preguntas, por ejemplo: simulador-gradiente.html#ex17&grad
+    window.onload = function () {
+      const h = (location.hash || '').replace('#', '').split('&');
+      cambiarSuperficie(h.find((t) => SURF[t]) || 'hill');
+      if (h.includes('dy')) state.mode = 'dy';
+      if (h.includes('grad')) state.mode = 'grad';
+      updateAll();
+    };
+  </script>
+</body>
+</html>
