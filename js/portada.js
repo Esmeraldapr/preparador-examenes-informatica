@@ -33,7 +33,7 @@ function imagenAsignatura(a) {
       const hoy = new Date().toLocaleDateString("sv-SE", { timeZone: "Europe/Madrid" });
       const [{ data: dia }, { data: hh }] = await Promise.all([
         sb.from("plan_dia").select("tareas").eq("fecha", hoy).maybeSingle(),
-        sb.from("plan_hecho").select("clave"),
+        todosLosHechos("clave"),
       ]);
       const hechas = new Set((hh || []).map((x) => x.clave));
       const tareas = dia?.tareas || [];

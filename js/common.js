@@ -442,6 +442,24 @@ async function todosLosIntentos(usuarioId, columnas = "pregunta_id, acierto, fec
   return { data: todos };
 }
 
+/**
+ * Trae TODO lo marcado como hecho en Mi plan (plan_hecho), en tandas de 1000.
+ * Pasó de 1000 filas el 22-nov y los vídeos ya vistos volvían a salir sin marcar.
+ */
+async function todosLosHechos(columnas = "clave, hecho_en") {
+  const TANDA = 1000;
+  const todos = [];
+  for (let desde = 0; ; desde += TANDA) {
+    const { data, error } = await sb.from("plan_hecho").select(columnas)
+      .order("clave", { ascending: true })
+      .range(desde, desde + TANDA - 1);
+    if (error) { console.error("plan_hecho:", error); break; }
+    todos.push(...(data || []));
+    if (!data || data.length < TANDA) break;
+  }
+  return { data: todos };
+}
+
 /** Clave YYYY-MM-DD en horario local, usada para agrupar por día. */
 function claveDia(iso) {
   const d = new Date(iso);

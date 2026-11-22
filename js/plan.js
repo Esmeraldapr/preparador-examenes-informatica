@@ -706,7 +706,7 @@ function planTiempoTxt(seg) {
 
   async function cargar(regenerar) {
     const [{ data: hh }, { data: dia }] = await Promise.all([
-      sb.from("plan_hecho").select("clave, hecho_en"),
+      todosLosHechos("clave, hecho_en"),
       sb.from("plan_dia").select("fecha, tareas").order("fecha", { ascending: false }).limit(30),
     ]);
     // Recursos que ya se ven dentro (PDF en imágenes o página incrustada): también en los planes ya guardados.

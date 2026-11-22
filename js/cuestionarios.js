@@ -60,7 +60,7 @@ function hiSumarDias(f, n) {
   const hoy = hiFechaHoy();
   const [{ data: dias }, { data: hh }, { data: tiempos }] = await Promise.all([
     sb.from("plan_dia").select("fecha, tareas").order("fecha", { ascending: true }),
-    sb.from("plan_hecho").select("clave, hecho_en"),
+    todosLosHechos("clave, hecho_en"),
     sb.from("plan_tiempo").select("fecha, segundos"),
   ]);
   // ⏸ Días en pausa (trabajos): solo cuenta lo que se hizo; lo demás pasó al siguiente día sin pausa.
