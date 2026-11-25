@@ -187,6 +187,16 @@ async function planCatalogo(asigId) {
   // Tests de la universidad que solo tienen unidades ya dadas.
   items.testsUni = (tuni || []).filter((e) => { const q = preguntasDe(e.id); return q.length && q.every((x) => udDe(x) <= temaMax); }).map((e) => ({ ...e, n: preguntasDe(e.id).length }));
   items.calcIds = calcIds;
+  // 🧮 Las 20 funciones del foro del profe (examen 114): 7 preguntas seguidas por función, en orden.
+  if (asigId === 1) {
+    const { data: f20 } = await sb.from("preguntas").select("id, orden, subtema").eq("examen_id", 114).order("orden");
+    const grupos = [];
+    (f20 || []).forEach((q) => {
+      const g = grupos.find((x) => x.subtema === q.subtema);
+      if (g) g.ids.push(q.id); else grupos.push({ subtema: q.subtema, fx: String(q.subtema || "").replace(/^Función \d+ del foro: f\(x\) = /, ""), num: Math.ceil(q.orden / 7), ids: [q.id] });
+    });
+    items.f20 = grupos;
+  }
   items.clasesFuncion = asigId === 1 ? (cl.data || []).filter((c) => c.numero >= 2).sort((a, b) => a.numero - b.numero) : [];
   items.unidadActual = Math.max(0, ...[...unidades]);
   return items;
@@ -428,7 +438,20 @@ function planGenerar(hoy, catalogos, hechos, arrastre = []) {
   // 🧮 Las 12 funciones del profe (examen 100): una función al día, sus 6 preguntas seguidas
   // (dominio, par/impar, cortes, asíntotas, máximos y mínimos, recorrido). Van en orden y solo
   // se pasa a la siguiente cuando se ha hecho la anterior; acabadas las 12, vuelven a empezar.
-  if (!arrastre.some((t) => /^f12:/.test(t.clave))) {
+  // 🧮 Las 20 funciones del foro (17-nov): en cuanto se acaban las 12, una al día, 7 preguntas seguidas
+  // (dominio, cortes, asíntotas, crecimiento, máximos y mínimos, recorrido y primitiva). El profe dice
+  // que es «lo que más o menos se pide en el examen». Ocupa el mismo hueco que las 12: no suma tiempo.
+  const F20 = (catalogos[1] || {}).f20 || [];
+  const doceHechas = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].every((i) => hechos.has(`f12:${i}`));
+  const f20Pend = F20.find((g) => !hechos.has(`f20:${g.num}`));
+  if (doceHechas && f20Pend && !arrastre.some((t) => /^f(12|20):/.test(t.clave))) {
+    const clave = `f20:${f20Pend.num}`;
+    tareas.push({ clave, tipo: "test", sub: "calc", asig: "Cálculo", asigId: 1, unidadNum: 1,
+      titulo: `Función ${f20Pend.num} de las 20 del foro del profe: f(x) = ${f20Pend.fx} (${f20Pend.ids.length} preguntas seguidas, como en el examen)`,
+      min: 20,
+      url: `quiz.html?asignatura=1&modo=ids&ids=${f20Pend.ids.join(",")}&titulo=${encodeURIComponent("🧮 Función " + f20Pend.num + " del foro: f(x) = " + f20Pend.fx)}&desde=plan&claveplan=${encodeURIComponent(clave)}` });
+    usado += 20;
+  } else if (!arrastre.some((t) => /^f(12|20):/.test(t.clave))) {
     const FX12 = ["x³/(x² − 4)", "(x² − 1)/(x² + 2x)", "√(x² − 4)/x", "(x² + 1)/(x² − 1)", "(x³ − 4x)/(x² − 4)", "x/√(x² − 9)",
       "ln((x + 1)/(x − 1))", "ln(x²/(x² − 4))", "e^(1/x)", "e^(−1/x²)", "e^(1/x)/x", "x·e^(1/x)"];
     let n = FX12.findIndex((f, i) => !hechos.has(`f12:${i + 1}`)) + 1;
