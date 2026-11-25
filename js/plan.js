@@ -154,7 +154,10 @@ async function planCatalogo(asigId) {
         // Repaso de una clase: lo importante de la clase para ESCUCHAR (sin cuentas, vale para el metro).
         repasoUrl: `clase.html?asignatura=${asigId}&clase=${c.numero}&modo=repaso` }));
     // Cada vídeo es una tarea suelta, con sus minutos reales (duracion_min) si los tenemos.
-    const videosUD = (vi.data || []).filter((v) => v.unidad === "UD" + u).sort((a, b) => a.orden - b.orden);
+    // Los vídeos del profe que solo están en el aula (Interfaces) ya van explicados dentro del
+    // tema completo (apartado «Vídeo…»): no salen como tarea suelta que lleva al aula.
+    const soloAula = (v) => v.tipo === "video" && /aula\.ui1\.es/.test(v.url || "") && !planDentro(v);
+    const videosUD = (vi.data || []).filter((v) => v.unidad === "UD" + u && !soloAula(v)).sort((a, b) => a.orden - b.orden);
     const meteVideo = (v) =>
       items.push({ clave: `video:${v.id}`, tipo: "nuevo", sub: "video", asig: nombre, asigId, unidadNum: u, deTema: v.tipo !== "ejercicios",
         titulo: v.tipo !== "ejercicios" ? `${v.tipo === "apuntes" ? "Lectura" : "Vídeo"} del tema UD${u}${v.apartado ? ` (va con el apartado «${v.apartado}»)` : ""}: ${v.titulo}` : v.titulo, min: v.duracion_min ? Math.max(1, Math.ceil(v.duracion_min - (v.minuto_inicio || 0) / 60)) : PLAN_MIN.video, sinDuracion: !v.duracion_min,
