@@ -20,11 +20,16 @@ const COLORES_CABECERA = ["", "g2", "g3", "g4"];
   const [{ data: preguntas }, { data: intentos }, { data: temasCompletos }, { data: agrupadas }] = await Promise.all([
     sb.from("preguntas").select("id, unidad").eq("asignatura_id", ASIGNATURA_ID).neq("unidad", "Daypo"),
     todosLosIntentos(usuario.id),
-    sb.from("tema_completo").select("unidad_num, titulo").eq("asignatura_id", ASIGNATURA_ID).order("unidad_num"),
+    sb.from("tema_completo").select("unidad_num, titulo, resumen").eq("asignatura_id", ASIGNATURA_ID).order("unidad_num"),
     sb.from("unidades_agrupadas").select("unidad, tema_num, tema_nombre").eq("asignatura_id", ASIGNATURA_ID),
   ]);
   // Unidades que tienen el «Tema completo» (texto + imágenes para leer o escuchar).
   const conTemaCompleto = new Set((temasCompletos || []).map((t) => t.unidad_num));
+  // Unidades con resumen de repaso (lo corto: teoría y cuentas pequeñas, para escuchar en el metro).
+  const conResumen = new Set((temasCompletos || []).filter((t) => t.resumen).map((t) => t.unidad_num));
+  const btnResumen = (n) => conResumen.has(parseInt(n, 10))
+    ? `<a class="btn btn-secundario btn-bloque" href="${enlaceAsignatura("tema.html", ASIGNATURA_ID, "tema=UD" + n + "&modo=repaso")}">🔁 Resumen para repasar (corto)</a>`
+    : "";
   const esAgrupada = (agrupadas || []).length > 0;
 
   // Asignaturas cuyas preguntas no vienen etiquetadas como «UD1, UD2…» sino con
@@ -68,7 +73,7 @@ const COLORES_CABECERA = ["", "g2", "g3", "g4"];
   const bloqueTemario = esAgrupada && (temasCompletos || []).length
     ? `<div style="grid-column:1/-1"><h3 style="margin:0 0 8px">📖 Temario completo (por unidad del temario)</h3>
         <div style="display:flex;flex-direction:column;gap:8px">${temasCompletos
-          .map((t) => `<a class="btn btn-secundario btn-bloque" href="${enlaceAsignatura("tema.html", ASIGNATURA_ID, "tema=UD" + t.unidad_num)}">📖 UD${t.unidad_num}. ${t.titulo.replace(/\s*\(UD\d+ del temario\)/, "")}</a>`)
+          .map((t) => `<a class="btn btn-secundario btn-bloque" href="${enlaceAsignatura("tema.html", ASIGNATURA_ID, "tema=UD" + t.unidad_num)}">📖 UD${t.unidad_num}. ${t.titulo.replace(/\s*\(UD\d+ del temario\)/, "")}</a>${btnResumen(t.unidad_num)}`)
           .join("")}</div>
         <h3 style="margin:16px 0 0">📝 Practicar por temas</h3></div>`
     : "";
@@ -99,6 +104,7 @@ const COLORES_CABECERA = ["", "g2", "g3", "g4"];
         </div>
         <div class="pie" style="display:flex; flex-direction:column; gap:8px">
           <a class="btn btn-secundario btn-bloque" href="${enlaceAsignatura("tema.html", ASIGNATURA_ID, "tema=UD" + numUnidad)}">📖 Tema completo (leer o escuchar)</a>
+          ${btnResumen(numUnidad)}
           <a class="btn btn-primario btn-bloque" href="${urlTest}">Practicar tema</a>
         </div>
       </div>`;
