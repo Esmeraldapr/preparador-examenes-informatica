@@ -335,6 +335,7 @@ function planGenerar(hoy, catalogos, hechos, arrastre = []) {
   // Los repasos no se repiten en días seguidos (25-nov: «se me hace muy repetitivo»): lo que ya
   // se repasó ayer de una unidad (tema o clase) espera a mañana.
   const minRep = oficina ? 1 : 2;
+  let forzadoRep = false;
   let minRepaso = tareas.filter((t) => t.tipo === "repaso").reduce((m, t) => m + (t.min || 0), 0);
   for (const r of repasos) {
     const ud = udLectura(r.tarea);
@@ -342,7 +343,12 @@ function planGenerar(hoy, catalogos, hechos, arrastre = []) {
     if (ud && r.tarea.sub === "repaso" && PLAN_AYER_REP.has(ud)) continue;
     // Como mucho su parte del día (contando solo el tiempo de repasos); al menos 1 (oficina) o 2.
     const nRep = tareas.filter((t) => t.tipo === "repaso").length;
-    if (minRepaso + r.tarea.min > presupuesto * parteRepaso + extraAtraso && nRep >= minRep) break;
+    if (minRepaso + r.tarea.min > presupuesto * parteRepaso + extraAtraso && nRep >= minRep) {
+      // Que no se quede nada atascado: si un repaso lleva más de 4 días esperando, entra igual
+      // (uno al día como mucho, el más antiguo, porque van ordenados por fecha).
+      if (planDiasHasta(r.vence, hoy) > 4 && !forzadoRep) forzadoRep = true;
+      else break;
+    }
     minRepaso += r.tarea.min;
     tareas.push(r.tarea);
     usado += r.tarea.min;
