@@ -144,9 +144,12 @@ function resumenRepaso(texto) {
   // Los apartados del tema (cada «## »), en el mismo orden que la vista tema_apartados de Supabase.
   const trozos = String(t.contenido || "").split(/\n\s*\n(?=## )/).filter((x) => x.startsWith("## "));
   let textoPintar = t.contenido;
+  // Resumen de repaso (para Mi plan): mismos apartados «## » y en el mismo orden, pero sin las cuentas largas.
+  const trozosRes = String(t.resumen || "").split(/\n\s*\n(?=## )/).filter((x) => x.startsWith("## "));
+  const usarRes = modoRepaso && trozosRes.length === trozos.length;
   if (modoRepaso && apsRepaso.length) {
     const quiero = new Set(apsRepaso.map((x) => x[0]));
-    textoPintar = trozos.filter((x, i) => quiero.has(i + 1)).join("\n\n");
+    textoPintar = (usarRes ? trozosRes : trozos).filter((x, i) => quiero.has(i + 1)).join("\n\n");
     const entera = quiero.size >= trozos.length;
     document.title = `Repaso UD${num} ${t.titulo}`;
     document.getElementById("tm-titulo").textContent = `🔁 Repaso UD${num}. ${t.titulo}${entera ? " (entera)" : ""}`;
@@ -154,7 +157,7 @@ function resumenRepaso(texto) {
       ? "Hoy te toca repasar la unidad entera. Pulsa ▶ para escucharla o léela."
       : `Hoy te toca repasar ${quiero.size === 1 ? "este apartado" : "estos " + quiero.size + " apartados"} de la unidad. Pulsa ▶ para escucharlo o léelo.`;
   } else if (modoRepaso) {
-    textoPintar = resumenRepaso(t.contenido);
+    textoPintar = usarRes ? t.resumen : resumenRepaso(t.contenido);
     document.getElementById("tm-titulo").textContent = `🔁 Repaso UD${num}. ${t.titulo}`;
     document.getElementById("tm-subtitulo").textContent = "Pulsa ▶ para escucharlo o léelo.";
   }
