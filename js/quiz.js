@@ -23,6 +23,10 @@ function urlVolver() {
 }
 let preguntasSet = [];
 let favoritosSet = new Set();
+// 🤝 «Con ayuda»: preguntas de ESTE test contestadas con ayuda (no cuentan como acierto en las estadísticas).
+let ayudaSet = new Set();
+// 🧠 «Me la sé de memoria»: se guarda en Supabase (pregunta_memoria) para hacer otras parecidas con otros números.
+let memoriaSet = new Set();
 let indice = 0; // primera pregunta aún sin responder (= nº de preguntas ya hechas)
 let vista = 0; // pregunta que se está mostrando ahora (puede ser < indice si se pulsa "Anterior")
 let respuestas = []; // por índice: { opcionIdx, correcta } o null si se dejó en blanco
@@ -191,6 +195,8 @@ function leerProgresoGuardado() {
 
   const { data: favs } = await sb.from("favoritos").select("pregunta_id").eq("usuario_id", usuarioActual.id);
   favoritosSet = new Set((favs || []).map((f) => f.pregunta_id));
+  const { data: mems } = await sb.from("pregunta_memoria").select("pregunta_id").eq("usuario_id", usuarioActual.id);
+  memoriaSet = new Set((mems || []).map((f) => f.pregunta_id));
 
   await cargarTrucosPorTarea();
 
@@ -467,6 +473,8 @@ function pintarPregunta() {
         ${chipTipoExamen(p)}
         ${p.unidad ? `<span class="chip no-oficial">${p.unidad}</span>` : ""}
         <button class="estrella ${esFav ? "activa" : ""}" id="btn-favorito" title="Marcar como favorita">⭐</button>
+        <button type="button" class="estrella ${ayudaSet.has(p.id) ? "activa" : ""}" id="btn-ayuda" title="La he contestado con ayuda (de la IA, de los apuntes…): no cuenta como acierto" aria-label="Contestada con ayuda">🤝</button>
+        <button type="button" class="estrella ${memoriaSet.has(p.id) ? "activa" : ""}" id="btn-memoria" title="Me la sé de memoria: la acierto porque recuerdo la respuesta, no porque la resuelva" aria-label="Me la sé de memoria">🧠</button>
         <button type="button" class="btn-altavoz" id="btn-altavoz-pregunta" style="position:static; margin-left:auto" title="Escuchar la pregunta y las opciones" aria-label="Escuchar la pregunta y las opciones">🔊</button>
       </div>
       ${p.imagen_url ? `<img class="ampliable" src="${p.imagen_url}" alt="Imagen de la pregunta" title="Pulsa para ver en grande" style="border-radius:12px;margin-bottom:16px;border:1px solid var(--borde)" />` : ""}
@@ -517,6 +525,8 @@ function pintarPregunta() {
   const btnTerminar = document.getElementById("btn-terminar");
   if (btnTerminar) btnTerminar.addEventListener("click", terminarAhora);
   document.getElementById("btn-favorito").addEventListener("click", () => alternarFavorito(p.id));
+  document.getElementById("btn-ayuda").addEventListener("click", () => alternarAyuda(p.id));
+  document.getElementById("btn-memoria").addEventListener("click", () => alternarMemoria(p.id));
   const btnAnterior = document.getElementById("btn-anterior");
   if (btnAnterior) btnAnterior.addEventListener("click", irAnterior);
   document.getElementById("btn-siguiente").addEventListener("click", vista < indice ? avanzarVista : siguientePregunta);
@@ -656,10 +666,14 @@ async function elegirOpcion(el, pregunta) {
   document.getElementById("zona-explicacion").innerHTML = htmlExplicacion(pregunta, esCorrecta);
   activarAltavozExplicacion(esCorrecta);
 
+  // Con ayuda: se guarda como NO acertada (para medir lo que sabes de verdad), pero se apunta el resultado real.
+  const conAyuda = ayudaSet.has(pregunta.id);
   await sb.from("intentos").insert({
     usuario_id: usuarioActual.id,
     pregunta_id: pregunta.id,
-    acierto: esCorrecta,
+    acierto: conAyuda ? false : esCorrecta,
+    con_ayuda: conAyuda,
+    acierto_real: esCorrecta,
   });
 }
 
@@ -731,6 +745,46 @@ async function cargarMisComentarios(preguntaId) {
         : `<div class="qz-com-pend">⏳ Guardada, pendiente de revisar</div>`}
       ${c.cambio_hecho ? `<div class="qz-com-resp" style="border-left:4px solid #16a34a"><strong>🛠️ Cambio hecho en la pregunta:</strong> ${esc(c.cambio_hecho)}</div>` : ""}
     </div>`).join("");
+}
+
+/** 🤝 Con ayuda: se puede pulsar antes o después de contestar. Si ya está contestada, corrige el intento guardado. */
+async function alternarAyuda(preguntaId) {
+  const btn = document.getElementById("btn-ayuda");
+  const on = !ayudaSet.has(preguntaId);
+  if (on) ayudaSet.add(preguntaId); else ayudaSet.delete(preguntaId);
+  btn.classList.toggle("activa", on);
+  avisoMarca(on ? "🤝 Apuntado: esta la has hecho con ayuda. No cuenta como acierto en tus estadísticas y te volverá a salir." : "🤝 Quitado: cuenta normal.");
+  if (contestada(vista)) await sb.rpc("intento_con_ayuda", { p_pregunta: preguntaId, p_on: on });
+}
+
+/** 🧠 Me la sé de memoria: queda guardado para hacer otras parecidas con otros números. */
+async function alternarMemoria(preguntaId) {
+  const btn = document.getElementById("btn-memoria");
+  if (memoriaSet.has(preguntaId)) {
+    await sb.from("pregunta_memoria").delete().eq("usuario_id", usuarioActual.id).eq("pregunta_id", preguntaId);
+    memoriaSet.delete(preguntaId);
+    btn.classList.remove("activa");
+    avisoMarca("🧠 Quitado de «me la sé de memoria».");
+  } else {
+    await sb.from("pregunta_memoria").insert({ usuario_id: usuarioActual.id, pregunta_id: preguntaId });
+    memoriaSet.add(preguntaId);
+    btn.classList.add("activa");
+    avisoMarca("🧠 Apuntado: te haré otras parecidas con números distintos.");
+  }
+}
+
+/** Mensajito corto debajo de los botones de arriba. */
+function avisoMarca(texto) {
+  let el = document.getElementById("qz-aviso-marca");
+  if (!el) {
+    el = document.createElement("div");
+    el.id = "qz-aviso-marca";
+    el.setAttribute("role", "status");
+    el.style.cssText = "font-size:.9rem;margin:-4px 0 10px;color:#0f766e";
+    const sup = document.querySelector("#zona-quiz .info-superior");
+    if (sup) sup.after(el);
+  }
+  el.textContent = texto;
 }
 
 async function alternarFavorito(preguntaId) {
