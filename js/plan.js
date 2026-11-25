@@ -25,6 +25,11 @@ function planDiasRepaso(dia) {
 }
 // Minutos de estudio de cada día: fin de semana 5 h; teletrabajo (lunes, jueves y viernes) 4 h; el resto 3 h.
 const PLAN_TELETRABAJO = [1, 4, 5];
+// Días de oficina sueltos (sin teletrabajo): 3 h aunque sean lunes, jueves o viernes.
+const PLAN_OFICINA = ["2026-11-23", "2026-11-26", "2026-11-27"];
+// Vacaciones (del 7 al 13 de diciembre): 6 h todos los días, también el festivo y el finde.
+const PLAN_VACACIONES = ["2026-12-07", "2026-12-08", "2026-12-09", "2026-12-10", "2026-12-11", "2026-12-12", "2026-12-13"];
+function planEsTele(f) { return !planEsFinde(f) && !PLAN_OFICINA.includes(f) && PLAN_TELETRABAJO.includes(planDiaSemana(f)); }
 // Festivos: se tratan como fin de semana (5 h y tareas de finde).
 const PLAN_FESTIVOS = ["2026-11-09", "2026-12-08", "2026-12-25", "2027-01-01", "2027-01-06"];
 function planEsFinde(f) { return [0, 6].includes(planDiaSemana(f)) || PLAN_FESTIVOS.includes(f); }
@@ -37,8 +42,8 @@ const PLAN_ESTUDIO_FUNCION = [
   { fx: "f(x) = x/(x² + 1)", ids: "2423,2424,2425,2426,2427" },
 ];
 function planMetaMin(f) {
-  const d = planDiaSemana(f);
-  return planEsFinde(f) ? 300 : PLAN_TELETRABAJO.includes(d) ? 240 : 180;
+  if (PLAN_VACACIONES.includes(f)) return 360;
+  return planEsFinde(f) ? 300 : planEsTele(f) ? 240 : 180;
 }
 function planDiasHasta(desde, hasta) {
   return Math.round((new Date(hasta + "T12:00:00Z") - new Date(desde + "T12:00:00Z")) / 86400000);
@@ -192,7 +197,7 @@ function planUrlRepaso(base, clave) {
 
 function planGenerar(hoy, catalogos, hechos, arrastre = []) {
   const finde = planEsFinde(hoy);
-  const tele = !finde && PLAN_TELETRABAJO.includes(planDiaSemana(hoy));
+  const tele = planEsTele(hoy) || PLAN_VACACIONES.includes(hoy);
   const presupuesto = planMetaMin(hoy);
   const tareas = [];
   let usado = 0;

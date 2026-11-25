@@ -30,8 +30,12 @@ const hiGrupo = (sub) => PLAN_GRUPOS_HI.find((g) => g[0] === sub) || ["otros", "
 // teletrabajo (lunes, jueves y viernes) 4 h, resto 3 h. En minutos.
 const HI_TELETRABAJO = [1, 4, 5];
 const HI_FESTIVOS = ["2026-11-09", "2026-12-08", "2026-12-25", "2027-01-01", "2027-01-06"];
+const HI_OFICINA = ["2026-11-23", "2026-11-26", "2026-11-27"];
+const HI_VACACIONES = ["2026-12-07", "2026-12-08", "2026-12-09", "2026-12-10", "2026-12-11", "2026-12-12", "2026-12-13"];
 function hiMetaMin(f) {
   const d = new Date(f + "T12:00:00Z").getUTCDay();
+  if (HI_VACACIONES.includes(f)) return 360;
+  if (HI_OFICINA.includes(f) && ![0, 6].includes(d)) return 180;
   return [0, 6].includes(d) || HI_FESTIVOS.includes(f) ? 300 : HI_TELETRABAJO.includes(d) ? 240 : 180;
 }
 // Color de cada día según el tiempo:
