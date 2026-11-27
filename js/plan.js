@@ -80,7 +80,7 @@ let PLAN_AYER_REP = new Set();
 // archivo: el plan del día salía hecho con reglas antiguas (pasó el 26-nov). Antes de
 // generar el plan se compara con la versión más nueva que se ha visto (en Supabase,
 // plan_config) y, si esta copia es vieja, se espera a que la web despierte y se recarga.
-const PLAN_VERSION = "2026-11-27b";
+const PLAN_VERSION = "2026-11-27c";
 async function planCodigoAlDia(cont) {
   try {
     const { data, error } = await sb.rpc("plan_version_subir", { p_version: PLAN_VERSION });
@@ -369,7 +369,8 @@ function planGenerar(hoy, catalogos, hechos, arrastre = []) {
   const extraAtraso = oficina ? 0 : Math.min(atrasados, 30);
   // Los repasos no se repiten en días seguidos (25-nov: «se me hace muy repetitivo»): lo que ya
   // se repasó ayer de una unidad (tema o clase) espera a mañana.
-  const minRep = oficina ? 1 : 2;
+  // Repasos de leer al día (27-nov, ella): 3 en la oficina y 5 el resto, hasta los exámenes.
+  const minRep = oficina ? 3 : 5;
   let forzadoRep = false;
   let minRepaso = tareas.filter((t) => t.tipo === "repaso").reduce((m, t) => m + (t.min || 0), 0);
   // Los repasos que son TEST de la unidad son preguntas, no lectura: no gastan la parte de
@@ -390,7 +391,7 @@ function planGenerar(hoy, catalogos, hechos, arrastre = []) {
     if (ud && udHoy.has(ud)) continue;
     if (ud && r.tarea.sub === "repaso" && PLAN_AYER_REP.has(ud)) continue;
     // Como mucho su parte del día (contando solo el tiempo de repasos); al menos 1 (oficina) o 2.
-    const nRep = tareas.filter((t) => t.tipo === "repaso").length;
+    const nRep = tareas.filter((t) => t.tipo === "repaso" && t.sub === "repaso").length;
     if (minRepaso + r.tarea.min > presupuesto * parteRepaso + extraAtraso && nRep >= minRep) {
       // Que no se quede nada atascado: si un repaso lleva más de 4 días esperando, entra igual
       // (uno al día como mucho, el más antiguo, porque van ordenados por fecha).
@@ -993,7 +994,7 @@ function planTiempoTxt(seg) {
       }).join("") || (pausa ? '<div class="vacio">Hoy no hay tareas del plan. Lo que hagas de los trabajos, díselo a Claude y lo apunta aquí.</div>' : '<div class="vacio">Hoy no hay tareas.</div>')}
       </div>
 
-      <p class="pl-mini">Lo que no termines pasa solo a mañana. Los repasos siguen la curva del olvido: salen a los 1, 3, 7, 14 y 30 días de acabar algo, y después cada 3 semanas hasta el examen. Los sábados hay simulacro de examen, y en las 3 últimas semanas, todos los días menos los de oficina. Los días de oficina son casi todo preguntas: los repasos ocupan como mucho la quinta parte, y un repaso no se repite dos días seguidos.</p>
+      <p class="pl-mini">Lo que no termines pasa solo a mañana. Los repasos siguen la curva del olvido: salen a los 1, 3, 7, 14 y 30 días de acabar algo, y después cada 3 semanas hasta el examen. Los sábados hay simulacro de examen, y en las 3 últimas semanas, todos los días menos los de oficina. Cada día salen 5 repasos de leer (3 los días de oficina); de una misma unidad, solo uno al día y nunca dos días seguidos.</p>
       <h3 class="pl-h3">Días anteriores</h3>${histo || '<p class="pl-mini">Aún no hay días anteriores.</p>'}
       <p><a class="btn btn-secundario" href="historial.html">📆 Ver historial completo</a></p>
       ${pausa ? "" : `<p><button class="btn btn-secundario" id="pl-rehacer">Rehacer lo que falta de hoy</button></p>`}`;
