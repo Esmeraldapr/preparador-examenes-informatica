@@ -75,6 +75,28 @@ const PLAN_CLASES_PREG = [
 const PLAN_MIN_PREGUNTA = 1.5;
 // Unidades (asignatura:unidad) que ya tuvieron repaso de lectura en el último plan: hoy no se repiten.
 let PLAN_AYER_REP = new Set();
+// ⚠️ VERSIÓN DEL PLAN: súbela (fecha + letra) CADA VEZ que cambies este archivo.
+// Por la mañana Render está dormido y el navegador puede usar una copia vieja de este
+// archivo: el plan del día salía hecho con reglas antiguas (pasó el 26-nov). Antes de
+// generar el plan se compara con la versión más nueva que se ha visto (en Supabase,
+// plan_config) y, si esta copia es vieja, se espera a que la web despierte y se recarga.
+const PLAN_VERSION = "2026-11-27a";
+async function planCodigoAlDia(cont) {
+  try {
+    const { data, error } = await sb.rpc("plan_version_subir", { p_version: PLAN_VERSION });
+    if (error || !data || data <= PLAN_VERSION) { sessionStorage.removeItem("plan_recargas"); return true; }
+    const n = +(sessionStorage.getItem("plan_recargas") || 0);
+    if (n >= 3) return true; // no se queda atascada: a la tercera, sigue con lo que hay
+    sessionStorage.setItem("plan_recargas", String(n + 1));
+    cont.innerHTML = `<div class="vacio"><div class="icono">⏳</div>La web se está despertando para prepararte el plan de hoy con las reglas nuevas.<br/>Espera unos segundos: se recarga sola.</div>`;
+    fetch("js/plan.js", { cache: "reload" }).catch(() => {});
+    await new Promise((r) => setTimeout(r, 15000));
+    location.reload();
+    return false;
+  } catch (e) {
+    return true;
+  }
+}
 const PLAN_MIN = { clase: 40, video: 20, tema: 45, test: 15, repaso: 10, cae: 15, simulacro: 45 };
 const PLAN_VIDEOS_MAX = 5; // vídeos de ejercicios al día, como mucho (20-nov: con 10 eran demasiados)
 const PLAN_VIDEOS_MIN = { semana: 25, finde: 45 }; // minutos de vídeos de ejercicios al día
@@ -792,6 +814,7 @@ function planTiempoTxt(seg) {
       pintar((delHoy?.tareas || []).filter((t) => t.sub === "trabajo"), hechos, dia || [], null, avisos || [], pesoMap, pausa);
       return;
     }
+    if ((!delHoy || regenerar) && !(await planCodigoAlDia(cont))) return;
     if (!delHoy || regenerar) {
       const catalogos = {};
       await Promise.all(PLAN_ASIGNATURAS.map(async (a) => (catalogos[a] = await planCatalogo(a))));
