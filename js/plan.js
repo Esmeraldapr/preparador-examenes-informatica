@@ -80,7 +80,7 @@ let PLAN_AYER_REP = new Set();
 // archivo: el plan del día salía hecho con reglas antiguas (pasó el 26-nov). Antes de
 // generar el plan se compara con la versión más nueva que se ha visto (en Supabase,
 // plan_config) y, si esta copia es vieja, se espera a que la web despierte y se recarga.
-const PLAN_VERSION = "2026-11-27a";
+const PLAN_VERSION = "2026-11-27b";
 async function planCodigoAlDia(cont) {
   try {
     const { data, error } = await sb.rpc("plan_version_subir", { p_version: PLAN_VERSION });
@@ -288,6 +288,19 @@ function planGenerar(hoy, catalogos, hechos, arrastre = []) {
     }
   });
 
+  // ⏮ Lo nuevo que se quedó ATRÁS (clase, tema o test de una unidad anterior que nunca se hizo):
+  // una cosa por asignatura cada día, Interfaces incluida, antes que los repasos. Antes se
+  // perdían: la clase 3 y el test de la UD2 de Interfaces no habían salido nunca (27-nov).
+  PLAN_ASIGNATURAS.forEach((a) => {
+    const cat = catalogos[a] || [];
+    const sig = cat.find((i) => i.unidadNum < cat.unidadActual && ["clase", "tema", "test"].includes(i.sub) && !hechos.has(i.clave) && !enArrastre.has(i.clave) && !garantizadas.has(i.clave) && !(udLectura(i) && udHoy.has(udLectura(i))));
+    if (!sig) return;
+    if (udLectura(sig)) udHoy.add(udLectura(sig));
+    garantizadas.add(sig.clave);
+    tareas.push({ clave: sig.clave, tipo: sig.tipo, sub: sig.sub, asig: sig.asig, asigId: sig.asigId, unidadNum: sig.unidadNum, unidadTexto: sig.unidadTexto, titulo: `⏮ Se quedó atrás · UD${sig.unidadNum} · ${sig.titulo}`, min: sig.min, url: sig.url, externo: !!sig.externo });
+    usado += sig.min;
+  });
+
   // 🔁 Repasos que tocan (el primero sin hacer de cada cosa), como mucho el 40 % del tiempo.
   // 🔁 Curva del olvido (1, 3, 7, 14 y 30 días; luego cada 21).
   //  - Temas: se repasan POR PARTES. Cada apartado cuenta desde el día en que se leyó;
@@ -359,8 +372,21 @@ function planGenerar(hoy, catalogos, hechos, arrastre = []) {
   const minRep = oficina ? 1 : 2;
   let forzadoRep = false;
   let minRepaso = tareas.filter((t) => t.tipo === "repaso").reduce((m, t) => m + (t.min || 0), 0);
+  // Los repasos que son TEST de la unidad son preguntas, no lectura: no gastan la parte de
+  // repasos (hasta 3 al día). Así no se atrasan (el 27-nov había tests con 5 días de retraso).
+  let nTestRep = 0;
+  // Atascados (más de 4 días vencidos): entran aunque no quepan, 2 al día en oficina y 3 el resto.
+  const maxForzados = oficina ? 2 : 3;
+  let nForzados = 0;
   for (const r of repasos) {
     const ud = udLectura(r.tarea);
+    if (r.tarea.sub === "test") {
+      if (nTestRep >= 3) continue;
+      nTestRep++;
+      tareas.push(r.tarea);
+      usado += r.tarea.min;
+      continue;
+    }
     if (ud && udHoy.has(ud)) continue;
     if (ud && r.tarea.sub === "repaso" && PLAN_AYER_REP.has(ud)) continue;
     // Como mucho su parte del día (contando solo el tiempo de repasos); al menos 1 (oficina) o 2.
@@ -368,8 +394,8 @@ function planGenerar(hoy, catalogos, hechos, arrastre = []) {
     if (minRepaso + r.tarea.min > presupuesto * parteRepaso + extraAtraso && nRep >= minRep) {
       // Que no se quede nada atascado: si un repaso lleva más de 4 días esperando, entra igual
       // (uno al día como mucho, el más antiguo, porque van ordenados por fecha).
-      if (planDiasHasta(r.vence, hoy) > 4 && !forzadoRep) forzadoRep = true;
-      else break;
+      if (planDiasHasta(r.vence, hoy) > 4 && nForzados < maxForzados) { nForzados++; forzadoRep = true; }
+      else continue;
     }
     minRepaso += r.tarea.min;
     tareas.push(r.tarea);
